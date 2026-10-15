@@ -4,11 +4,17 @@ HU-07 y HU-09 exigen que los indicadores y la matriz consulten datos almacenados
 
 ## Activación
 
-1. En un proyecto Supabase bajo control del equipo, ejecuta [la migración SQL](../backend/sql/vera_audit_proposals.sql) en el SQL Editor. La tabla no admite lectura directa con claves públicas.
+1. Aplica las [migraciones versionadas](../supabase/migrations/) en un proyecto Supabase bajo control del equipo. Las tablas de planificación y bitácora de accesos no admiten lectura directa con claves públicas.
 2. Configura **solo en el backend** `VERA_PLANNING_STORE=supabase`, `SUPABASE_URL` y `SUPABASE_SECRET_KEY`. También se acepta `SUPABASE_SERVICE_ROLE_KEY` en proyectos con clave legacy. Nunca uses variables `VITE_` para la clave secreta ni la subas al repositorio.
 3. Reinicia o redespliega el backend. Crea una propuesta, apruébala e iníciala desde la aplicación. Reinicia otra vez y confirma que sigue visible en `/api/planning/active` y que `/api/dashboard` refleja sus conteos para los roles autorizados.
 
-El inicio de sesión escribe en la tabla `logins`; ejecuta también [su SQL](../backend/sql/create_logins_table.sql) en el proyecto. El backend usa la misma `SUPABASE_SECRET_KEY` para las claves `sb_secret_*` o `SUPABASE_SERVICE_ROLE_KEY` para claves legacy. Las claves secretas nunca deben estar en variables `VITE_` ni en el navegador. Si el registro de login falla, la API responde `503` y no emite una sesión.
+El inicio de sesión escribe en la tabla `logins`, incluida en la segunda migración. El backend usa la misma `SUPABASE_SECRET_KEY` para las claves `sb_secret_*` o `SUPABASE_SERVICE_ROLE_KEY` para claves legacy. Las claves secretas nunca deben estar en variables `VITE_` ni en el navegador. Si el registro de login falla, la API responde `503` y no emite una sesión.
+
+## Aplicación y conciliación del esquema
+
+Las migraciones de `supabase/migrations` son la fuente de verdad para nuevos entornos. Revisa el proyecto y su historial antes de ejecutarlas: `supabase link --project-ref <project-ref>`, `supabase migration list` y `supabase db push --dry-run`. Aplica con `supabase db push` solo tras confirmar que el destino es el proyecto correcto y que el plan no altera otros objetos. No uses `supabase db reset --linked` contra un proyecto con datos reales.
+
+Si las tablas `vera_audit_proposals` o `logins` ya se crearon manualmente, primero extrae y compara el esquema remoto con `supabase db pull` en una rama temporal. Las migraciones usan `create table if not exists` y conservan los datos existentes, pero esta instrucción no comprueba que las columnas, restricciones, índices y permisos remotos sean iguales. Resuelve cualquier diferencia antes de aplicar o marcar migraciones como ejecutadas. No uses `migration repair` sin esa comparación. La conexión a Supabase y la ejecución remota siguen pendientes hasta disponer del proyecto del equipo.
 
 ## Comprobación del entorno conectado
 

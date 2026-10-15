@@ -1,5 +1,5 @@
--- Ejecutar una sola vez en el SQL Editor del proyecto Supabase de VERA.
--- Solo la API Express usa esta tabla con una clave secreta de servidor.
+-- HU-07/HU-09/HU-22/HU-23: audit proposals and lifecycle.
+-- Idempotent for projects that already ran the former SQL Editor script.
 create table if not exists public.vera_audit_proposals (
   id text primary key,
   payload jsonb not null,
@@ -13,7 +13,6 @@ create table if not exists public.vera_audit_proposals (
   )
 );
 
--- Evita duplicados incluso si dos personas crean la misma propuesta a la vez.
 create unique index if not exists vera_audit_proposals_business_key
   on public.vera_audit_proposals (
     lower(btrim(payload ->> 'title')),
