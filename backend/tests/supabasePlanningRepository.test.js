@@ -71,4 +71,11 @@ test("Supabase planning adapter reads persisted rows, updates versions and detec
   const active = await repository.start(created.id, { startedBy: { id: 2, name: "Dirección" } }, approved.storageVersion);
   assert.equal(active.status, "ACTIVE");
   assert.equal((await repository.getAll())[0].status, "ACTIVE");
+
+  const [second, third] = await Promise.all([
+    repository.create({ title: "Revisión B", area: "Operaciones", year: 2026 }),
+    repository.create({ title: "Revisión C", area: "Operaciones", year: 2026 })
+  ]);
+  assert.notEqual(second.id, third.id);
+  assert.equal((await repository.getAll()).length, 3);
 });

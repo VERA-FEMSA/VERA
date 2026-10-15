@@ -1,3 +1,5 @@
+const { randomUUID } = require("node:crypto");
+
 const TABLE = "vera_audit_proposals";
 const PAGE_SIZE = 1000;
 const normalize = (value) => String(value ?? "").trim().toLowerCase();
@@ -85,19 +87,10 @@ const findDuplicate = async ({ title, area, year }, excludeId = null) =>
     normalize(proposal.title) === normalize(title) &&
     normalize(proposal.area) === normalize(area) && proposal.year === year) || null;
 
-const nextId = async () => {
-  const proposals = await getAll();
-  const max = proposals.reduce((highest, proposal) => {
-    const match = /^AUD-(\d+)$/.exec(String(proposal.id));
-    return match ? Math.max(highest, Number(match[1])) : highest;
-  }, 0);
-  return `AUD-${String(max + 1).padStart(2, "0")}`;
-};
-
 const create = async (data) => {
   const proposal = {
     ...data,
-    id: await nextId(),
+    id: `AUD-${randomUUID()}`,
     status: "OPEN",
     approval: 0,
     progress: 0,

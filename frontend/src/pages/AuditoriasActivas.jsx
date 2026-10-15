@@ -65,14 +65,9 @@ function AuditoriasActivas() {
         setRisks(linkedRisks);
         setControls(linkedControls);
         setEvidence(allEvidence);
-        if (auditId) {
-          const auditFromRoute = decodeURIComponent(auditId);
-          const auditFromHash = active.find((item) => item.id === auditFromRoute);
-          if (auditFromHash) {
-            setSelectedAudit(auditFromHash);
-            setActiveStep("annual");
-          }
-        }
+        const auditFromRoute = auditId ? active.find((item) => item.id === auditId) : null;
+        setSelectedAudit(auditFromRoute || null);
+        if (auditFromRoute) setActiveStep("annual");
         setError("");
       })
       .catch((loadError) => {

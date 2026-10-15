@@ -29,8 +29,10 @@ test("HU-22: proposal captures scope, justification and an estimated period", as
   await form.getByRole("button", { name: "Abrir propuesta" }).click();
 
   await expect(page.getByText("La propuesta fue creada y quedó abierta para revisión.")).toBeVisible();
-  await expect(page.getByText("Órdenes y pagos del trimestre")).toBeVisible();
-  await expect(page.getByText("Hallazgos de la revisión anterior")).toBeVisible();
+  await page.getByRole("button", { name: "Ver detalles de AUD-550 Auditoría de compras" }).click();
+  const details = page.getByRole("dialog", { name: "AUD-550 · Auditoría de compras" });
+  await expect(details.getByText("Órdenes y pagos del trimestre")).toBeVisible();
+  await expect(details.getByText("Hallazgos de la revisión anterior")).toBeVisible();
   expect(submitted).toMatchObject({
     objective: "Verificar autorizaciones",
     scope: "Órdenes y pagos del trimestre",
@@ -61,9 +63,12 @@ test("HU-11: jefatura can propose and edit only its own open proposal", async ({
   await page.goto("/planificacion");
   await expect(page.getByRole("button", { name: "Nueva propuesta" })).toBeVisible();
   const other = page.locator(".planning-card").filter({ hasText: "Propuesta de gerencia" });
-  await expect(other.getByRole("button", { name: "Editar" })).toHaveCount(0);
-  await expect(other.getByRole("button", { name: "Eliminar" })).toHaveCount(0);
-  await expect(other.getByRole("button", { name: "Marcar 100% aprobada" })).toHaveCount(0);
+  await other.getByRole("button", { name: "Abrir acciones de Propuesta de gerencia" }).click();
+  const actions = page.getByRole("dialog", { name: "AUD-OTHER · Propuesta de gerencia" });
+  await expect(actions.getByRole("button", { name: "Editar" })).toHaveCount(0);
+  await expect(actions.getByRole("button", { name: "Eliminar" })).toHaveCount(0);
+  await expect(actions.getByRole("button", { name: "Marcar 100% aprobada" })).toHaveCount(0);
+  await actions.getByRole("button", { name: "Cerrar acciones" }).click();
 
   await page.getByRole("button", { name: "Nueva propuesta" }).click();
   const form = page.locator("form.proposal-modal");
@@ -76,6 +81,8 @@ test("HU-11: jefatura can propose and edit only its own open proposal", async ({
   await form.getByRole("button", { name: "Abrir propuesta" }).click();
 
   const own = page.locator(".planning-card").filter({ hasText: "Auditoría de inventarios" });
-  await expect(own.getByRole("button", { name: "Editar" })).toBeVisible();
-  await expect(own.getByRole("button", { name: "Eliminar" })).toHaveCount(0);
+  await own.getByRole("button", { name: "Abrir acciones de Auditoría de inventarios" }).click();
+  const ownActions = page.getByRole("dialog", { name: "AUD-OWN · Auditoría de inventarios" });
+  await expect(ownActions.getByRole("button", { name: "Editar" })).toBeVisible();
+  await expect(ownActions.getByRole("button", { name: "Eliminar" })).toHaveCount(0);
 });
