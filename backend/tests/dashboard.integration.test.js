@@ -26,11 +26,14 @@ test("HU-07: dashboard data is authenticated and scoped according to the user's 
   const proposalResponse = await fetch(`${baseUrl}/api/planning`, json(tokenFor(3), "POST", {
     title: `HU-07 assigned ${Date.now()}`,
     objective: "Validar la vista de carga por usuario.",
+    scope: "Auditorías asignadas al equipo.",
+    justification: "Se requiere seguimiento de la carga.",
     area: "Tecnología",
     responsibleId: 5,
     likelihood: 3,
     impact: 2,
-    year: 2026
+    year: 2026,
+    quarter: "Q2"
   }));
   assert.equal(proposalResponse.status, 201);
   const proposal = (await proposalResponse.json()).proposal;

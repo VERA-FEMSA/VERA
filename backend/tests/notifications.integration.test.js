@@ -25,7 +25,8 @@ test("HU-17: in-app pending inbox is derived from proposal states and scoped to 
   const openResponse = await fetch(`${baseUrl}/api/planning`, json(manager, "POST", {
     title: `HU-17 decision ${Date.now()}`,
     objective: "Revisar una propuesta prioritaria para la bandeja.",
-    area: "Finanzas", year: 2026, likelihood: 3, impact: 3
+    scope: "Revisión financiera.", justification: "Se requiere una decisión prioritaria.",
+    area: "Finanzas", year: 2026, quarter: "Q2", likelihood: 3, impact: 3
   }));
   assert.equal(openResponse.status, 201);
   const openProposal = (await openResponse.json()).proposal;
@@ -34,7 +35,8 @@ test("HU-17: in-app pending inbox is derived from proposal states and scoped to 
   const activeResponse = await fetch(`${baseUrl}/api/planning`, json(manager, "POST", {
     title: `HU-17 assigned ${Date.now()}`,
     objective: "Dar seguimiento a la auditoría asignada y su fecha objetivo.",
-    area: "Operaciones", year: 2026, responsibleId: 5, endDate: dueDate
+    scope: "Operaciones asignadas.", justification: "Se requiere seguimiento de la fecha objetivo.",
+    area: "Operaciones", year: 2026, quarter: "Q2", responsibleId: 5, endDate: dueDate, startDate: "2026-01-01"
   }));
   const activeProposal = (await activeResponse.json()).proposal;
   const approval = await fetch(`${baseUrl}/api/planning/${activeProposal.id}/approve`, json(director, "POST", { quarter: "Q2" }));

@@ -25,23 +25,29 @@ test("HU-18: contextual history shows proposal lifecycle events and comments wit
   const createdResponse = await fetch(`${baseUrl}/api/planning`, json(manager, "POST", {
     title: `HU-18 history ${Date.now()}`,
     objective: "Comprobar la trazabilidad de decisiones y comentarios.",
+    scope: "Operaciones y controles de proceso.",
+    justification: "Se requiere una bitácora completa.",
     area: "Operaciones",
     responsibleId: 5,
-    year: 2026
+    year: 2026,
+    quarter: "Q2"
   }));
   assert.equal(createdResponse.status, 201);
   const proposal = (await createdResponse.json()).proposal;
   const updated = await fetch(`${baseUrl}/api/planning/${proposal.id}`, json(manager, "PUT", {
-    title: `${proposal.title} revisada`, objective: proposal.objective, area: proposal.area,
-    responsibleId: 5, year: 2026, likelihood: 2, impact: 2
+    title: `${proposal.title} revisada`, objective: proposal.objective, scope: proposal.scope, justification: proposal.justification, area: proposal.area,
+    responsibleId: 5, year: 2026, quarter: proposal.quarter, likelihood: 2, impact: 2
   }));
   assert.equal(updated.status, 200);
 
   const notAssignedProposalResponse = await fetch(`${baseUrl}/api/planning`, json(manager, "POST", {
     title: `HU-18 scope ${Date.now()}`,
     objective: "Propuesta para comprobar alcance por persona asignada.",
+    scope: "Finanzas.",
+    justification: "Se necesita comprobar el alcance por rol.",
     area: "Finanzas",
-    year: 2026
+    year: 2026,
+    quarter: "Q2"
   }));
   const notAssignedProposal = (await notAssignedProposalResponse.json()).proposal;
   const hiddenHistory = await fetch(`${baseUrl}/api/planning/${notAssignedProposal.id}/history`, json(auditor));

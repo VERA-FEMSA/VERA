@@ -45,7 +45,8 @@ test("HU-07/HU-09/HU-22/HU-23 use the Supabase planning source across API reques
   const base = await startTestServer(context, app);
   const createdResponse = await fetch(`${base}/api/planning`, auth(3, "POST", {
     title: "Propuesta almacenada", objective: "Validar la revisión de procesos",
-    area: "Operaciones", year: 2026, responsibleId: 5, likelihood: 3, impact: 2
+    scope: "Procesos operativos.", justification: "Se requiere una revisión formal.",
+    area: "Operaciones", year: 2026, quarter: "Q2", responsibleId: 5, likelihood: 3, impact: 2
   }));
   assert.equal(createdResponse.status, 201);
   const created = (await createdResponse.json()).proposal;

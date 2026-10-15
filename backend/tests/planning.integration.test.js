@@ -28,10 +28,14 @@ test("HU-22: create, edit, validate duplicate and approve an audit proposal", as
     const initial = {
       title,
       objective: "Verificar el diseño y la operación de controles.",
+      scope: "Procesos de compras y autorizaciones.",
+      justification: "Los hallazgos previos requieren seguimiento.",
       area: "Operaciones",
       type: "Interna",
       risk: "Alto",
-      year: 2026
+      year: 2026,
+      startDate: "2026-04-01",
+      endDate: "2026-06-30"
     };
 
     const invalid = await fetch(`${baseUrl}/api/planning`, json(directorToken, "POST", {
@@ -39,11 +43,23 @@ test("HU-22: create, edit, validate duplicate and approve an audit proposal", as
       objective: ""
     }));
     assert.equal(invalid.status, 400);
+    for (const incomplete of [
+      { ...initial, scope: "" },
+      { ...initial, justification: "" },
+      { ...initial, startDate: "", endDate: "" }
+    ]) {
+      const response = await fetch(`${baseUrl}/api/planning`, json(directorToken, "POST", incomplete));
+      assert.equal(response.status, 400);
+    }
 
     const createdResponse = await fetch(`${baseUrl}/api/planning`, json(directorToken, "POST", initial));
     assert.equal(createdResponse.status, 201);
     const { proposal } = await createdResponse.json();
     assert.equal(proposal.title, title);
+    assert.equal(proposal.scope, initial.scope);
+    assert.equal(proposal.justification, initial.justification);
+    assert.equal(proposal.startDate, "2026-04-01");
+    assert.equal(proposal.endDate, "2026-06-30");
     assert.equal(proposal.status, "OPEN");
     assert.equal(proposal.approval, 0);
 
@@ -90,8 +106,11 @@ test("HU-22: only authorized roles can create proposals and anonymous users cann
     const created = await fetch(`${baseUrl}/api/planning`, json(managerToken, "POST", {
       title: `HU-22 approval role ${Date.now()}`,
       objective: "Verificar separación entre propuesta y aprobación.",
+      scope: "Planeación anual.",
+      justification: "Priorizar la revisión de procesos.",
       area: "Tecnología",
-      year: 2026
+      year: 2026,
+      quarter: "Q1"
     }));
     assert.equal(created.status, 201);
     const proposal = (await created.json()).proposal;
@@ -110,8 +129,11 @@ test("HU-23: rejection requires a reason, records the decision and makes the pro
     const proposalBody = {
       title: `HU-23 rejection ${Date.now()}`,
       objective: "Asegurar que la decisión de rechazo sea trazable.",
+      scope: "Proceso financiero.",
+      justification: "Se requiere una decisión documentada.",
       area: "Finanzas",
-      year: 2026
+      year: 2026,
+      quarter: "Q2"
     };
     const createdResponse = await fetch(`${baseUrl}/api/planning`, json(managerToken, "POST", proposalBody));
     assert.equal(createdResponse.status, 201);
@@ -150,8 +172,11 @@ test("HU-09: risk is derived from probability and impact; approved audits follow
     const body = {
       title: `HU-09 lifecycle ${Date.now()}`,
       objective: "Revisar exposición y ejecutar el programa aprobado.",
+      scope: "Operaciones críticas.",
+      justification: "La exposición requiere seguimiento.",
       area: "Operaciones",
       year: 2026,
+      quarter: "Q2",
       likelihood: 3,
       impact: 2
     };

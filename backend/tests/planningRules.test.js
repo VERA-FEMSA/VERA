@@ -5,6 +5,8 @@ const { parseProposal } = require("../controllers/planningController");
 const validProposal = {
   title: "  Revisión de controles  ",
   objective: "Validar que los controles se ejecuten de forma oportuna.",
+  scope: "Compras y pagos del segundo trimestre.",
+  justification: "Se detectaron desviaciones en controles anteriores.",
   area: " Finanzas ",
   type: "Interna",
   risk: "Medio",
@@ -20,6 +22,8 @@ test("proposal parser trims text and derives a consistent risk score", () => {
   assert.equal(result.error, undefined);
   assert.equal(result.data.title, "Revisión de controles");
   assert.equal(result.data.area, "Finanzas");
+  assert.equal(result.data.scope, validProposal.scope);
+  assert.equal(result.data.justification, validProposal.justification);
   assert.equal(result.data.likelihood, 2);
   assert.equal(result.data.impact, 2);
   assert.equal(result.data.riskScore, 4);
@@ -32,6 +36,11 @@ test("proposal parser rejects missing fields, invalid catalogs, dates and inacti
     [{ ...validProposal, title: " " }, /título/],
     [{ ...validProposal, objective: "" }, /título/],
     [{ ...validProposal, area: " " }, /título/],
+    [{ ...validProposal, scope: " " }, /alcance/],
+    [{ ...validProposal, justification: " " }, /justificación/],
+    [{ ...validProposal, scope: "x".repeat(2001) }, /2000/],
+    [{ ...validProposal, quarter: "", startDate: "", endDate: "" }, /periodo estimado/],
+    [{ ...validProposal, quarter: "", endDate: "" }, /ambas fechas/],
     [{ ...validProposal, type: "No válida" }, /tipo/],
     [{ ...validProposal, risk: "Crítico" }, /riesgo/],
     [{ ...validProposal, likelihood: 4 }, /probabilidad/],

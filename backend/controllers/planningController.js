@@ -29,6 +29,8 @@ const activeAuditors = () =>
 const parseProposal = (body) => {
   const title = text(body.title);
   const objective = text(body.objective);
+  const scope = text(body.scope);
+  const justification = text(body.justification);
   const area = text(body.area);
   const type = text(body.type) || "Interna";
   const requestedRisk = text(body.risk) || "Medio";
@@ -40,8 +42,11 @@ const parseProposal = (body) => {
   const startDate = text(body.startDate);
   const endDate = text(body.endDate);
 
-  if (!title || !objective || !area) {
-    return { error: "Completa el título, el área y el objetivo de la propuesta." };
+  if (!title || !objective || !scope || !justification || !area) {
+    return { error: "Completa el título, el área, el objetivo, el alcance y la justificación de la propuesta." };
+  }
+  if (scope.length > 2000 || justification.length > 2000) {
+    return { error: "El alcance y la justificación no pueden superar 2000 caracteres." };
   }
   if (!TYPES.includes(type)) return { error: "El tipo de auditoría no es válido." };
   if (!RISKS.includes(requestedRisk)) return { error: "El nivel de riesgo no es válido." };
@@ -58,6 +63,12 @@ const parseProposal = (body) => {
   if (startDate && endDate && endDate < startDate) {
     return { error: "La fecha de fin no puede ser anterior a la de inicio." };
   }
+  if (Boolean(startDate) !== Boolean(endDate)) {
+    return { error: "Indica ambas fechas del periodo estimado." };
+  }
+  if (!quarter && !startDate) {
+    return { error: "Indica un trimestre o ambas fechas del periodo estimado." };
+  }
 
   let responsibleId = null;
   let responsible = "Sin asignar";
@@ -73,6 +84,8 @@ const parseProposal = (body) => {
     data: {
       title,
       objective,
+      scope,
+      justification,
       area,
       type,
       likelihood,

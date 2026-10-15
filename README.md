@@ -94,7 +94,7 @@ El workflow **VERA — Calidad y pruebas completas** ejecuta en una sola corrida
 
 ### HU-22: creación de propuestas de auditoría
 
-El flujo permite crear propuestas con título, objetivo, área, tipo, nivel de riesgo y año; también admite responsable, trimestre y fechas. El backend valida campos obligatorios, catálogos permitidos, año, fechas, auditor responsable activo y duplicados por título, área y año. Las propuestas empiezan abiertas, se pueden editar mientras sigan abiertas y solo roles `SUPER_ADMIN` o `DIRECTOR` pueden aprobarlas. La aprobación requiere un trimestre válido y fija el avance en 100%; una propuesta aprobada queda protegida contra edición y eliminación.
+El flujo permite crear propuestas con título, objetivo, alcance, justificación, área, tipo, nivel de riesgo, año y periodo estimado (trimestre o ambas fechas). También admite responsable. El backend exige estos datos, limita alcance y justificación a 2000 caracteres, valida catálogos, fechas, auditor responsable activo y duplicados por título, área y año. Las propuestas empiezan abiertas y quedan disponibles para revisión; se pueden editar mientras sigan abiertas y solo roles `SUPER_ADMIN` o `DIRECTOR` pueden aprobarlas. La aprobación requiere un trimestre válido y fija el avance en 100%; una propuesta aprobada queda protegida contra edición y eliminación. Las propuestas históricas sin alcance o justificación deben completarse al editarlas.
 
 Las pruebas de integración de `backend/tests/planning.integration.test.js` verifican el flujo HTTP de creación, validación, duplicidad, edición, aprobación y permisos. Se ejecutan con `npm run test:coverage --prefix backend` y forman parte de `npm run quality`.
 

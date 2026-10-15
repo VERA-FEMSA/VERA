@@ -26,6 +26,8 @@ const createApprovedAudit = async (baseUrl, { start = false } = {}) => {
   const created = await fetch(`${baseUrl}/api/planning`, json(director, "POST", {
     title: `HU-12 edición ${Date.now()} ${Math.random()}`,
     objective: "Revisar controles de compras.",
+    scope: "Compras y autorizaciones.",
+    justification: "Se necesita validar el diseño de controles.",
     area: "Compras",
     year: 2026,
     likelihood: 1,

@@ -31,7 +31,9 @@ const EMPTY_FORM = {
   year: new Date().getFullYear(),
   startDate: "",
   endDate: "",
-  objective: ""
+  objective: "",
+  scope: "",
+  justification: ""
 };
 
 const formatDate = (value) =>
@@ -102,7 +104,9 @@ function Planificacion() {
       year: item.year,
       startDate: item.startDate,
       endDate: item.endDate,
-      objective: item.objective
+      objective: item.objective,
+      scope: item.scope || "",
+      justification: item.justification || ""
     });
     setIsModalOpen(true);
   };
@@ -221,6 +225,8 @@ function Planificacion() {
                     </div>
                     <h2>{item.title}</h2>
                     <p>{item.objective}</p>
+                    {item.scope && <p><b>Alcance:</b> {item.scope}</p>}
+                    {item.justification && <p><b>Justificación:</b> {item.justification}</p>}
                     <div className="proposal-meta">
                       <span><b>Tipo:</b> {item.type}</span>
                       <span><b>Área:</b> {item.area || "Sin definir"}</span>
@@ -383,13 +389,19 @@ function Planificacion() {
                     <input type="number" min="2020" max="2100" required value={form.year} onChange={(event) => updateForm("year", event.target.value)} />
                   </label>
                   <label>Fecha de inicio
-                    <input type="date" value={form.startDate} onChange={(event) => updateForm("startDate", event.target.value)} />
+                    <input type="date" required={!form.quarter || Boolean(form.endDate)} value={form.startDate} onChange={(event) => updateForm("startDate", event.target.value)} />
                   </label>
                   <label>Fecha de fin
-                    <input type="date" min={form.startDate || undefined} value={form.endDate} onChange={(event) => updateForm("endDate", event.target.value)} />
+                    <input type="date" min={form.startDate || undefined} required={!form.quarter || Boolean(form.startDate)} value={form.endDate} onChange={(event) => updateForm("endDate", event.target.value)} />
                   </label>
                   <label className="full-width">Objetivo
                     <textarea required value={form.objective} onChange={(event) => updateForm("objective", event.target.value)} placeholder="¿Qué decisión o riesgo busca aclarar esta auditoría?" />
+                  </label>
+                  <label className="full-width">Alcance
+                    <textarea required maxLength={2000} value={form.scope} onChange={(event) => updateForm("scope", event.target.value)} placeholder="¿Qué procesos, áreas y periodos se revisarán?" />
+                  </label>
+                  <label className="full-width">Justificación
+                    <textarea required maxLength={2000} value={form.justification} onChange={(event) => updateForm("justification", event.target.value)} placeholder="¿Por qué es necesaria esta auditoría?" />
                   </label>
                 </div>
                 <div className="modal-actions">
