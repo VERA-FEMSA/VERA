@@ -17,7 +17,7 @@ const parseCore = async (body) => {
   const frequency = text(body.frequency);
   const owner = (await activeUsers()).find((user) => user.id === Number(body.ownerId));
   const rawRiskIds = Array.isArray(body.riskIds) ? [...new Set(body.riskIds.map((id) => text(id)).filter(Boolean))] : [];
-  const risks = riskRepository.getAll();
+  const risks = await riskRepository.getAll();
 
   if (title.length < 3 || title.length > 120) return { error: "El nombre debe tener entre 3 y 120 caracteres." };
   if (description.length < 10 || description.length > 1000) return { error: "La descripción debe tener entre 10 y 1,000 caracteres." };
@@ -38,21 +38,21 @@ const parseEvaluation = (body) => {
   return { data: { rating, note } };
 };
 
-const visibleControls = (req) => {
-  const controls = controlRepository.getAll();
+const visibleControls = async (req) => {
+  const controls = await controlRepository.getAll();
   if (req.user.role !== ROLES.AUDITOR) return controls;
-  const assignedRiskIds = new Set(riskRepository.getAll().filter((risk) => risk.ownerId === req.user.id).map((risk) => risk.id));
+  const assignedRiskIds = new Set((await riskRepository.getAll()).filter((risk) => risk.ownerId === req.user.id).map((risk) => risk.id));
   return controls.filter((control) => control.riskIds.some((id) => assignedRiskIds.has(id)));
 };
 
-const listControls = (req, res) => res.json({ controls: visibleControls(req) });
+const listControls = async (req, res) => res.json({ controls: await visibleControls(req) });
 
 const createControl = async (req, res) => {
   const core = await parseCore(req.body);
   if (core.error) return res.status(400).json({ message: core.error });
   const evaluation = parseEvaluation(req.body);
   if (evaluation.error) return res.status(400).json({ message: evaluation.error });
-  const control = controlRepository.create({
+  const control = await controlRepository.create({
     ...core.data,
     effectiveness: evaluation.data.rating,
     note: evaluation.data.note,
@@ -63,24 +63,24 @@ const createControl = async (req, res) => {
 };
 
 const updateControl = async (req, res) => {
-  const current = controlRepository.findById(req.params.id);
+  const current = await controlRepository.findById(req.params.id);
   if (!current) return res.status(404).json({ message: "Control no encontrado." });
   const core = await parseCore(req.body);
   if (core.error) return res.status(400).json({ message: core.error });
-  const control = controlRepository.update(current.id, core.data);
+  const control = await controlRepository.update(current.id, core.data, current.storageVersion);
   logActivity({ actor: req.user, action: "CONTROL_UPDATED", details: { controlId: control.id, title: control.title } });
   return res.json({ control });
 };
 
-const evaluateControl = (req, res) => {
-  const current = controlRepository.findById(req.params.id);
+const evaluateControl = async (req, res) => {
+  const current = await controlRepository.findById(req.params.id);
   if (!current) return res.status(404).json({ message: "Control no encontrado." });
   const evaluation = parseEvaluation(req.body);
   if (evaluation.error) return res.status(400).json({ message: evaluation.error });
-  const control = controlRepository.evaluate(current.id, {
+  const control = await controlRepository.evaluate(current.id, {
     ...evaluation.data,
     assessedBy: { id: req.user.id, username: req.user.username, role: req.user.role }
-  });
+  }, current.storageVersion);
   logActivity({ actor: req.user, action: "CONTROL_EVALUATED", details: { controlId: control.id, title: control.title, rating: control.effectiveness, version: control.evaluations.length } });
   return res.json({ control });
 };

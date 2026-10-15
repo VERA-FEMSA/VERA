@@ -54,10 +54,10 @@ const parseAssessment = (body) => {
   return { data: { likelihood, impact, score, level: classifyRisk(score), note } };
 };
 
-const listRisks = (req, res) => {
+const listRisks = async (req, res) => {
   const { level, search } = req.query;
   const needle = text(search).toLowerCase();
-  let risks = riskRepository.getAll();
+  let risks = await riskRepository.getAll();
   if (req.user.role === "AUDITOR") risks = risks.filter((risk) => risk.ownerId === req.user.id);
   if (["Bajo", "Medio", "Alto"].includes(level)) risks = risks.filter((risk) => risk.level === level);
   if (needle) risks = risks.filter((risk) => `${risk.title} ${risk.description} ${risk.area} ${risk.ownerName}`.toLowerCase().includes(needle));
@@ -74,11 +74,11 @@ const createRisk = async (req, res) => {
   const assessment = parseAssessment(req.body);
   if (assessment.error) return res.status(400).json({ message: assessment.error });
 
-  if (riskRepository.findDuplicate(core.data)) {
+  if (await riskRepository.findDuplicate(core.data)) {
     return res.status(409).json({ message: "Ya existe un riesgo con el mismo nombre y área." });
   }
 
-  const risk = riskRepository.create({
+  const risk = await riskRepository.create({
     ...core.data,
     ...assessment.data,
     createdBy: { id: req.user.id, name: req.user.username }
@@ -92,27 +92,27 @@ const createRisk = async (req, res) => {
 };
 
 const updateRisk = async (req, res) => {
-  const current = riskRepository.findById(req.params.id);
+  const current = await riskRepository.findById(req.params.id);
   if (!current) return res.status(404).json({ message: "Riesgo no encontrado." });
   const core = await parseCore(req.body);
   if (core.error) return res.status(400).json({ message: core.error });
-  if (riskRepository.findDuplicate(core.data, current.id)) {
+  if (await riskRepository.findDuplicate(core.data, current.id)) {
     return res.status(409).json({ message: "Ya existe un riesgo con el mismo nombre y área." });
   }
-  const risk = riskRepository.update(current.id, core.data);
+  const risk = await riskRepository.update(current.id, core.data, current.storageVersion);
   logActivity({ actor: req.user, action: "RISK_UPDATED", details: { riskId: risk.id, title: risk.title } });
   res.json({ risk });
 };
 
-const evaluateRisk = (req, res) => {
-  const current = riskRepository.findById(req.params.id);
+const evaluateRisk = async (req, res) => {
+  const current = await riskRepository.findById(req.params.id);
   if (!current) return res.status(404).json({ message: "Riesgo no encontrado." });
   const assessment = parseAssessment(req.body);
   if (assessment.error) return res.status(400).json({ message: assessment.error });
-  const risk = riskRepository.evaluate(current.id, {
+  const risk = await riskRepository.evaluate(current.id, {
     ...assessment.data,
     assessedBy: { id: req.user.id, name: req.user.username }
-  });
+  }, current.storageVersion);
   logActivity({
     actor: req.user,
     action: "RISK_EVALUATED",

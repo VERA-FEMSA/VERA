@@ -75,4 +75,7 @@ const evaluate = (id, { likelihood, impact, score, level, note, assessedBy }) =>
   return clone(risk);
 };
 
-module.exports = { getAll, findById, findDuplicate, create, update, evaluate };
+const memoryRepository = { getAll, findById, findDuplicate, create, update, evaluate };
+module.exports = process.env.VERA_RISK_CONTROL_STORE === "supabase"
+  ? require("./supabaseRiskRepository")
+  : memoryRepository;

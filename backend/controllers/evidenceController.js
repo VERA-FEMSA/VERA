@@ -19,11 +19,13 @@ const findEntity = async (type, id) => {
 
 const canAccessEntity = async (type, id, user) => {
   if (user.role !== ROLES.AUDITOR) return Boolean(await findEntity(type, id));
-  if (type === "RISK") return riskRepository.findById(id)?.ownerId === user.id;
+  if (type === "RISK") return (await riskRepository.findById(id))?.ownerId === user.id;
   if (type === "AUDIT") return (await planningRepository.findById(id))?.responsibleId === user.id;
   if (type === "CONTROL") {
-    const control = controlRepository.findById(id);
-    return Boolean(control && control.riskIds.some((riskId) => riskRepository.findById(riskId)?.ownerId === user.id));
+    const control = await controlRepository.findById(id);
+    if (!control) return false;
+    const risks = await Promise.all(control.riskIds.map((riskId) => riskRepository.findById(riskId)));
+    return risks.some((risk) => risk?.ownerId === user.id);
   }
   return false;
 };

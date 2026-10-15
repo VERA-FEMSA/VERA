@@ -4,6 +4,7 @@ const { rateLimit } = require("express-rate-limit");
 const path = require("node:path");
 
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+require("./config/storeModes").validateStoreModes();
 
 const { getJwtSecret } = require("./config/jwtSecret");
 const authRoutes = require("./routes/authRoutes");
@@ -51,6 +52,7 @@ app.get("/", (req, res) => {
 app.use((error, req, res, next) => {
   if (error.planningStorage) return res.status(error.status).json({ message: error.message });
   if (error.userStorage) return res.status(error.status).json({ message: error.message });
+  if (error.domainStorage) return res.status(error.status).json({ message: error.message });
   next(error);
 });
 
