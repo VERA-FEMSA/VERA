@@ -242,7 +242,14 @@ const enable2FA = (req, res) => {
 };
 // HU-01 (RF-01): registro propio con correo institucional.
 // La cuenta queda pendiente hasta que un Super Admin la apruebe.
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Validación lineal: evita retroceso costoso con correos controlados por el cliente.
+const isValidEmailFormat = (email) => {
+  if (!email || email.length > 254 || /\s/.test(email)) return false;
+  const at = email.indexOf("@");
+  if (at < 1 || at !== email.lastIndexOf("@")) return false;
+  const dot = email.indexOf(".", at + 1);
+  return dot > at + 1 && dot < email.length - 1;
+};
 
 const register = async (req, res) => {
   const name = String(req.body.name || "").trim().replace(/\s+/g, " ");
@@ -259,7 +266,7 @@ const register = async (req, res) => {
     });
   }
 
-  if (!EMAIL_REGEX.test(email)) {
+  if (!isValidEmailFormat(email)) {
     return res.status(400).json({ message: "El correo no tiene un formato válido." });
   }
   if (!isInstitutionalEmail(email)) {

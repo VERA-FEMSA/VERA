@@ -54,6 +54,12 @@ test("RF-01: registration validates institutional email, duplicates and password
   });
   assert.equal(nonInstitutional.status, 400);
 
+  const pathologicalEmail = await request(baseUrl, "/api/auth/register", {
+    method: "POST",
+    body: { name: "Cuenta Sintética", email: `x@${"!.".repeat(1000)}x`, password: "Vera1234" }
+  });
+  assert.equal(pathologicalEmail.status, 400);
+
   const weakPassword = await request(baseUrl, "/api/auth/register", {
     method: "POST",
     body: { name: "Cuenta Sintética", email: "weak@vera.local", password: "vera123" }
