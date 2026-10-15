@@ -16,6 +16,16 @@ Las migraciones de `supabase/migrations` son la fuente de verdad para nuevos ent
 
 Si las tablas `vera_audit_proposals` o `logins` ya se crearon manualmente, primero extrae y compara el esquema remoto con `supabase db pull` en una rama temporal. Las migraciones usan `create table if not exists` y conservan los datos existentes, pero esta instrucción no comprueba que las columnas, restricciones, índices y permisos remotos sean iguales. Resuelve cualquier diferencia antes de aplicar o marcar migraciones como ejecutadas. No uses `migration repair` sin esa comparación. La conexión a Supabase y la ejecución remota siguen pendientes hasta disponer del proyecto del equipo.
 
+## Cuentas persistentes
+
+La tercera migración crea `vera_users` con correo y usuario únicos, hash de contraseña, rol, estado y secretos de 2FA. La tabla tiene RLS habilitado y solo la API con clave de servidor puede accederla. No hay cuentas demo ni contraseñas de ejemplo en la base remota.
+
+Tras aplicar y verificar la migración, inicializa **una sola vez** un Super Admin desde una terminal confiable con `VERA_USER_STORE=supabase`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` y las variables `VERA_BOOTSTRAP_ADMIN_NAME`, `VERA_BOOTSTRAP_ADMIN_EMAIL`, `VERA_BOOTSTRAP_ADMIN_PASSWORD`. Ejecuta `node backend/scripts/bootstrap-admin.js`; el comando falla si ya existe un Super Admin. No guardes la contraseña de inicialización en Git, Vercel ni en capturas; elimínala del entorno de la terminal tras usarla.
+
+Antes de activar cuentas persistentes junto con planificación persistente, ejecuta `node backend/scripts/check-user-links.js` con la conexión del proyecto. Si informa referencias sin cuenta, concilia responsables y actores históricos antes de activar el modo. Los IDs nuevos comienzan en 1000 para evitar que una cuenta nueva herede accidentalmente la asignación de las cuentas demo con IDs 1 a 6; el script detecta los vínculos pendientes, pero no los corrige automáticamente.
+
+Luego configura `VERA_USER_STORE=supabase` y `VERA_INSTITUTIONAL_DOMAINS` con los dominios reales permitidos en el backend y redespliega. El registro, inicio de sesión, 2FA, roles y cambios de estado consultan la base en cada solicitud. El modo `memory` mantiene las cuentas de ejemplo únicamente para el demo y las pruebas locales. Comprueba en un entorno de prueba que una cuenta pendiente continúa pendiente tras reiniciar, que aprobarla permite entrar, y que deshabilitarla invalida de inmediato una sesión anterior. La suite automatizada usa respuestas simuladas; la persistencia remota debe verificarse aparte con el proyecto del equipo.
+
 ## Comprobación del entorno conectado
 
 En un entorno de prueba con `VERA_PLANNING_STORE=supabase`, verifica con cuentas de Jefatura, Dirección y Auditor: crea una propuesta, apruébala, iníciala y consulta `/api/planning/active` y `/api/dashboard`. Reinicia el backend y repite las lecturas; el mismo ID y estado deben seguir presentes. Comprueba que el Auditor solo ve sus asignaciones, que la tabla `logins` recibió el acceso y que ninguna respuesta incluye la clave secreta. No uses esta comprobación para escribir datos sintéticos en producción.
@@ -28,6 +38,6 @@ Sin configuración completa, las solicitudes de planificación responden `503` e
 
 - Se almacenan título, objetivo, alcance temporal, área, responsable, factores y nivel de riesgo, estado y actor/fecha de cada decisión. Los cambios de estado y las ediciones usan una versión para detectar modificaciones concurrentes; la base impide duplicados por título, área y año.
 - La API consulta Supabase en cada solicitud del panel, matriz, planificación y notificaciones. Los permisos por rol y asignación se aplican antes de responder.
-- Las cuentas, riesgos independientes, controles, referencias de evidencia, comentarios y bitácora general todavía usan memoria. Por tanto, no se debe declarar persistencia integral ni historial permanente. Las relaciones con usuarios nuevos requieren migrar también las cuentas antes de usar datos reales.
+- Las cuentas pueden persistirse al activar `VERA_USER_STORE=supabase`. Riesgos independientes, controles, referencias de evidencia, comentarios y bitácora general todavía usan memoria; no se debe declarar persistencia integral ni historial permanente.
 - La matriz principal clasifica el riesgo de cada auditoría con sus factores almacenados. El riesgo residual requiere datos persistentes de controles/evaluaciones y sigue pendiente.
 - Este repositorio no contiene credenciales ni acceso a un proyecto Supabase; la migración SQL y la conexión real deben ejecutarse en el proyecto del equipo para cerrar la evidencia de aceptación.

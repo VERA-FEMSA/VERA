@@ -7,7 +7,7 @@ const { classifyRisk } = require("../config/riskRules");
 
 const FACTORS = [1, 2, 3];
 const text = (value) => String(value ?? "").trim();
-const activeUsers = () => userRepository.getAll().filter((user) => user.status === USER_STATUS.ACTIVE);
+const activeUsers = async () => (await userRepository.getAll()).filter((user) => user.status === USER_STATUS.ACTIVE);
 
 const parseCore = async (body) => {
   const title = text(body.title);
@@ -15,7 +15,7 @@ const parseCore = async (body) => {
   const area = text(body.area);
   const responsePlan = text(body.responsePlan);
   const ownerId = Number(body.ownerId);
-  const owner = activeUsers().find((user) => user.id === ownerId);
+  const owner = (await activeUsers()).find((user) => user.id === ownerId);
   const linkedAuditId = text(body.linkedAuditId);
 
   if (title.length < 3 || title.length > 140) return { error: "El nombre debe tener entre 3 y 140 caracteres." };
@@ -64,8 +64,8 @@ const listRisks = (req, res) => {
   res.json({ risks });
 };
 
-const listOwners = (req, res) => {
-  res.json({ owners: activeUsers().map(({ id, name, username, role }) => ({ id, name, username, role })) });
+const listOwners = async (req, res) => {
+  res.json({ owners: (await activeUsers()).map(({ id, name, username, role }) => ({ id, name, username, role })) });
 };
 
 const createRisk = async (req, res) => {

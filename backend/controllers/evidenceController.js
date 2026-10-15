@@ -60,7 +60,7 @@ const createEvidence = async (req, res) => {
   if (!entity) return res.status(404).json({ message: "El elemento relacionado no existe." });
   if (!await canAccessEntity(entityType, entityId, req.user)) return res.status(404).json({ message: "El elemento relacionado no existe." });
 
-  const author = userRepository.findById(req.user.id);
+  const author = await userRepository.findById(req.user.id);
   const evidence = evidenceRepository.create({
     title,
     description,

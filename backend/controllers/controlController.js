@@ -8,14 +8,14 @@ const { ROLES } = require("../config/roles");
 const TYPES = ["PREVENTIVE", "DETECTIVE", "CORRECTIVE"];
 const FREQUENCIES = ["Daily", "Weekly", "Monthly", "Quarterly", "Annually"];
 const text = (value) => String(value ?? "").trim();
-const activeUsers = () => userRepository.getAll().filter((user) => user.status === USER_STATUS.ACTIVE);
+const activeUsers = async () => (await userRepository.getAll()).filter((user) => user.status === USER_STATUS.ACTIVE);
 
-const parseCore = (body) => {
+const parseCore = async (body) => {
   const title = text(body.title);
   const description = text(body.description);
   const type = text(body.type);
   const frequency = text(body.frequency);
-  const owner = activeUsers().find((user) => user.id === Number(body.ownerId));
+  const owner = (await activeUsers()).find((user) => user.id === Number(body.ownerId));
   const rawRiskIds = Array.isArray(body.riskIds) ? [...new Set(body.riskIds.map((id) => text(id)).filter(Boolean))] : [];
   const risks = riskRepository.getAll();
 
@@ -47,8 +47,8 @@ const visibleControls = (req) => {
 
 const listControls = (req, res) => res.json({ controls: visibleControls(req) });
 
-const createControl = (req, res) => {
-  const core = parseCore(req.body);
+const createControl = async (req, res) => {
+  const core = await parseCore(req.body);
   if (core.error) return res.status(400).json({ message: core.error });
   const evaluation = parseEvaluation(req.body);
   if (evaluation.error) return res.status(400).json({ message: evaluation.error });
@@ -62,10 +62,10 @@ const createControl = (req, res) => {
   return res.status(201).json({ control });
 };
 
-const updateControl = (req, res) => {
+const updateControl = async (req, res) => {
   const current = controlRepository.findById(req.params.id);
   if (!current) return res.status(404).json({ message: "Control no encontrado." });
-  const core = parseCore(req.body);
+  const core = await parseCore(req.body);
   if (core.error) return res.status(400).json({ message: core.error });
   const control = controlRepository.update(current.id, core.data);
   logActivity({ actor: req.user, action: "CONTROL_UPDATED", details: { controlId: control.id, title: control.title } });

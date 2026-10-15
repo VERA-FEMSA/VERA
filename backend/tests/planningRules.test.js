@@ -17,8 +17,8 @@ const validProposal = {
   responsibleId: 5
 };
 
-test("proposal parser trims text and derives a consistent risk score", () => {
-  const result = parseProposal(validProposal);
+test("proposal parser trims text and derives a consistent risk score", async () => {
+  const result = await parseProposal(validProposal);
   assert.equal(result.error, undefined);
   assert.equal(result.data.title, "Revisión de controles");
   assert.equal(result.data.area, "Finanzas");
@@ -31,7 +31,7 @@ test("proposal parser trims text and derives a consistent risk score", () => {
   assert.equal(result.data.responsibleId, 5);
 });
 
-test("proposal parser rejects missing fields, invalid catalogs, dates and inactive auditors", () => {
+test("proposal parser rejects missing fields, invalid catalogs, dates and inactive auditors", async () => {
   const invalidCases = [
     [{ ...validProposal, title: " " }, /título/],
     [{ ...validProposal, objective: "" }, /título/],
@@ -52,7 +52,7 @@ test("proposal parser rejects missing fields, invalid catalogs, dates and inacti
   ];
 
   for (const [proposal, expectedMessage] of invalidCases) {
-    const result = parseProposal(proposal);
+    const result = await parseProposal(proposal);
     assert.match(result.error, expectedMessage);
     assert.equal(result.data, undefined);
   }

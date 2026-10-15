@@ -21,8 +21,8 @@ const getManageError = (actor, target) => {
 // GET /api/users
 // El Super Admin ve todas las cuentas, incluidas las solicitudes pendientes.
 // Los demás administradores no ven cuentas de Super Admin ni solicitudes pendientes.
-const listUsers = (req, res) => {
-  const allUsers = userRepository.getAll();
+const listUsers = async (req, res) => {
+  const allUsers = await userRepository.getAll();
 
   const users =
     req.user.role === ROLES.SUPER_ADMIN
@@ -35,14 +35,14 @@ const listUsers = (req, res) => {
 };
 
 // PATCH /api/users/:id/role
-const updateUserRole = (req, res) => {
+const updateUserRole = async (req, res) => {
   const { role } = req.body;
 
   if (!ASSIGNABLE_ROLES.includes(role)) {
     return res.status(400).json({ message: "El rol seleccionado no es válido." });
   }
 
-  const target = userRepository.findById(req.params.id);
+  const target = await userRepository.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ message: "Usuario no encontrado." });
   }
@@ -53,7 +53,7 @@ const updateUserRole = (req, res) => {
   }
 
   const previousRole = target.role;
-  const user = userRepository.updateRole(target.id, role);
+  const user = await userRepository.updateRole(target.id, role, target.storageVersion);
 
   if (previousRole !== role) {
     logAccessChange({
@@ -68,14 +68,14 @@ const updateUserRole = (req, res) => {
 };
 
 // PATCH /api/users/:id/status   body: { active: true | false }
-const updateUserStatus = (req, res) => {
+const updateUserStatus = async (req, res) => {
   const { active } = req.body;
 
   if (typeof active !== "boolean") {
     return res.status(400).json({ message: "El campo active debe ser true o false." });
   }
 
-  const target = userRepository.findById(req.params.id);
+  const target = await userRepository.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ message: "Usuario no encontrado." });
   }
@@ -85,9 +85,10 @@ const updateUserStatus = (req, res) => {
     return res.status(403).json({ message: manageError });
   }
 
-  const user = userRepository.setStatus(
+  const user = await userRepository.setStatus(
     target.id,
-    active ? USER_STATUS.ACTIVE : USER_STATUS.DISABLED
+    active ? USER_STATUS.ACTIVE : USER_STATUS.DISABLED,
+    target.storageVersion
   );
 
   logAccessChange({
@@ -103,8 +104,8 @@ const updateUserStatus = (req, res) => {
 };
 
 // Busca una solicitud pendiente o responde con el error correspondiente.
-const findPendingOrFail = (req, res) => {
-  const target = userRepository.findById(req.params.id);
+const findPendingOrFail = async (req, res) => {
+  const target = await userRepository.findById(req.params.id);
   if (!target) {
     res.status(404).json({ message: "Solicitud no encontrada." });
     return null;
@@ -117,18 +118,18 @@ const findPendingOrFail = (req, res) => {
 };
 
 // POST /api/users/:id/approve   body: { role }   (solo Super Admin)
-const approveRequest = (req, res) => {
+const approveRequest = async (req, res) => {
   const role = req.body.role || DEFAULT_ROLE;
 
   if (!ASSIGNABLE_ROLES.includes(role)) {
     return res.status(400).json({ message: "El rol seleccionado no es válido." });
   }
 
-  const target = findPendingOrFail(req, res);
+  const target = await findPendingOrFail(req, res);
   if (!target) return;
 
-  userRepository.updateRole(target.id, role);
-  const user = userRepository.setStatus(target.id, USER_STATUS.ACTIVE);
+  const user = await userRepository.approvePending(target.id, role, target.storageVersion);
+  if (!user) return res.status(409).json({ message: "Esta cuenta ya no está pendiente." });
 
   logAccessChange({
     actor: req.user,
@@ -141,11 +142,12 @@ const approveRequest = (req, res) => {
 };
 
 // POST /api/users/:id/reject   (solo Super Admin). La cuenta se elimina.
-const rejectRequest = (req, res) => {
-  const target = findPendingOrFail(req, res);
+const rejectRequest = async (req, res) => {
+  const target = await findPendingOrFail(req, res);
   if (!target) return;
 
-  const user = userRepository.remove(target.id);
+  const user = await userRepository.removePending(target.id, target.storageVersion);
+  if (!user) return res.status(409).json({ message: "Esta cuenta cambió. Actualiza y vuelve a intentar." });
 
   logAccessChange({
     actor: req.user,

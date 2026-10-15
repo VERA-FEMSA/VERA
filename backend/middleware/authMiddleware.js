@@ -3,9 +3,7 @@ const userRepository = require("../repositories/userRepository");
 const { USER_STATUS } = require("../config/accountRules");
 const { getJwtSecret } = require("../config/jwtSecret");
 
-const SECRET_KEY = getJwtSecret();
-
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -16,14 +14,18 @@ const verifyToken = (req, res, next) => {
 
   const token = authHeader.split(" ")[1];
 
+  let decoded;
   try {
-    const decoded = jwt.verify(token, getJwtSecret());
-    if (decoded.purpose) {
-      return res.status(401).json({ message: "Token inválido" });
-    }
+    decoded = jwt.verify(token, getJwtSecret());
+  } catch {
+    return res.status(401).json({ message: "Token inválido o expirado" });
+  }
+  if (decoded.purpose) return res.status(401).json({ message: "Token inválido" });
+
+  try {
     // HU-01: se lee el usuario actual para que un cambio de rol
     // o una desactivación apliquen de inmediato, sin esperar a que expire el token.
-    const user = userRepository.findById(decoded.id);
+    const user = await userRepository.findById(decoded.id);
     if (!user || user.status !== USER_STATUS.ACTIVE) {
       return res.status(401).json({ message: "Tu cuenta está deshabilitada o ya no existe." });
     }
@@ -31,9 +33,7 @@ const verifyToken = (req, res, next) => {
     req.user = { id: user.id, username: user.username, role: user.role };
     next();
   } catch (error) {
-    return res.status(401).json({
-      message: "Token inválido o expirado"
-    });
+    next(error);
   }
 };
 

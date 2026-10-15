@@ -50,6 +50,7 @@ app.get("/", (req, res) => {
 
 app.use((error, req, res, next) => {
   if (error.planningStorage) return res.status(error.status).json({ message: error.message });
+  if (error.userStorage) return res.status(error.status).json({ message: error.message });
   next(error);
 });
 

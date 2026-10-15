@@ -7,8 +7,11 @@ const USER_STATUS = {
 };
 
 // RF-01: dominios de correo institucional aceptados al registrarse.
-// Cuando el equipo defina el dominio real (por ejemplo "femsa.com"), se agrega aquí.
-const INSTITUTIONAL_DOMAINS = ["vera.local"];
+// Configurable por entorno; vera.local conserva el demo local.
+const INSTITUTIONAL_DOMAINS = (process.env.VERA_INSTITUTIONAL_DOMAINS || "vera.local")
+  .split(",")
+  .map((domain) => domain.trim().toLowerCase())
+  .filter(Boolean);
 
 const isInstitutionalEmail = (email) => {
   const domain = String(email || "").toLowerCase().split("@")[1];

@@ -65,6 +65,36 @@ const setStatus = (id, status) => {
   return toPublic(user);
 };
 
+const approvePending = (id, role) => {
+  const user = findById(id);
+  if (!user || user.status !== USER_STATUS.PENDING) return null;
+  user.role = role;
+  user.status = USER_STATUS.ACTIVE;
+  return toPublic(user);
+};
+
+const removePending = (id) => {
+  const user = findById(id);
+  if (!user || user.status !== USER_STATUS.PENDING) return null;
+  return remove(id);
+};
+
+const setPendingSecret = (id, secret) => {
+  const user = findById(id);
+  if (!user) return null;
+  user.pendingSecret = secret;
+  return user;
+};
+
+const enableTwoFactor = (id, expectedSecret) => {
+  const user = findById(id);
+  if (!user || !expectedSecret || user.pendingSecret !== expectedSecret) return null;
+  user.twoFactorSecret = expectedSecret;
+  user.twoFactorEnabled = true;
+  user.pendingSecret = null;
+  return user;
+};
+
 const remove = (id) => {
   const index = users.findIndex((u) => u.id === Number(id));
   if (index === -1) return null;
@@ -81,7 +111,7 @@ const checkPassword = (user, plainPassword) => {
   return user.password === plainPassword;
 };
 
-module.exports = {
+const memoryRepository = {
   toPublic,
   getAll,
   findById,
@@ -90,6 +120,14 @@ module.exports = {
   createPending,
   updateRole,
   setStatus,
+  approvePending,
+  removePending,
+  setPendingSecret,
+  enableTwoFactor,
   remove,
   checkPassword
 };
+
+module.exports = process.env.VERA_USER_STORE === "supabase"
+  ? require("./supabaseUserRepository")
+  : memoryRepository;

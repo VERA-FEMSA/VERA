@@ -1,7 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { authenticator } = require("otplib");
 const QRCode = require("qrcode");
-const users = require("../data/users");
 const userRepository = require("../repositories/userRepository");
 const { logAccessChange, logActivity } = require("../services/auditLogger");
 const { recordLogin } = require("../services/loginLogger");
@@ -116,8 +115,8 @@ const login = async (req, res) => {
   if (lock) return lockedResponse(res, lock);
 
   // HU-01: soporta contraseñas cifradas (cuentas nuevas) y en texto plano (cuentas demo)
-  const candidate = userRepository.findByLogin(username);
-  const user = userRepository.checkPassword(candidate, password) ? candidate : null;
+  const candidate = await userRepository.findByLogin(username);
+  const user = await userRepository.checkPassword(candidate, password) ? candidate : null;
 
 
   if (!user) {
@@ -183,7 +182,7 @@ const verify2FA = async (req, res) => {
     return res.status(401).json({ message: "Token inválido" });
   }
 
-  const user = users.find((u) => u.id === payload.id);
+  const user = await userRepository.findById(payload.id);
 
   const valid =
     user &&
@@ -206,11 +205,11 @@ const verify2FA = async (req, res) => {
 // ---------- enrollment (requires a normal logged-in session) ----------
 
 const setup2FA = async (req, res) => {
-  const user = users.find((u) => u.id === req.user.id);
+  const user = await userRepository.findById(req.user.id);
   if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
   const secret = authenticator.generateSecret();
-  user.pendingSecret = secret;
+  await userRepository.setPendingSecret(user.id, secret);
 
   const otpauth = authenticator.keyuri(user.username, "VERA", secret);
   const qr = await QRCode.toDataURL(otpauth);
@@ -219,8 +218,8 @@ const setup2FA = async (req, res) => {
   res.json({ qr, secret });
 };
 
-const enable2FA = (req, res) => {
-  const user = users.find((u) => u.id === req.user.id);
+const enable2FA = async (req, res) => {
+  const user = await userRepository.findById(req.user.id);
   if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
   const ok =
@@ -232,9 +231,8 @@ const enable2FA = (req, res) => {
 
   if (!ok) return res.status(400).json({ message: "Código incorrecto" });
 
-  user.twoFactorSecret = user.pendingSecret;
-  user.twoFactorEnabled = true;
-  user.pendingSecret = null;
+  const enabledUser = await userRepository.enableTwoFactor(user.id, user.pendingSecret);
+  if (!enabledUser) return res.status(409).json({ message: "La configuración 2FA cambió. Vuelve a iniciar el proceso." });
 
   logActivity({ actor: user, action: "TWO_FACTOR_ENABLED" });
 
@@ -278,7 +276,7 @@ const register = async (req, res) => {
   if (!isValidPassword(password)) {
     return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
   }
-  if (userRepository.emailExists(email)) {
+  if (await userRepository.emailExists(email)) {
     return res.status(409).json({ message: "Ya existe una cuenta o solicitud con ese correo." });
   }
 
