@@ -14,7 +14,7 @@ import {
   ScrollText,
   LogOut
 } from "lucide-react";
-import { ROLE_LABELS, USER_VIEW_ROLES } from "../constants/roles";
+import { ROLE_LABELS, USER_ADMIN_ROLES } from "../constants/roles";
 import "../pages/Dashboard.css";
 import "./Sidebar.css";
 
@@ -34,11 +34,12 @@ function Sidebar({ active }) {
   };
 
   const canSeeReports = user?.role !== "AUDITOR";
-  const canSeeUsers = USER_VIEW_ROLES.includes(user?.role);
-  const canSeeRoles = ["SUPER_ADMIN", "DIRECTOR"].includes(user?.role);
+  const canSeeUsers = USER_ADMIN_ROLES.includes(user?.role);
+  const canSeeRoles = user?.role === "SUPER_ADMIN";
 
   // path: a dónde lleva el botón. Las pantallas que aún no existen no llevan path.
   const items = [
+    { id: "dashboard", label: "Panel de Portafolio", Icon: LayoutDashboard, path: "/dashboard", show: true },
     { id: "dashboard", label: "Panel de Portafolio", Icon: LayoutDashboard, path: "/dashboard", show: true },
     { id: "planificacion", label: "Planificación", Icon: ClipboardList, path: "/planificacion", show: true },
     { id: "trimestres", label: "Trimestres", Icon: CalendarRange, path: "/trimestres", show: true },
@@ -47,6 +48,9 @@ function Sidebar({ active }) {
     { id: "controles", label: "Mapa de controles", Icon: ClipboardCheck, path: "/controles", show: true },
     { id: "notificaciones", label: "Pendientes", Icon: BellRing, path: "/notificaciones", show: true },
     { id: "evidencias", label: "Evidencias", Icon: Files, path: "/evidencias", show: true },
+    { id: "reportes", label: "Reportes", Icon: FileChartColumn, show: canSeeReports },
+    { id: "usuarios", label: "Usuarios", Icon: UserCog, path: "/usuarios", show: canSeeUsers },
+    { id: "auditoria", label: "Registro de actividad", Icon: ScrollText, path: "/auditoria", show: canSeeRoles },
     { id: "reportes", label: "Reportes", Icon: FileChartColumn, show: canSeeReports },
     { id: "usuarios", label: "Usuarios", Icon: UserCog, path: "/usuarios", show: canSeeUsers },
     { id: "auditoria", label: "Registro de actividad", Icon: ScrollText, path: "/auditoria", show: canSeeRoles },

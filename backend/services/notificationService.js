@@ -8,7 +8,7 @@ const isWithinDays = (date, now, days) => {
 
 const buildNotifications = ({ proposals, user, now = Date.now() }) => {
   const notifications = [];
-  const isApprover = PLANNING_APPROVE_ROLES.includes(user.role) || user.role === ROLES.DIRECTOR;
+  const isApprover = PLANNING_APPROVE_ROLES.includes(user.role);
   const canManage = PLANNING_CREATE_ROLES.includes(user.role);
 
   for (const proposal of proposals) {

@@ -68,7 +68,7 @@ function Usuarios() {
 
   const isProtected = (user) => user.role === "SUPER_ADMIN" && !isSuperAdmin;
 
-  const canEdit = (user) => isSuperAdmin && !isSelf(user) && !isProtected(user);
+  const canEdit = (user) => !isSelf(user) && !isProtected(user);
 
   const replaceUser = (updated) => {
     setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
@@ -204,7 +204,7 @@ function Usuarios() {
             </p>
           )}
 
-          {!loading && !loadError && (currentUser?.role === "SUPER_ADMIN" || currentUser?.role === "DIRECTOR") && (
+          {!loading && !loadError && isSuperAdmin && (
             <div className="users-card users-requests">
               <div className="users-requests-head">
                 <h2>Solicitudes pendientes</h2>
@@ -213,9 +213,8 @@ function Usuarios() {
                 )}
               </div>
               <p className="users-muted">
-                {isSuperAdmin
-                  ? "Personas que crearon su cuenta y esperan acceso. Al aprobar, elige el rol con el que entrarán."
-                  : "Consulta de solo lectura de las solicitudes pendientes de acceso."}
+                Personas que crearon su cuenta y esperan acceso. Al aprobar, elige
+                el rol con el que entrarán.
               </p>
 
               {requestNotice && (
@@ -243,7 +242,7 @@ function Usuarios() {
                         </div>
 
                         <div className="users-controls">
-                          {isSuperAdmin ? <><select
+                          <select
                             aria-label={`Rol para ${user.name}`}
                             value={drafts[user.id] ?? DEFAULT_ROLE}
                             disabled={busy}
@@ -272,7 +271,7 @@ function Usuarios() {
                             onClick={() => handleReject(user)}
                           >
                             Rechazar
-                          </button></> : <span className="users-badge">Solicitud pendiente</span>}
+                          </button>
                         </div>
                       </li>
                     );
@@ -286,9 +285,7 @@ function Usuarios() {
             <div className="users-card">
               <h2>Cuentas VERA</h2>
               <p className="users-muted">
-                {isSuperAdmin
-                  ? "Cambia el rol de una cuenta o deshabilítala para quitarle el acceso."
-                  : "Vista de solo lectura del directorio de cuentas VERA."}
+                Cambia el rol de una cuenta o deshabilítala para quitarle el acceso.
               </p>
 
               <ul className="users-list">

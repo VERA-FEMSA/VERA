@@ -199,7 +199,7 @@ function Auditoria() {
                     {entries.map((e) => (
                       <tr key={e.id}>
                         <td className="nowrap">{formatDateTime(e.date)}</td>
-                        <td>{e.actor.name || e.actor.username || "—"}</td>
+                        <td>{e.actor.username || "—"}</td>
                         <td>{ROLE_LABELS[e.actor.role] || e.actor.role || "—"}</td>
                         <td>
                           <span

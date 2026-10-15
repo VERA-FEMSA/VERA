@@ -8,9 +8,9 @@ const dashboardCopy = {
     scopeLabel: "Portafolio completo"
   },
   DIRECTOR: {
-    title: "Vista ejecutiva del portafolio",
-    description: "Consulta de solo lectura de todas las propuestas, riesgos y ejecución.",
-    scopeLabel: "Portafolio completo · Solo lectura"
+    title: "Decisiones del portafolio",
+    description: "Prioriza propuestas y da seguimiento a la ejecución.",
+    scopeLabel: "Portafolio completo"
   },
   GERENTE: {
     title: "Seguimiento de planeación",
@@ -49,7 +49,7 @@ const getDashboardForUser = (user, proposals) => {
       count: activeAudits.filter((audit) => (audit.likelihood ?? 2) === likelihood && (audit.impact ?? 2) === impact).length
     };
   }));
-  const pendingItems = (PLANNING_APPROVE_ROLES.includes(user.role) || user.role === "DIRECTOR")
+  const pendingItems = PLANNING_APPROVE_ROLES.includes(user.role)
     ? visibleProposals.filter((proposal) => proposal.status === "OPEN")
     : user.role === "AUDITOR"
       ? visibleProposals.filter((proposal) => ["OPEN", "APPROVED", "ACTIVE"].includes(proposal.status))

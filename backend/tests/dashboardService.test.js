@@ -23,7 +23,7 @@ test("dashboard metrics and matrix match visible proposal state", () => {
   assert.equal(dashboard.riskMatrix[1][2].risk, "Alto");
   assert.equal(dashboard.riskMatrix[1][2].count, 1);
   assert.equal(dashboard.riskMatrix.flat().reduce((total, cell) => total + cell.count, 0), 1);
-  assert.equal(dashboard.permissions.canApprove, false);
+  assert.equal(dashboard.permissions.canApprove, true);
 });
 
 test("auditor dashboard metrics and pending items exclude unassigned records", () => {
@@ -47,7 +47,7 @@ test("roles receive distinct copy and quick-action permissions", () => {
   const auditor = getDashboardForUser({ id: 5, role: "AUDITOR" }, []);
 
   assert.notEqual(director.title, manager.title);
-  assert.equal(director.permissions.canApprove, false);
+  assert.equal(director.permissions.canApprove, true);
   assert.equal(manager.permissions.canCreate, true);
   assert.equal(manager.permissions.canApprove, false);
   assert.equal(jefatura.permissions.canCreate, false);

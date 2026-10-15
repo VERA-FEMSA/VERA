@@ -3,7 +3,7 @@ const router = express.Router();
 
 const { verifyToken } = require("../middleware/authMiddleware");
 const { allowRoles } = require("../middleware/roleMiddleware");
-const { ROLES, PLANNING_CREATE_ROLES, PLANNING_APPROVE_ROLES } = require("../config/roles");
+const { PLANNING_CREATE_ROLES, PLANNING_APPROVE_ROLES } = require("../config/roles");
 const {
   listProposals,
   listActiveAudits,
@@ -24,7 +24,7 @@ router.get("/", verifyToken, listProposals);
 router.get("/active", verifyToken, listActiveAudits);
 router.get("/auditors", verifyToken, allowRoles(...PLANNING_CREATE_ROLES), listAuditors);
 router.get("/:id/history", verifyToken, getHistory);
-router.post("/:id/comments", verifyToken, allowRoles(ROLES.SUPER_ADMIN, ROLES.GERENTE, ROLES.AUDITOR, ROLES.JEFATURA), addComment);
+router.post("/:id/comments", verifyToken, addComment);
 
 router.post("/", verifyToken, allowRoles(...PLANNING_CREATE_ROLES), createProposal);
 router.put("/:id", verifyToken, allowRoles(...PLANNING_CREATE_ROLES), updateProposal);

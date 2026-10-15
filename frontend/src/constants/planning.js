@@ -14,8 +14,8 @@ export const RISK_FACTORS = [
 ];
 
 // Debe coincidir con PLANNING_CREATE_ROLES / PLANNING_APPROVE_ROLES del backend.
-export const PLANNING_CREATE_ROLES = ["SUPER_ADMIN", "GERENTE"];
-export const PLANNING_APPROVE_ROLES = ["SUPER_ADMIN"];
+export const PLANNING_CREATE_ROLES = ["SUPER_ADMIN", "DIRECTOR", "GERENTE"];
+export const PLANNING_APPROVE_ROLES = ["SUPER_ADMIN", "DIRECTOR"];
 
 export const EDITABLE_FIELDS_BY_STATUS = {
   APPROVED: ["objective", "responsibleId", "quarter", "startDate", "endDate", "likelihood", "impact"],

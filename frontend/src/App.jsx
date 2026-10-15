@@ -17,7 +17,7 @@ import Notificaciones from "./pages/Notificaciones";
 import Evidencias from "./pages/Evidencias";
 import Trimestres, { TrimestreDetalle } from "./pages/Trimestres";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { USER_VIEW_ROLES } from "./constants/roles";
+import { USER_ADMIN_ROLES } from "./constants/roles";
 
 
 function App() {
@@ -44,7 +44,7 @@ function App() {
         <Route
           path="/usuarios"
           element={
-            <ProtectedRoute allowedRoles={USER_VIEW_ROLES}>
+            <ProtectedRoute allowedRoles={USER_ADMIN_ROLES}>
               <Usuarios />
             </ProtectedRoute>
           }
@@ -53,7 +53,7 @@ function App() {
         <Route
           path="/auditoria"
           element={
-            <ProtectedRoute allowedRoles={USER_VIEW_ROLES}>
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
               <Auditoria />
             </ProtectedRoute>
           }

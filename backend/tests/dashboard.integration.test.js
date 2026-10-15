@@ -67,7 +67,7 @@ test("HU-07: dashboard data is authenticated and scoped according to the user's 
   const directorDashboard = await directorResponse.json();
   assert.equal(directorDashboard.scopeLabel, "Portafolio completo");
   assert.ok(directorDashboard.metrics.total > auditorDashboard.metrics.total);
-  assert.equal(directorDashboard.permissions.canApprove, false);
+  assert.equal(directorDashboard.permissions.canApprove, true);
   assert.ok(directorDashboard.statusCounts.some((entry) => entry.status === "OPEN" && entry.count > 0));
   assert.equal(directorDashboard.riskMatrix.flat().reduce((sum, cell) => sum + cell.count, 0), 1);
 });

@@ -21,22 +21,12 @@ const app = express();
 app.set("trust proxy", 1); // 1 = one proxy hop in front of your app
 
 app.use(cors());
-
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
-  // Evita bloqueos durante el uso normal de la aplicación.
-  limit: 300,
+  limit: 100,
   standardHeaders: "draft-8",
-  legacyHeaders: false,
-  skip: (req) => req.method === "OPTIONS",
-  handler: (_req, res) => {
-    res.status(429).json({
-      message: "Demasiadas solicitudes. Espera unos minutos e inténtalo de nuevo.",
-      code: "RATE_LIMITED"
-    });
-  }
+  legacyHeaders: false
 }));
-
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);

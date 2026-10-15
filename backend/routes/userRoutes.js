@@ -4,7 +4,7 @@ const router = express.Router();
 
 const { verifyToken } = require("../middleware/authMiddleware");
 const { allowRoles } = require("../middleware/roleMiddleware");
-const { ROLES, USER_VIEW_ROLES, USER_ADMIN_ROLES } = require("../config/roles");
+const { ROLES, USER_ADMIN_ROLES } = require("../config/roles");
 const {
   listUsers,
   updateUserRole,
@@ -15,7 +15,7 @@ const {
 
 
 // HU-01: creación y gestión de usuarios
-router.get("/", verifyToken, allowRoles(...USER_VIEW_ROLES), listUsers);
+router.get("/", verifyToken, allowRoles(...USER_ADMIN_ROLES), listUsers);
 
 // HU-01: solicitudes de registro (solo Super Admin)
 router.post("/:id/approve", verifyToken, allowRoles(ROLES.SUPER_ADMIN), approveRequest);

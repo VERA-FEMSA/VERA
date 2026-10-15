@@ -30,13 +30,9 @@ export const getActiveAudits = async () => {
   return data.audits;
 };
 
-
 export const getAuditors = async () => {
   const data = await request("/auditors");
-
-  return Array.isArray(data.auditors)
-    ? data.auditors
-    : [];
+  return data.auditors;
 };
 
 export const createAuditProposal = async (proposal) => {

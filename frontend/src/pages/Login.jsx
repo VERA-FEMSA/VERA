@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { loginUser, verify2FA } from "../services/authService";
@@ -8,7 +7,7 @@ function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [tempToken, setTempToken] = useState(null);
+  const [tempToken, setTempToken] = useState(null); // set when the server asks for a 2FA code
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
@@ -25,9 +24,11 @@ function Login() {
 
     try {
       if (tempToken) {
+        // Step 2: verify the 6-digit code
         const data = await verify2FA(tempToken, code);
         finishLogin(data);
       } else {
+        // Step 1: username + password
         const data = await loginUser(username, password);
 
         if (data.requires2FA) {
@@ -52,11 +53,7 @@ function Login() {
     <div className="login-page">
       <div className="login-card">
         <div className="logo-box">
-          <img
-            src="/vera-logo.svg"
-            alt="VERA"
-            style={{ width: 46, height: 46 }}
-          />
+          <img src="/vera-logo.svg" alt="VERA" style={{ width: 46, height: 46 }} />
         </div>
 
         <h1>VERA</h1>
@@ -78,9 +75,7 @@ function Login() {
         <form onSubmit={handleSubmit}>
           {tempToken ? (
             <>
-              <label htmlFor="verification-code">
-                Código de verificación
-              </label>
+              <label htmlFor="verification-code">Código de verificación</label>
 
               <input
                 type="text"
@@ -89,32 +84,26 @@ function Login() {
                 autoComplete="one-time-code"
                 maxLength={6}
                 value={code}
-                onChange={(e) =>
-                  setCode(e.target.value.replace(/\D/g, ""))
-                }
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 placeholder="123456"
                 autoFocus
               />
             </>
           ) : (
             <>
-              <label htmlFor="login-username">
-                Usuario o correo electrónico
-              </label>
+<label htmlFor="login-username">Correo institucional</label>
 
               <input
                 type="text"
                 id="login-username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="director o nombre@empresa.com"
+                placeholder="nombre@vera.local"
                 autoComplete="username"
-                required
               />
 
-              <label htmlFor="login-password">
-                Contraseña
-              </label>
+
+<label htmlFor="login-password">Contraseña</label>
 
               <input
                 type="password"
@@ -122,8 +111,6 @@ function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Contraseña"
-                autoComplete="current-password"
-                required
               />
             </>
           )}
