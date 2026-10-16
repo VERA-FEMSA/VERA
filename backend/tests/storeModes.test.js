@@ -2,6 +2,17 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { validateStoreModes } = require("../config/storeModes");
 
+test("every store rejects an invalid or empty mode instead of silently using memory", () => {
+  for (const name of [
+    "VERA_PLANNING_STORE", "VERA_USER_STORE", "VERA_RISK_CONTROL_STORE",
+    "VERA_EVIDENCE_COMMENT_STORE", "VERA_AUDIT_STORE"
+  ]) {
+    assert.throws(() => validateStoreModes({ [name]: "suapbase" }), new RegExp(name));
+    assert.throws(() => validateStoreModes({ [name]: "" }), new RegExp(name));
+  }
+  assert.doesNotThrow(() => validateStoreModes({}));
+});
+
 test("persistent risks and controls require persistent users and planning", () => {
   assert.doesNotThrow(() => validateStoreModes({ VERA_RISK_CONTROL_STORE: "memory" }));
   assert.throws(() => validateStoreModes({ VERA_RISK_CONTROL_STORE: "supabase" }), /requiere/);

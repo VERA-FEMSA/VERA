@@ -12,6 +12,10 @@ const getSupabaseConfig = () => {
 };
 
 const recordLogin = async ({ user, ip, method }) => {
+  // Las cuentas del demo y su bitácora viven en memoria; logActivity registra
+  // LOGIN_SUCCESS allí antes de responder con la sesión.
+  if (process.env.VERA_USER_STORE !== "supabase") return;
+
   const { url, key } = getSupabaseConfig();
   const headers = {
     apikey: key,

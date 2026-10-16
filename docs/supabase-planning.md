@@ -8,7 +8,7 @@ HU-07 y HU-09 exigen que los indicadores y la matriz consulten datos almacenados
 2. Configura **solo en el backend** `VERA_PLANNING_STORE=supabase`, `SUPABASE_URL` y `SUPABASE_SECRET_KEY`. También se acepta `SUPABASE_SERVICE_ROLE_KEY` en proyectos con clave legacy. Nunca uses variables `VITE_` para la clave secreta ni la subas al repositorio.
 3. Reinicia o redespliega el backend. Crea una propuesta, apruébala e iníciala desde la aplicación. Reinicia otra vez y confirma que sigue visible en `/api/planning/active` y que `/api/dashboard` refleja sus conteos para los roles autorizados.
 
-El inicio de sesión escribe en la tabla `logins`, incluida en la segunda migración. El backend usa la misma `SUPABASE_SECRET_KEY` para las claves `sb_secret_*` o `SUPABASE_SERVICE_ROLE_KEY` para claves legacy. Las claves secretas nunca deben estar en variables `VITE_` ni en el navegador. Si el registro de login falla, la API responde `503` y no emite una sesión.
+Con `VERA_USER_STORE=supabase`, el inicio de sesión escribe en la tabla `logins`, incluida en la segunda migración. El backend usa la misma `SUPABASE_SECRET_KEY` para las claves `sb_secret_*` o `SUPABASE_SERVICE_ROLE_KEY` para claves legacy. Las claves secretas nunca deben estar en variables `VITE_` ni en el navegador. Si el registro de login falla en ese modo, la API responde `503` y no emite una sesión. En el demo con cuentas y bitácora en `memory`, `LOGIN_SUCCESS` se registra en la bitácora local y no requiere Supabase.
 
 ## Aplicación y conciliación del esquema
 

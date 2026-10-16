@@ -9,20 +9,23 @@ test("login logging accepts a server-only Supabase secret key without a JWT bear
     secret: process.env.SUPABASE_SECRET_KEY,
     legacy: process.env.SUPABASE_SERVICE_ROLE_KEY,
     viteUrl: process.env.VITE_SUPABASE_URL,
-    viteKey: process.env.VITE_SUPABASE_KEY
+    viteKey: process.env.VITE_SUPABASE_KEY,
+    userStore: process.env.VERA_USER_STORE
   };
   context.after(() => {
     global.fetch = previous.fetch;
     for (const [name, value] of [
       ["SUPABASE_URL", previous.url], ["SUPABASE_SECRET_KEY", previous.secret],
       ["SUPABASE_SERVICE_ROLE_KEY", previous.legacy],
-      ["VITE_SUPABASE_URL", previous.viteUrl], ["VITE_SUPABASE_KEY", previous.viteKey]
+      ["VITE_SUPABASE_URL", previous.viteUrl], ["VITE_SUPABASE_KEY", previous.viteKey],
+      ["VERA_USER_STORE", previous.userStore]
     ]) {
       if (value === undefined) delete process.env[name];
       else process.env[name] = value;
     }
   });
 
+  process.env.VERA_USER_STORE = "supabase";
   process.env.SUPABASE_URL = "https://supabase.example/";
   process.env.SUPABASE_SECRET_KEY = "sb_secret_test";
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -58,4 +61,18 @@ test("login logging accepts a server-only Supabase secret key without a JWT bear
     recordLogin({ user: { id: 2, username: "demo" }, method: "PASSWORD" }),
     /HTTPS/
   );
+});
+
+test("memory demo does not require Supabase to record a login", async (context) => {
+  const previousStore = process.env.VERA_USER_STORE;
+  const previousFetch = global.fetch;
+  context.after(() => {
+    if (previousStore === undefined) delete process.env.VERA_USER_STORE;
+    else process.env.VERA_USER_STORE = previousStore;
+    global.fetch = previousFetch;
+  });
+
+  process.env.VERA_USER_STORE = "memory";
+  global.fetch = () => { throw new Error("No debe consultar Supabase en modo memory."); };
+  await assert.doesNotReject(recordLogin({ user: { id: 2, username: "demo" }, method: "PASSWORD" }));
 });

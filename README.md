@@ -76,6 +76,8 @@ npm run dev --prefix frontend
 
 Vite muestra la dirección local de la interfaz al iniciar. Las llamadas `/api` se redirigen al backend local mediante la configuración de desarrollo de Vite.
 
+Con los cinco almacenes en `memory`, el inicio de sesión demo funciona sin claves de Supabase y se registra en la bitácora local. Si activas cuentas en Supabase, la API exige registrar cada inicio de sesión en la tabla `logins` antes de emitir la sesión. Un valor distinto de `memory` o `supabase` en cualquier variable `VERA_*_STORE` detiene el backend al iniciar.
+
 ## Comandos de calidad
 
 Desde la raíz del proyecto:
