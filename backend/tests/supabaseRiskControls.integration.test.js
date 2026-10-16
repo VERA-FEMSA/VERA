@@ -7,6 +7,7 @@ process.env.VERA_RISK_CONTROL_STORE = "supabase";
 process.env.VERA_USER_STORE = "supabase";
 process.env.VERA_PLANNING_STORE = "supabase";
 process.env.VERA_EVIDENCE_COMMENT_STORE = "supabase";
+process.env.VERA_AUDIT_STORE = "supabase";
 process.env.SUPABASE_URL = "https://supabase.example";
 process.env.SUPABASE_SECRET_KEY = "sb_secret_test";
 
@@ -23,11 +24,13 @@ test("HU-14/HU-15 use persistent risk and control sources across HTTP requests",
   const nativeFetch = global.fetch;
   const accounts = [
     { id: 1000, username: "gerente", email: "gerente@vera.local", name: "Gerente", role: "GERENTE", status: "ACTIVE", version: 1 },
-    { id: 1001, username: "auditor", email: "auditor@vera.local", name: "Auditor", role: "AUDITOR", status: "ACTIVE", version: 1 }
+    { id: 1001, username: "auditor", email: "auditor@vera.local", name: "Auditor", role: "AUDITOR", status: "ACTIVE", version: 1 },
+    { id: 1002, username: "admin", email: "admin@vera.local", name: "Administrador", role: "SUPER_ADMIN", status: "ACTIVE", version: 1 }
   ];
   const tables = {
     vera_risks: new Map(), vera_controls: new Map(), vera_evidence: new Map(),
-    vera_audit_comments: new Map(), vera_audit_proposals: new Map()
+    vera_audit_comments: new Map(), vera_audit_proposals: new Map(),
+    vera_audit_events: new Map()
   };
   global.fetch = async (input, options) => {
     if (!String(input).startsWith("https://supabase.example/")) return nativeFetch(input, options);
@@ -36,6 +39,17 @@ test("HU-14/HU-15 use persistent risk and control sources across HTTP requests",
     if (table === "vera_users") {
       const id = url.searchParams.get("id")?.slice(3);
       return Response.json(id ? accounts.filter((account) => account.id === Number(id)) : accounts);
+    }
+    if (table === "vera_audit_events") {
+      if (options.method === "POST") {
+        const row = JSON.parse(options.body);
+        tables.vera_audit_events.set(row.id, row);
+        return new Response(null, { status: 201 });
+      }
+      const action = url.searchParams.get("action")?.slice(3);
+      const entityId = url.searchParams.get("entity_id")?.slice(3);
+      return Response.json([...tables.vera_audit_events.values()].filter((row) =>
+        (!action || row.action === action) && (!entityId || row.entity_id === entityId)));
     }
     assert.ok(tables[table]);
     const id = url.searchParams.get("id")?.slice(3);
@@ -117,4 +131,7 @@ test("HU-14/HU-15 use persistent risk and control sources across HTTP requests",
   }));
   assert.equal(assessment.status, 200);
   assert.equal(tables.vera_controls.get(control.id).version, 2);
+  const audit = await fetch(`${base}/api/audit?action=RISK_REGISTERED&entityId=${risk.id}`, auth(1002));
+  assert.equal(audit.status, 200);
+  assert.equal((await audit.json()).entries[0].details.riskId, risk.id);
 });

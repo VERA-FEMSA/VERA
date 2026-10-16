@@ -53,6 +53,7 @@ app.use((error, req, res, next) => {
   if (error.planningStorage) return res.status(error.status).json({ message: error.message });
   if (error.userStorage) return res.status(error.status).json({ message: error.message });
   if (error.domainStorage) return res.status(error.status).json({ message: error.message });
+  if (error.auditStorage) return res.status(error.status).json({ message: error.message });
   next(error);
 });
 

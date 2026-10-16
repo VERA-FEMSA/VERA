@@ -17,7 +17,7 @@ test("RNF-04: access log query is restricted and filters a specific test event",
   const baseUrl = await startTestServer(context, app);
   const marker = `quality-${Date.now()}`;
   const proposalId = `TEST-${Date.now()}`;
-  logActivity({
+  await logActivity({
     actor: { id: 3, username: marker, role: "GERENTE" },
     action: "TEST_QUALITY_EVENT",
     details: { proposalId }

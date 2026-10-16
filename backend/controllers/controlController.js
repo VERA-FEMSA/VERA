@@ -58,7 +58,7 @@ const createControl = async (req, res) => {
     note: evaluation.data.note,
     createdBy: { id: req.user.id, username: req.user.username, role: req.user.role }
   });
-  logActivity({ actor: req.user, action: "CONTROL_REGISTERED", details: { controlId: control.id, title: control.title, riskIds: control.riskIds } });
+  await logActivity({ actor: req.user, action: "CONTROL_REGISTERED", details: { controlId: control.id, title: control.title, riskIds: control.riskIds } });
   return res.status(201).json({ control });
 };
 
@@ -68,7 +68,7 @@ const updateControl = async (req, res) => {
   const core = await parseCore(req.body);
   if (core.error) return res.status(400).json({ message: core.error });
   const control = await controlRepository.update(current.id, core.data, current.storageVersion);
-  logActivity({ actor: req.user, action: "CONTROL_UPDATED", details: { controlId: control.id, title: control.title } });
+  await logActivity({ actor: req.user, action: "CONTROL_UPDATED", details: { controlId: control.id, title: control.title } });
   return res.json({ control });
 };
 
@@ -81,7 +81,7 @@ const evaluateControl = async (req, res) => {
     ...evaluation.data,
     assessedBy: { id: req.user.id, username: req.user.username, role: req.user.role }
   }, current.storageVersion);
-  logActivity({ actor: req.user, action: "CONTROL_EVALUATED", details: { controlId: control.id, title: control.title, rating: control.effectiveness, version: control.evaluations.length } });
+  await logActivity({ actor: req.user, action: "CONTROL_EVALUATED", details: { controlId: control.id, title: control.title, rating: control.effectiveness, version: control.evaluations.length } });
   return res.json({ control });
 };
 

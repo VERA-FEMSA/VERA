@@ -21,7 +21,7 @@ const getHistory = async (req, res) => {
   const proposal = await findVisibleProposal(req.params.id, req.user, res);
   if (!proposal) return;
   res.json({
-    history: query({ entityId: proposal.id, limit: 200 }),
+    history: await query({ entityId: proposal.id, limit: 200 }),
     comments: await commentRepository.listByProposal(proposal.id)
   });
 };
@@ -39,7 +39,7 @@ const addComment = async (req, res) => {
     text,
     author: { id: req.user.id, username: req.user.username, role: req.user.role }
   });
-  logActivity({
+  await logActivity({
     actor: req.user,
     action: "AUDIT_COMMENT_ADDED",
     details: { proposalId: proposal.id, title: proposal.title, commentId: comment.id }

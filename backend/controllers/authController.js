@@ -82,7 +82,7 @@ const issueSession = async (req, res, user, method = "PASSWORD") => {
   }
 
 
-  logActivity({
+  await logActivity({
     actor: user,
     action: "LOGIN_SUCCESS",
     details: { method }
@@ -120,7 +120,7 @@ const login = async (req, res) => {
 
 
   if (!user) {
-    logActivity({
+    await logActivity({
       actor: { username: String(username || "").slice(0, 100) },
       action: "LOGIN_FAILED",
       details: { ip }
@@ -131,7 +131,7 @@ const login = async (req, res) => {
 
   // HU-01: solo las cuentas activas pueden iniciar sesión
   if (user.status !== USER_STATUS.ACTIVE) {
-    logActivity({
+    await logActivity({
       actor: user,
       action: "LOGIN_BLOCKED",
       details: { status: user.status }
@@ -193,7 +193,7 @@ const verify2FA = async (req, res) => {
     });
 
   if (!valid) {
-    if (user) logActivity({ actor: user, action: "TWO_FACTOR_FAILED", details: { ip } });
+    if (user) await logActivity({ actor: user, action: "TWO_FACTOR_FAILED", details: { ip } });
     const rec = registerFailure(ip);
     return failureResponse(res, rec, "Código incorrecto");
   }
@@ -234,7 +234,7 @@ const enable2FA = async (req, res) => {
   const enabledUser = await userRepository.enableTwoFactor(user.id, user.pendingSecret);
   if (!enabledUser) return res.status(409).json({ message: "La configuración 2FA cambió. Vuelve a iniciar el proceso." });
 
-  logActivity({ actor: user, action: "TWO_FACTOR_ENABLED" });
+  await logActivity({ actor: user, action: "TWO_FACTOR_ENABLED" });
 
   res.json({ message: "2FA activado" });
 };
@@ -287,7 +287,7 @@ const register = async (req, res) => {
     role: DEFAULT_ROLE
   });
 
-  logAccessChange({
+  await logAccessChange({
     actor: { id: user.id, username: user.username, role: "PUBLIC" },
     action: "ACCOUNT_REQUESTED",
     target: user

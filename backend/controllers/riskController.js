@@ -83,7 +83,7 @@ const createRisk = async (req, res) => {
     ...assessment.data,
     createdBy: { id: req.user.id, name: req.user.username }
   });
-  logActivity({
+  await logActivity({
     actor: req.user,
     action: "RISK_REGISTERED",
     details: { riskId: risk.id, title: risk.title, level: risk.level, score: risk.score }
@@ -100,7 +100,7 @@ const updateRisk = async (req, res) => {
     return res.status(409).json({ message: "Ya existe un riesgo con el mismo nombre y área." });
   }
   const risk = await riskRepository.update(current.id, core.data, current.storageVersion);
-  logActivity({ actor: req.user, action: "RISK_UPDATED", details: { riskId: risk.id, title: risk.title } });
+  await logActivity({ actor: req.user, action: "RISK_UPDATED", details: { riskId: risk.id, title: risk.title } });
   res.json({ risk });
 };
 
@@ -113,7 +113,7 @@ const evaluateRisk = async (req, res) => {
     ...assessment.data,
     assessedBy: { id: req.user.id, name: req.user.username }
   }, current.storageVersion);
-  logActivity({
+  await logActivity({
     actor: req.user,
     action: "RISK_EVALUATED",
     details: { riskId: risk.id, title: risk.title, level: risk.level, score: risk.score, evaluationVersion: risk.evaluations.length }

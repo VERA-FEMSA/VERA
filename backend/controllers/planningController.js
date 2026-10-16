@@ -137,7 +137,7 @@ const createProposal = async (req, res) => {
     createdBy: { id: req.user.id, name: req.user.username }
   });
 
-  logActivity({
+  await logActivity({
     actor: req.user,
     action: "AUDIT_PROPOSAL_CREATED",
     details: { proposalId: proposal.id, title: proposal.title }
@@ -166,7 +166,7 @@ const updateProposal = async (req, res) => {
 
   const proposal = await planningRepository.update(current.id, data, current.storageVersion);
 
-  logActivity({
+  await logActivity({
     actor: req.user,
     action: "AUDIT_PROPOSAL_UPDATED",
     details: { proposalId: proposal.id, title: proposal.title }
@@ -193,7 +193,7 @@ const approveProposal = async (req, res) => {
     approvedBy: { id: req.user.id, name: req.user.username }
   }, current.storageVersion);
 
-  logActivity({
+  await logActivity({
     actor: req.user,
     action: "AUDIT_PROPOSAL_APPROVED",
     details: { proposalId: proposal.id, title: proposal.title, quarter }
@@ -213,7 +213,7 @@ const startAudit = async (req, res) => {
   const audit = await planningRepository.start(current.id, {
     startedBy: { id: req.user.id, name: req.user.username }
   }, current.storageVersion);
-  logActivity({
+  await logActivity({
     actor: req.user,
     action: "AUDIT_STARTED",
     details: { auditId: audit.id, title: audit.title }
@@ -232,7 +232,7 @@ const closeAudit = async (req, res) => {
   const audit = await planningRepository.close(current.id, {
     closedBy: { id: req.user.id, name: req.user.username }
   }, current.storageVersion);
-  logActivity({
+  await logActivity({
     actor: req.user,
     action: "AUDIT_CLOSED",
     details: { auditId: audit.id, title: audit.title }
@@ -258,7 +258,7 @@ const rejectProposal = async (req, res) => {
     rejectedBy: { id: req.user.id, name: req.user.username }
   }, current.storageVersion);
 
-  logActivity({
+  await logActivity({
     actor: req.user,
     action: "AUDIT_PROPOSAL_REJECTED",
     details: { proposalId: proposal.id, title: proposal.title, reason: rejectionReason }
@@ -277,7 +277,7 @@ const deleteProposal = async (req, res) => {
 
   await planningRepository.remove(current.id, current.storageVersion);
 
-  logActivity({
+  await logActivity({
     actor: req.user,
     action: "AUDIT_PROPOSAL_DELETED",
     details: { proposalId: current.id, title: current.title }
@@ -339,7 +339,7 @@ const editAudit = async (req, res) => {
 
   const audit = await planningRepository.update(current.id, update, current.storageVersion);
 
-  logActivity({
+  await logActivity({
     actor: req.user,
     action: "AUDIT_UPDATED",
     details: { proposalId: audit.id, title: audit.title, status: audit.status, changes }

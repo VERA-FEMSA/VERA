@@ -73,7 +73,7 @@ const createEvidence = async (req, res) => {
     entityTitle: entity.title,
     author: { id: req.user.id, username: req.user.username, name: author?.name || req.user.username, role: req.user.role }
   });
-  logActivity({ actor: req.user, action: "EVIDENCE_REGISTERED", details: { evidenceId: evidence.id, title: evidence.title, entityType, entityId, entityTitle: entity.title } });
+  await logActivity({ actor: req.user, action: "EVIDENCE_REGISTERED", details: { evidenceId: evidence.id, title: evidence.title, entityType, entityId, entityTitle: entity.title } });
   res.status(201).json({ evidence });
 };
 

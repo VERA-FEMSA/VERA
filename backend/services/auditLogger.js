@@ -55,4 +55,7 @@ const query = ({ action, actor, from, to, entityId, limit = 200 } = {}) => {
   return result.slice(-max).reverse();
 };
 
-module.exports = { logAccessChange, logActivity, query };
+const memoryLogger = { logAccessChange, logActivity, query };
+module.exports = process.env.VERA_AUDIT_STORE === "supabase"
+  ? require("./supabaseAuditLogger")
+  : memoryLogger;

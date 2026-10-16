@@ -56,7 +56,7 @@ const updateUserRole = async (req, res) => {
   const user = await userRepository.updateRole(target.id, role, target.storageVersion);
 
   if (previousRole !== role) {
-    logAccessChange({
+    await logAccessChange({
       actor: req.user,
       action: "ROLE_CHANGED",
       target: user,
@@ -91,7 +91,7 @@ const updateUserStatus = async (req, res) => {
     target.storageVersion
   );
 
-  logAccessChange({
+  await logAccessChange({
     actor: req.user,
     action: active ? "USER_ENABLED" : "USER_DISABLED",
     target: user
@@ -131,7 +131,7 @@ const approveRequest = async (req, res) => {
   const user = await userRepository.approvePending(target.id, role, target.storageVersion);
   if (!user) return res.status(409).json({ message: "Esta cuenta ya no está pendiente." });
 
-  logAccessChange({
+  await logAccessChange({
     actor: req.user,
     action: "REQUEST_APPROVED",
     target: user,
@@ -149,7 +149,7 @@ const rejectRequest = async (req, res) => {
   const user = await userRepository.removePending(target.id, target.storageVersion);
   if (!user) return res.status(409).json({ message: "Esta cuenta cambió. Actualiza y vuelve a intentar." });
 
-  logAccessChange({
+  await logAccessChange({
     actor: req.user,
     action: "REQUEST_REJECTED",
     target: user,

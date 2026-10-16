@@ -16,4 +16,10 @@ test("persistent risks and controls require persistent users and planning", () =
     VERA_EVIDENCE_COMMENT_STORE: "supabase", VERA_RISK_CONTROL_STORE: "supabase",
     VERA_USER_STORE: "supabase", VERA_PLANNING_STORE: "supabase"
   }));
+  assert.throws(() => validateStoreModes({ VERA_AUDIT_STORE: "supabase" }), /requiere/);
+  assert.doesNotThrow(() => validateStoreModes({
+    VERA_AUDIT_STORE: "supabase", VERA_EVIDENCE_COMMENT_STORE: "supabase",
+    VERA_RISK_CONTROL_STORE: "supabase", VERA_USER_STORE: "supabase",
+    VERA_PLANNING_STORE: "supabase"
+  }));
 });
