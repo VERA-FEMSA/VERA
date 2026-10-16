@@ -4,9 +4,9 @@
 .risk-summary-card { padding: 18px 20px; border-radius: 14px; background: #fff; box-shadow: 0 2px 8px #1427310d; border-top: 4px solid #718096; }
 .risk-summary-alto { border-color: #d94c4c; }.risk-summary-medio { border-color: #d69e18; }.risk-summary-bajo { border-color: #0a9d76; }
 .risk-summary-card span, .risk-summary-card strong, .risk-summary-card small { display: block; }.risk-summary-card span,.risk-summary-card small { color: #748190; font-size: 13px; }.risk-summary-card strong { color: #20323c; font-size: 30px; margin: 4px 0; }
-.risk-filters { display: flex; gap: 14px; padding: 18px; background: #fff; border-radius: 14px; margin-bottom: 20px; box-shadow: 0 2px 8px #1427310d; }
-.risk-filters label { display: grid; gap: 6px; color: #52636d; font-size: 12px; font-weight: 700; }.risk-filters label:first-child { flex: 1; }
-.risk-filters input,.risk-filters select { min-width: 190px; padding: 10px 12px; border: 1px solid #dbe3e7; border-radius: 8px; font: inherit; color: #344451; }
+.risk-filters { display: flex; flex-wrap: wrap; gap: 14px; padding: 18px; background: #fff; border-radius: 14px; margin-bottom: 20px; box-shadow: 0 2px 8px #1427310d; }
+.risk-filters label { display: grid; flex: 1 1 190px; min-width: 0; gap: 6px; color: #52636d; font-size: 12px; font-weight: 700; }
+.risk-filters input,.risk-filters select { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #dbe3e7; border-radius: 8px; font: inherit; color: #344451; }
 .risk-list { display: grid; gap: 14px; }.risk-record { display: flex; align-items: flex-start; gap: 16px; padding: 22px; background: white; border-radius: 15px; box-shadow: 0 2px 8px #1427310d; }
 .risk-record-icon { flex: 0 0 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #125466; background: #edf6f7; }.risk-record-main { min-width: 0; flex: 1; }
 .risk-record-heading { display: flex; align-items: center; gap: 9px; }.risk-record-id { color: #0a9d91; font-size: 12px; font-weight: 700; }.risk-score { color: #607684; font-size: 12px; }

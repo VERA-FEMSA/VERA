@@ -23,7 +23,7 @@ test("Copiloto: distingue un indicador calculado de una respuesta generada", asy
   await expect(page.getByText("Sin registros citados en esta respuesta.")).toHaveCount(0);
 });
 
-test("Copiloto: el conteo por área abre los mismos filtros exactos en riesgos", async ({ page }) => {
+test("Copiloto: el conteo por área abre los mismos filtros exactos en riesgos", async ({ page }, testInfo) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: true, mode: "read-only" } }));
   await page.route("**/api/assistant/ask", (route) => route.fulfill({ json: {
@@ -49,6 +49,9 @@ test("Copiloto: el conteo por área abre los mismos filtros exactos en riesgos",
   await expect(page.getByLabel("Área exacta")).toHaveValue("Gestión Financiera");
   await expect(page.getByLabel("Nivel")).toHaveValue("Alto");
   await expect.poll(() => riskRequests).toBeGreaterThan(0);
+  if (testInfo.project.name === "tablet-chromium") {
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - visualViewport.width)).toBeLessThanOrEqual(1);
+  }
 });
 
 test("HU-34: consulta autorizada y navegación a registros relacionados", async ({ page }) => {
