@@ -18,7 +18,9 @@ Si las tablas `vera_audit_proposals` o `logins` ya se crearon manualmente, prime
 
 ## Cuentas persistentes
 
-La tercera migración crea `vera_users` con correo y usuario únicos, hash de contraseña, rol, estado y secretos de 2FA. La tabla tiene RLS habilitado y solo la API con clave de servidor puede accederla. No hay cuentas demo ni contraseñas de ejemplo en la base remota.
+La tercera migración crea `vera_users` con correo y usuario únicos, hash de contraseña, rol, estado y secretos de 2FA. La tabla tiene RLS habilitado y solo la API con clave de servidor puede accederla. No se insertan cuentas demo ni contraseñas de ejemplo en una base nueva.
+
+Si el proyecto ya contiene `public.users` del VERA anterior, la octava migración copia sus cuentas a `vera_users` conservando los IDs, roles, estados y configuración 2FA. Exige que `vera_users` esté vacía. Conserva los hashes bcrypt existentes; solo transforma dentro de PostgreSQL las contraseñas antiguas que no tenían hash y rechaza una cuenta **activa** en ese estado. No imprime contraseñas ni elimina `public.users`. Comprueba conteos, IDs y referencias a propuestas antes de cambiar `VERA_USER_STORE`; decide por separado cuándo retirar la tabla anterior, una vez confirmado que ningún consumidor la utiliza.
 
 Tras aplicar y verificar la migración, inicializa **una sola vez** un Super Admin desde una terminal confiable con `VERA_USER_STORE=supabase`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` y las variables `VERA_BOOTSTRAP_ADMIN_NAME`, `VERA_BOOTSTRAP_ADMIN_EMAIL`, `VERA_BOOTSTRAP_ADMIN_PASSWORD`. Ejecuta `node backend/scripts/bootstrap-admin.js`; el comando falla si ya existe un Super Admin. No guardes la contraseña de inicialización en Git, Vercel ni en capturas; elimínala del entorno de la terminal tras usarla.
 
