@@ -45,13 +45,13 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
   }
   try {
     if (!readiness().available) return res.status(503).json({ message: "El asistente requiere Azure OpenAI y almacenes persistentes en producción." });
-    const { context, references, sourceCatalog } = await buildAssistantContext(req.user, question.trim(), focus);
+    const { context, references, sourceCatalog, coverage } = await buildAssistantContext(req.user, question.trim(), focus);
     const { answer, sourceIds, usage } = await askAzureOpenAi({ question: question.trim(), context, history });
     const citations = sourceIds.map((id) => sourceCatalog.find((item) => item.sourceId === id)).filter(Boolean);
     console.info(JSON.stringify({ event: "VERA_AI_ANSWER", status: 200, role: req.user.role,
       durationMs: Date.now() - startedAt, promptTokens: usage?.prompt_tokens ?? null,
       completionTokens: usage?.completion_tokens ?? null }));
-    return res.json({ answer, citations, references, durationMs: Date.now() - startedAt, usage: usage ? {
+    return res.json({ answer, citations, references, coverage, durationMs: Date.now() - startedAt, usage: usage ? {
       promptTokens: usage.prompt_tokens ?? null, completionTokens: usage.completion_tokens ?? null
     } : null });
   } catch (error) {

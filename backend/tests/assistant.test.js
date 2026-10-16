@@ -6,7 +6,7 @@ process.env.JWT_SECRET ||= "assistant-integration-test-secret-32-characters";
 
 const app = require("../server");
 const { startTestServer } = require("./helpers/testServer");
-const { buildAssistantContext } = require("../services/assistantContextService");
+const { buildAssistantContext, rankAssistantRecords } = require("../services/assistantContextService");
 const { askAzureOpenAi, configuration, readiness } = require("../services/azureOpenAiService");
 const riskRepository = require("../repositories/riskRepository");
 const controlRepository = require("../repositories/controlRepository");
@@ -16,6 +16,22 @@ const auth = (id, method = "GET", body) => ({ method, headers: {
   Authorization: `Bearer ${jwt.sign({ id }, process.env.JWT_SECRET)}`,
   ...(body ? { "Content-Type": "application/json" } : {})
 }, ...(body ? { body: JSON.stringify(body) } : {}) });
+
+test("Copiloto: prioriza registros que coinciden con la intención aunque estén fuera de los primeros 20", () => {
+  const risks = Array.from({ length: 25 }, (_, index) => ({
+    id: `RSK-${index + 1}`, title: `Riesgo ${index + 1}`, level: index === 24 ? "Alto" : "Medio"
+  }));
+  const selected = rankAssistantRecords("risks", risks, "¿Qué riesgos altos requieren atención?");
+  assert.equal(selected.length, 20);
+  assert.equal(selected[0].id, "RSK-25");
+  assert.equal(rankAssistantRecords("risks", risks, "¿Qué riesgos altos hay?", new Set(["RSK-2"]))[0].id, "RSK-2");
+  const audits = [{ id: "AUD-1", title: "Auditoría A", status: "CLOSED" },
+    { id: "AUD-2", title: "Auditoría B", status: "ACTIVE" }];
+  assert.equal(rankAssistantRecords("audits", audits, "auditorías activas")[0].id, "AUD-2");
+  const controls = [{ id: "CTL-1", title: "Control A", effectiveness: 5 },
+    { id: "CTL-2", title: "Control B", effectiveness: 2 }];
+  assert.equal(rankAssistantRecords("controls", controls, "controles inefectivos")[0].id, "CTL-2");
+});
 
 test("HU-34: contexto de Auditoría excluye expedientes, riesgos y hallazgos ajenos", async () => {
   const ownedRisk = riskRepository.create({ title: "Riesgo asignado", ownerId: 5, level: "Alto", score: 6,
@@ -36,6 +52,8 @@ test("HU-34: contexto de Auditoría excluye expedientes, riesgos y hallazgos aje
   assert.ok(context.records.controls.every((item) => item.riskIds.every((id) =>
     context.records.risks.some((risk) => risk.id === id))));
   assert.ok(references.every((item) => item.path.startsWith("/")));
+  assert.equal(context.selection.risks.visible >= context.selection.risks.included, true);
+  assert.equal(context.selection.risks.included, context.records.risks.length);
   const focused = await buildAssistantContext({ id: 5, role: "AUDITOR" }, "resume este riesgo", { type: "risk", id: ownedRisk.id });
   assert.equal(focused.context.focus.id, ownedRisk.id);
   assert.ok(focused.context.records.risks.some((item) => item.id === ownedRisk.id));

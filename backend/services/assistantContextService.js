@@ -8,6 +8,14 @@ const { buildNotifications } = require("./notificationService");
 const LIMIT_PER_TYPE = 20;
 const clean = (value, limit = 160) => String(value ?? "").slice(0, limit);
 const normalize = (value) => String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const STOP_WORDS = new Set([
+  "que", "cual", "cuales", "como", "para", "con", "del", "los", "las", "por", "una", "uno",
+  "mis", "este", "esta", "estos", "estas", "hay", "son", "sobre", "dame", "muestra", "resume"
+]);
+const termsFor = (question) => [...new Set((normalize(question).match(/[\p{L}\p{N}]{3,}/gu) || [])
+  .filter((word) => !STOP_WORDS.has(word))
+  .map((word) => word.length > 4 && word.endsWith("es") ? word.slice(0, -2)
+    : word.length > 4 && word.endsWith("s") ? word.slice(0, -1) : word))];
 const sourceFor = (type, item) => {
   const label = { audits: "Auditoría", risks: "Riesgo", controls: "Control",
     findings: "Hallazgo", pending: "Pendiente" }[type];
@@ -20,10 +28,28 @@ const sourceFor = (type, item) => {
   return { sourceId: `${type}:${item.id}`, type: label, id: item.id, title: item.title, path };
 };
 
-const rank = (items, question, preferred = new Set()) => {
-  const words = [...new Set(normalize(question).match(/[\p{L}\p{N}]{3,}/gu) || [])];
-  return items.map((item, index) => ({ item, index, score: (preferred.has(item.id) ? 100 : 0) + words.reduce((total, word) =>
-    total + (normalize(JSON.stringify(item)).includes(word) ? 1 : 0), 0) }))
+const rankAssistantRecords = (type, items, question, preferred = new Set()) => {
+  const query = normalize(question);
+  const words = termsFor(question);
+  const high = /\b(alt[oa]s?|critic[oa]s?)\b/.test(query);
+  const active = /\bactiv[oa]s?\b/.test(query);
+  const open = /\babiert[oa]s?\b/.test(query);
+  const ineffective = /inefectiv|ineficaz|por revisar/.test(query);
+  const urgent = /urgent|prioritari/.test(query);
+  return items.map((item, index) => {
+    const title = normalize(item.title);
+    const searchable = normalize(JSON.stringify(item));
+    const id = normalize(item.id ?? "");
+    const score = (preferred.has(item.id) ? 1000 : 0) +
+      (id.length >= 3 && query.includes(id) ? 100 : 0) +
+      words.reduce((total, word) => total + (title.includes(word) ? 4 : searchable.includes(word) ? 2 : 0), 0) +
+      (type === "risks" && high && item.level === "Alto" ? 50 : 0) +
+      (type === "audits" && active && item.status === "ACTIVE" ? 50 : 0) +
+      (type === "findings" && open && item.status === "OPEN" ? 50 : 0) +
+      (type === "controls" && ineffective && Number(item.effectiveness) < 4 ? 50 : 0) +
+      (type === "pending" && urgent && item.priority === "HIGH" ? 50 : 0);
+    return { item, index, score };
+  })
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .slice(0, LIMIT_PER_TYPE)
     .map(({ item }) => item);
@@ -99,7 +125,9 @@ const buildAssistantContext = async (user, question, focus = null) => {
   };
 
   const selected = Object.fromEntries(Object.entries(records).map(([type, items]) =>
-    [type, rank(items, question, preferred[type])]));
+    [type, rankAssistantRecords(type, items, question, preferred[type])]));
+  const selection = Object.fromEntries(Object.entries(records).map(([type, items]) =>
+    [type, { visible: items.length, included: selected[type].length }]));
   const query = normalize(question);
   const requested = {
     audits: /auditor|propuest|portafolio/.test(query),
@@ -108,6 +136,8 @@ const buildAssistantContext = async (user, question, focus = null) => {
     findings: /hallazg/.test(query),
     pending: /pendient|actividad|tarea/.test(query)
   };
+  const relevantTypes = Object.keys(requested).filter((type) => requested[type] || preferred[type].size > 0);
+  const coverageTypes = relevantTypes.length ? relevantTypes : Object.keys(selection);
   const sourceCatalog = Object.entries(selected).flatMap(([type, items]) =>
     items.map((item) => sourceFor(type, item)));
   const references = Object.entries(selected).flatMap(([type, items]) =>
@@ -126,6 +156,7 @@ const buildAssistantContext = async (user, question, focus = null) => {
       role: user.role,
       scope: auditor ? "Solo auditorías asignadas y riesgos bajo responsabilidad del usuario" : "Portafolio completo según los módulos de lectura actuales",
       counts: Object.fromEntries(Object.entries(records).map(([type, items]) => [type, items.length])),
+      selection,
       sampleLimitPerType: LIMIT_PER_TYPE,
       focus: focused ? { type: focus.type, id: focus.id, title: clean(focused.title),
         description: clean(focused.description, 700), objective: clean(focused.objective, 500),
@@ -140,8 +171,9 @@ const buildAssistantContext = async (user, question, focus = null) => {
       sources: sourceCatalog.map(({ sourceId, type, id, title }) => ({ sourceId, type, id, title })),
       records: selected
     },
-    references, sourceCatalog, brief
+    references, sourceCatalog, brief,
+    coverage: { partial: coverageTypes.some((type) => selection[type].included < selection[type].visible), selection }
   };
 };
 
-module.exports = { buildAssistantContext };
+module.exports = { buildAssistantContext, rankAssistantRecords };

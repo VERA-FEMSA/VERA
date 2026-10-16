@@ -5,8 +5,9 @@
 - El acceso flotante **Preguntar a VERA** abre un panel desde las pantallas protegidas. La página `/asistente` sigue disponible.
 - En las tarjetas de riesgo y control, y en el expediente de auditoría, **Analizar con IA** abre el panel con ese registro en contexto. El servidor comprueba la visibilidad antes de incorporarlo; un ID ajeno recibe 404 sin revelar el título.
 - Las sugerencias iniciales cambian según el rol. Una tarjeta de señales muestra conteos deterministas de riesgos altos, controles con efectividad inferior a 4, hallazgos abiertos, pendientes de prioridad alta y auditorías activas. Esos conteos no provienen del modelo.
-- El usuario puede hacer preguntas de seguimiento. Las seis intervenciones recientes se envían como historial **no confiable** junto al contexto vigente. La conversación vive solo en la memoria de la página; **Nueva conversación** la elimina. No hay almacenamiento del chat en Supabase.
+- El usuario puede hacer preguntas de seguimiento. Las seis intervenciones recientes se envían como historial **no confiable** junto al contexto vigente. Cada expediente y el chat general conservan su propia conversación mientras siga abierta la aplicación, incluso al cambiar de módulo o cerrar el panel. Se mantienen hasta 12 hilos recientes y 40 mensajes por hilo en memoria; **Nueva conversación** elimina solo el hilo actual. Al recargar, cerrar sesión o abrir otra pestaña, se pierde el historial; no hay almacenamiento del chat en Supabase ni en el navegador.
 - El proveedor devuelve texto y IDs de fuentes. El servidor acepta solamente IDs que ya estén en el catálogo de registros visibles y construye enlaces internos. La interfaz separa **Registros citados** de **Registros relacionados** y advierte que se debe comprobar el expediente. Un ID válido no demuestra por sí solo que cada frase sea correcta.
+- La selección de contexto prioriza el expediente enfocado, IDs y términos de la pregunta, y estados como riesgo alto, auditoría activa o control inefectivo. Se mantienen los conteos de todos los registros visibles; si el contexto contiene solo una muestra de un módulo consultado, la respuesta muestra un aviso. Una muestra no debe describirse como la lista completa.
 - Azure se consulta en modo JSON y el servidor rechaza respuestas incompletas o de formato inválido. [La documentación de Microsoft](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/json-mode) aclara que JSON válido no garantiza un esquema ni exactitud factual; por eso el servidor valida la estructura y los IDs recibidos.
 - El asistente puede proponer borradores de próximos pasos, pero no tiene herramientas de escritura ni permisos para aprobar o cambiar expedientes.
 
@@ -22,7 +23,7 @@ El modelo recibe campos reducidos, hasta 20 registros por tipo, conteos de todo 
 | --- | --- |
 | `GET /api/assistant/status` | Disponibilidad de Azure y almacenes requeridos. |
 | `GET /api/assistant/brief` | Señales deterministas según los registros visibles del usuario. |
-| `POST /api/assistant/ask` | `{ question, history?, focus? }`; `focus` admite `audit`, `risk`, `control` o `finding` y un ID visible. Devuelve `answer`, `citations`, `references`, `durationMs` y consumo de tokens. |
+| `POST /api/assistant/ask` | `{ question, history?, focus? }`; `focus` admite `audit`, `risk`, `control` o `finding` y un ID visible. Devuelve `answer`, `citations`, `references`, `coverage` (muestra consultada frente a total visible), `durationMs` y consumo de tokens. |
 
 La respuesta HTTP lleva `Cache-Control: no-store`. Se mantienen el límite por usuario y la desactivación por `VERA_AI_ENABLED=false`. El presupuesto mensual de Azure **avisa**, pero no bloquea el gasto. La telemetría registra duración, rol, estado y tokens; no registra preguntas, respuestas ni contenido del contexto.
 
@@ -43,4 +44,4 @@ Los escenarios automatizados de API y navegador cubren contexto, permisos, memor
 
 ## Límites y siguiente evolución
 
-El chat no persiste al cerrar o recargar la página. Las fuentes citadas son IDs de registros, no fragmentos textuales verificados. No se indexa el contenido de evidencias ni se hace búsqueda semántica. El panel no envía notificaciones proactivas, simula escenarios ni ejecuta flujos. Esas capacidades requieren diseño de datos y permisos por documento, indicadores de calidad y aprobación humana antes de agregar acciones. No se deben anunciar como implementadas en este PR.
+El chat no persiste al recargar la página o cerrar sesión. Las fuentes citadas son IDs de registros, no fragmentos textuales verificados. La búsqueda por relevancia usa reglas léxicas y estados, no embeddings ni búsqueda semántica. No se indexa el contenido de evidencias. El panel no envía notificaciones proactivas, simula escenarios ni ejecuta flujos. Esas capacidades requieren diseño de datos y permisos por documento, indicadores de calidad y aprobación humana antes de agregar acciones. No se deben anunciar como implementadas en este PR.

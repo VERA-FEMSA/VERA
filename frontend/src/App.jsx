@@ -20,12 +20,14 @@ import Asistente from "./pages/Asistente";
 import Evidencias from "./pages/Evidencias";
 import Trimestres, { TrimestreDetalle } from "./pages/Trimestres";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AssistantConversationProvider from "./contexts/AssistantConversationProvider";
 import { USER_ADMIN_ROLES } from "./constants/roles";
 
 
 function App() {
   return (
     <BrowserRouter>
+      <AssistantConversationProvider>
       <Routes>
 
         <Route
@@ -114,6 +116,7 @@ function App() {
         />
 
       </Routes>
+      </AssistantConversationProvider>
     </BrowserRouter>
   );
 }

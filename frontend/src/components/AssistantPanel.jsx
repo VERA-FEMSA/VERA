@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Bot, RotateCcw, Send } from "lucide-react";
 import { askAssistant, getAssistantBrief, getAssistantStatus } from "../services/assistantService";
+import { AssistantConversationContext } from "../contexts/AssistantConversationContext";
 import "../pages/Asistente.css";
 
 const promptsByRole = {
@@ -14,11 +15,14 @@ const promptsByRole = {
 
 function AssistantPanel({ focus = null }) {
   const user = JSON.parse(localStorage.getItem("user") || "null");
+  const { conversations, updateConversation } = useContext(AssistantConversationContext);
+  const conversationKey = focus ? `${focus.type}:${focus.id}` : "general";
+  const messages = conversations[conversationKey] || [];
+  const setMessages = (update) => updateConversation(conversationKey, update);
   const [available, setAvailable] = useState(null);
   const [reason, setReason] = useState(null);
   const [brief, setBrief] = useState([]);
   const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,7 +46,8 @@ function AssistantPanel({ focus = null }) {
     try {
       const result = await askAssistant(value, { history, focus: focus ? { type: focus.type, id: focus.id } : null });
       setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", text: result.answer,
-        citations: result.citations || [], references: result.references || [], durationMs: result.durationMs }]);
+        citations: result.citations || [], references: result.references || [], coverage: result.coverage,
+        durationMs: result.durationMs }]);
     } catch (cause) { setError(cause.message); }
     finally { setBusy(false); }
   };
@@ -67,6 +72,7 @@ function AssistantPanel({ focus = null }) {
     <div className="assistant-messages" aria-live="polite">{messages.map((message) => <article key={message.id} className={`assistant-message ${message.role}`}>
       <strong>{message.role === "user" ? "Tú" : "Asistente VERA"}</strong><p>{message.text}</p>
       {message.role === "assistant" && <><small className="assistant-answer-note">Respuesta generada · comprueba el expediente{Number.isFinite(message.durationMs) ? ` · ${(message.durationMs / 1000).toFixed(1)} s` : ""}</small>
+        {message.coverage?.partial && <small className="assistant-answer-note">Se consultó una muestra de expedientes visibles; los conteos abarcan el total de tu alcance.</small>}
         {message.citations?.length > 0 && <div className="assistant-citations"><b>Registros citados</b><ul>{message.citations.map((item) => <li key={item.sourceId}><Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link></li>)}</ul></div>}
         {message.citations?.length === 0 && <small className="assistant-answer-note">Sin registros citados en esta respuesta.</small>}
         {message.references?.length > 0 && <details><summary>Registros relacionados ({message.references.length})</summary><ul>{message.references.map((item) => <li key={item.sourceId || `${item.type}:${item.id}`}><Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link></li>)}</ul></details>}

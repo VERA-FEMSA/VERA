@@ -12,7 +12,7 @@ test("HU-34: consulta autorizada y navegación a registros relacionados", async 
   await page.route("**/api/assistant/ask", async (route) => {
     const body = route.request().postDataJSON();
     expect(body.question).toContain("riesgos");
-    await route.fulfill({ json: { answer: "Hay un riesgo alto en tu alcance.",
+    await route.fulfill({ json: { answer: "Hay un riesgo alto en tu alcance.", coverage: { partial: true },
       references: [{ type: "Riesgo", id: "RSK-01", title: "Riesgo de acceso", path: "/riesgos" }] } });
   });
   await page.goto("/asistente");
@@ -20,6 +20,7 @@ test("HU-34: consulta autorizada y navegación a registros relacionados", async 
   await page.getByLabel("Tu pregunta").fill("¿Qué riesgos hay en mi alcance?");
   await page.getByRole("button", { name: "Enviar pregunta" }).click();
   await expect(page.getByText("Hay un riesgo alto en tu alcance.")).toBeVisible();
+  await expect(page.getByText(/muestra de expedientes visibles/)).toBeVisible();
   await page.getByText("Registros relacionados").click();
   await expect(page.getByRole("link", { name: /Riesgo: Riesgo de acceso/ })).toHaveAttribute("href", "/riesgos");
 });
@@ -68,6 +69,50 @@ test("Copiloto: conserva el contexto de expediente y la pregunta anterior en la 
   await expect.poll(() => calls).toBe(2);
 });
 
+test("Copiloto: conserva la conversación al navegar y cerrar el panel", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: true, mode: "read-only" } }));
+  await page.route("**/api/dashboard", (route) => route.fulfill({ json: {
+    role: "AUDITOR", scopeLabel: "Mis auditorías", title: "Panel de auditorías", permissions: { canCreate: false, canApprove: false },
+    metrics: { total: 0, pending: 0, active: 0, highRisk: 0, openFindings: 0, averageProgress: 0 },
+    statusCounts: [], riskMatrix: [], pendingItems: []
+  } }));
+  const requests = [];
+  await page.route("**/api/assistant/ask", async (route) => {
+    const body = route.request().postDataJSON();
+    requests.push(body);
+    await route.fulfill({ json: { answer: `Respuesta ${requests.length}`, citations: [], references: [] } });
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Tu pregunta").fill("Resume mis riesgos");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Respuesta 1")).toBeVisible();
+  await page.getByRole("button", { name: "Panel de Portafolio" }).click();
+  await page.getByRole("button", { name: "Abrir asistente de IA" }).click();
+  const dialog = page.getByRole("dialog", { name: "Copiloto VERA" });
+  await expect(dialog.getByText("Respuesta 1")).toBeVisible();
+  await dialog.getByLabel("Tu pregunta").fill("¿Y los controles relacionados?");
+  await dialog.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(dialog.getByText("Respuesta 2")).toBeVisible();
+  expect(requests[1].history).toEqual([
+    { role: "user", text: "Resume mis riesgos" },
+    { role: "assistant", text: "Respuesta 1" }
+  ]);
+  await dialog.getByRole("button", { name: "Cerrar asistente" }).click();
+  await page.getByRole("button", { name: "Abrir asistente de IA" }).click();
+  await expect(page.getByRole("dialog", { name: "Copiloto VERA" }).getByText("Respuesta 2")).toBeVisible();
+  await page.getByRole("dialog", { name: "Copiloto VERA" }).getByRole("button", { name: "Cerrar asistente" }).click();
+  await page.getByRole("button", { name: "Cerrar sesión" }).click();
+  await page.evaluate(() => {
+    localStorage.setItem("token", "second-account-token");
+    localStorage.setItem("user", JSON.stringify({ id: 4, role: "DIRECTOR", name: "Otra persona" }));
+    history.pushState({}, "", "/dashboard");
+    dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await page.getByRole("button", { name: "Abrir asistente de IA" }).click();
+  await expect(page.getByRole("dialog", { name: "Copiloto VERA" }).getByText("Respuesta 2")).toHaveCount(0);
+});
+
 test("Copiloto: abre un riesgo en panel contextual y lo envía como alcance", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/risks/**", (route) => route.fulfill({ json: { risks: [{
@@ -90,4 +135,41 @@ test("Copiloto: abre un riesgo en panel contextual y lo envía como alcance", as
   await dialog.getByLabel("Tu pregunta").fill("Resume este riesgo");
   await dialog.getByRole("button", { name: "Enviar pregunta" }).click();
   await expect(dialog.getByText("Riesgo alto en revisión.")).toBeVisible();
+});
+
+test("Copiloto: separa los hilos de dos riesgos", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/risks/**", (route) => route.fulfill({ json: { risks: [
+    { id: "RSK-A", title: "Riesgo A", description: "Primer riesgo de prueba", level: "Alto", score: 6,
+      area: "Operaciones", ownerName: "Auditor", evaluations: [], responsePlan: "" },
+    { id: "RSK-B", title: "Riesgo B", description: "Segundo riesgo de prueba", level: "Medio", score: 4,
+      area: "Operaciones", ownerName: "Auditor", evaluations: [], responsePlan: "" }
+  ] } }));
+  await page.route("**/api/planning", (route) => route.fulfill({ json: { proposals: [] } }));
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: true, mode: "read-only" } }));
+  const requests = [];
+  await page.route("**/api/assistant/ask", async (route) => {
+    const body = route.request().postDataJSON();
+    requests.push(body);
+    await route.fulfill({ json: { answer: `Respuesta ${body.focus.id}`, citations: [], references: [] } });
+  });
+  await page.goto("/riesgos");
+  const buttons = page.getByRole("button", { name: "Analizar con IA" });
+  await expect(buttons).toHaveCount(2);
+  await buttons.first().click();
+  let dialog = page.getByRole("dialog", { name: "Copiloto VERA" });
+  await dialog.getByLabel("Tu pregunta").fill("Analiza el primer riesgo");
+  await dialog.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(dialog.getByText("Respuesta RSK-A")).toBeVisible();
+  await dialog.getByRole("button", { name: "Cerrar asistente" }).click();
+  await buttons.nth(1).click();
+  dialog = page.getByRole("dialog", { name: "Copiloto VERA" });
+  await expect(dialog.getByText("Respuesta RSK-A")).toHaveCount(0);
+  await dialog.getByLabel("Tu pregunta").fill("Analiza el segundo riesgo");
+  await dialog.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(dialog.getByText("Respuesta RSK-B")).toBeVisible();
+  expect(requests[1].history).toEqual([]);
+  await dialog.getByRole("button", { name: "Cerrar asistente" }).click();
+  await buttons.first().click();
+  await expect(page.getByRole("dialog", { name: "Copiloto VERA" }).getByText("Respuesta RSK-A")).toBeVisible();
 });

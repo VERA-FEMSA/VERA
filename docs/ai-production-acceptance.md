@@ -37,7 +37,7 @@ El script hace **una** consulta al modelo por ejecución autenticada. Se puede p
 
 Con cada rol real que se quiera aceptar, entra en VERA y verifica en escritorio y móvil:
 
-1. **Preguntar a VERA** abre el panel desde una ruta protegida y se cierra con Escape; **Nueva conversación** elimina el seguimiento de esa sesión.
+1. **Preguntar a VERA** abre el panel desde una ruta protegida y se cierra con Escape. El chat general conserva sus mensajes al navegar o reabrir el panel, cada expediente conserva su propio hilo y **Nueva conversación** elimina solo el hilo actual. Al recargar o cerrar sesión, se elimina el historial.
 2. **Analizar con IA** abre el riesgo, control o auditoría seleccionado; la respuesta puede citar un registro y el enlace lleva al expediente correcto.
 3. Una cuenta `AUDITOR` ve solo sus auditorías y riesgos asignados, y no obtiene información de un expediente ajeno al intentar abrir su enlace. Para demostrar separación entre roles se necesitan, como mínimo, dos cuentas aprobadas con datos de prueba conocidos.
 4. Si faltan datos, el asistente lo reconoce. Una propuesta de acción se presenta como borrador y no modifica el expediente.
