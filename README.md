@@ -8,7 +8,7 @@
 
 [▶ Abrir ejecución completa de calidad y pruebas](https://github.com/humbertofigb15/VERA/actions/workflows/classroom-quality.yml) · [Guía rápida para revisión docente](docs/testing/professor-quick-run.md)
 
-> **Estado:** prototipo académico. Por defecto los datos se mantienen en memoria y se reinician con el backend. Las propuestas y auditorías pueden guardarse en Supabase mediante [esta configuración](docs/supabase-planning.md); los demás dominios aún no tienen persistencia. El repositorio contiene cuentas de demostración; no lo despliegues con datos reales ni lo uses como servicio de producción.
+> **Estado:** prototipo académico. Por defecto los datos se mantienen en memoria y se reinician con el backend. El código permite activar progresivamente la persistencia de planificación, cuentas, riesgos, controles, evidencias, comentarios y bitácora en Supabase siguiendo [esta guía](docs/supabase-planning.md). La conexión, las migraciones y los triggers aún requieren verificación en el proyecto remoto del equipo. El modo demo contiene cuentas de ejemplo y no debe usarse con datos reales.
 
 ## Funcionalidades actuales
 
@@ -116,7 +116,7 @@ La planificación captura probabilidad e impacto en una escala de 1 (bajo) a 3 (
 
 `GET /api/dashboard` requiere sesión y devuelve métricas, conteos por estado, matriz activa, pendientes y permisos calculados desde el portafolio. Super Admin y Dirección ven la cola global de decisiones; Gerencia y Jefatura pueden dar seguimiento y proponer auditorías; Auditoría ve solo registros asignados por `responsibleId`. La interfaz muestra KPIs, barras de estado, matriz de riesgo 3 × 3 y acciones rápidas filtradas por permisos; los valores se consultan de nuevo al actualizar y no están hardcodeados. Las pruebas de integración verifican autenticación, alcance de auditoría y permisos. No se muestran horas ni hallazgos porque el modelo actual no contiene fuentes de esos datos; así se evita presentar estadísticas inventadas.
 
-Con `VERA_PLANNING_STORE=supabase`, esos conteos y pendientes de propuestas se calculan desde auditorías persistidas en Supabase. La [guía de activación](docs/supabase-planning.md) explica los pasos y los dominios que aún siguen en memoria.
+Con `VERA_PLANNING_STORE=supabase`, esos conteos y pendientes de propuestas se calculan desde auditorías persistidas en Supabase. La [guía de activación](docs/supabase-planning.md) explica la secuencia de migraciones y modos opcionales de los demás dominios.
 
 ### HU-14: registro y evaluación de riesgos
 
@@ -124,13 +124,13 @@ Con `VERA_PLANNING_STORE=supabase`, esos conteos y pendientes de propuestas se c
 
 Cada reevaluación conserva versión, factores, puntaje, nivel, justificación, usuario y fecha; no sobrescribe el historial anterior. `SUPER_ADMIN`, `DIRECTOR` y `GERENTE` pueden registrar, editar y reevaluar. Los auditores pueden consultar solo los riesgos que tienen asignados; otros roles autenticados tienen acceso de lectura global. Endpoints: `GET /api/risks`, `GET /api/risks/owners`, `POST /api/risks`, `PUT /api/risks/:id` y `POST /api/risks/:id/evaluate`; las rutas exigen sesión y las operaciones de escritura aplican autorización por rol.
 
-El alcance actual no incluye cierre del riesgo, adjuntos/evidencia ni almacenamiento persistente: el registro usa el mismo almacenamiento en memoria que el prototipo, por lo que los datos se reinician al reiniciar el backend. Las pruebas de integración cubren autenticación, permisos, validación de escalas y justificación, cálculo de categoría, duplicados, filtros, alcance del auditor y conservación de versiones.
+El alcance actual no incluye cierre del riesgo ni archivos binarios adjuntos. Por defecto el registro usa memoria; se puede activar el almacén persistente de riesgos y controles tras aplicar las migraciones y activar las cuentas y la planificación en Supabase. Las pruebas de integración cubren autenticación, permisos, validación de escalas y justificación, cálculo de categoría, duplicados, filtros, alcance del auditor y conservación de versiones.
 
 ### HU-15: controles y cobertura de riesgos
 
 `/controles` registra controles preventivos, detectivos o correctivos, su responsable, frecuencia y los riesgos que atienden. El mapa muestra la relación riesgo-control y el nivel de efectividad (1–5), además del porcentaje de riesgos visibles que tienen al menos un control vinculado. Las evaluaciones conservan versiones, justificación, autor y fecha. El nivel es un dato descriptivo y no se usa para modificar automáticamente la clasificación del riesgo. La API `GET/POST /api/controls`, `PUT /api/controls/:id` y `POST /api/controls/:id/evaluate` exige sesión; `SUPER_ADMIN`, `DIRECTOR` y `GERENTE` administran el catálogo. Auditoría solo ve controles relacionados con riesgos asignados a su usuario.
 
-El modelo de controles y evaluaciones se conserva en memoria, igual que los riesgos del prototipo; el repositorio puede reemplazarse posteriormente por almacenamiento duradero sin cambiar la interfaz HTTP.
+El modelo de controles y evaluaciones usa memoria en el demo y comparte el modo Supabase optativo con los riesgos, sin cambiar la interfaz HTTP.
 
 ### HU-17: bandeja de notificaciones y actividades pendientes
 
@@ -142,7 +142,7 @@ Es una bandeja dentro de la aplicación: no envía correo ni push, no crea notif
 
 `/evidencias` registra una referencia documental y la relaciona con un riesgo, control o auditoría existente. El registro incluye nombre, tipo, descripción, referencia externa, entidad relacionada, autor y fecha. `GET /api/evidence` permite filtrar por entidad o búsqueda; `POST /api/evidence` valida el destino y conserva el evento `EVIDENCE_REGISTERED`. Las personas con rol Auditoría solo consultan o agregan referencias a riesgos/auditorías asignados y a controles que cubren riesgos asignados.
 
-Este incremento no recibe ni almacena archivos binarios. Acepta un enlace HTTPS o identificador externo (por ejemplo, nombre de archivo o referencia de Drive); solo los enlaces HTTPS se muestran como vínculos clicables. Los metadatos viven en memoria y el repositorio puede reemplazarse posteriormente por almacenamiento de objetos y persistencia sin cambiar el formato del registro.
+Este incremento no recibe ni almacena archivos binarios. Acepta un enlace HTTPS o identificador externo (por ejemplo, nombre de archivo o referencia de Drive); solo los enlaces HTTPS se muestran como vínculos clicables. Los metadatos usan memoria en el demo y pueden guardarse en Supabase con el modo optativo de evidencias y comentarios.
 
 ### HU-18: historial, actividad y comentarios por auditoría
 
@@ -150,7 +150,7 @@ Desde Planificación, Auditorías activas/aprobadas y el detalle trimestral se p
 
 `POST /api/planning/:id/comments` permite a cualquier usuario autenticado que pueda consultar esa propuesta agregar comentarios de 3 a 2,000 caracteres. El texto se recorta en los extremos, pero se conserva tal como se escribió en el contenido; autor, rol y fecha quedan asociados. Cada comentario produce además el evento `AUDIT_COMMENT_ADDED` en la bitácora general. No se permite editar o borrar comentarios desde esta HU, para mantener su valor como registro de actividad.
 
-Los comentarios y eventos se guardan en memoria conforme a la arquitectura actual y no sobreviven reinicios. Las pruebas de integración comprueban autenticación, asignación de acceso, filtros de eventos por expediente, ciclo de vida completo, validación de comentarios, identidad del autor y la bitácora generada.
+Los comentarios y eventos usan memoria en el demo. Existen modos optativos para guardar comentarios y bitácora en Supabase, sujetos a la aplicación de las migraciones y a la verificación del entorno remoto. Las pruebas de integración comprueban autenticación, asignación de acceso, filtros de eventos por expediente, ciclo de vida completo, validación de comentarios, identidad del autor y la bitácora generada.
 
 CodeQL analiza JavaScript y TypeScript en los pull requests, en `main` y semanalmente. `npm audit` revisa dependencias de backend y frontend en el flujo de calidad. Dependabot revisa semanalmente dependencias npm y GitHub Actions.
 
@@ -161,6 +161,7 @@ CodeQL analiza JavaScript y TypeScript en los pull requests, en `main` y semanal
 ├── backend/                 # API, autenticación, rutas, servicios y pruebas
 ├── frontend/                # Interfaz React y configuración de Vite
 ├── scripts/                 # Ejecutor del flujo local de calidad
+├── supabase/migrations/      # Esquema SQL versionado para los modos persistentes
 ├── .github/workflows/       # Calidad, CodeQL y revisión de dependencias
 ├── .env.example             # Plantilla local; no contiene secretos
 └── quality-report/          # Informes locales y artefactos de calidad (ignorado por Git)
@@ -171,9 +172,9 @@ CodeQL analiza JavaScript y TypeScript en los pull requests, en `main` y semanal
 - Configura una clave JWT aleatoria en `.env`; el backend se detiene si falta o tiene menos de 32 caracteres.
 - La API limita cada IP a 100 solicitudes por ventana de 15 minutos y responde con `429` al excederla. El almacenamiento predeterminado del límite es en memoria y no se comparte entre varias instancias.
 - `.env` está excluido de Git. Comparte únicamente `.env.example`, nunca el archivo local.
-- Las cuentas y los dominios distintos de planificación se guardan en memoria. Las propuestas pueden usar Supabase con la configuración indicada arriba.
+- Todos los almacenes usan memoria por defecto. Los modos Supabase son optativos y deben activarse en el orden documentado, tras conciliar el esquema y los datos existentes.
 - Las cuentas y contraseñas de demostración son solo para desarrollo y no deben reutilizarse.
-- Antes de cualquier despliegue, se requiere almacenamiento persistente, gestión de secretos de plataforma, configuración de CORS, un almacén compartido para límites de solicitudes, revisión de cuentas de demostración y una evaluación de seguridad del entorno.
+- Antes de usar datos reales, se requiere aplicar y verificar las migraciones en el proyecto del equipo, activar los modos persistentes, gestionar los secretos en la plataforma, configurar CORS, compartir el estado del límite de solicitudes entre instancias, retirar las cuentas demo del entorno y evaluar la seguridad del despliegue.
 
 ## Contribuir
 
