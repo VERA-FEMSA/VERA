@@ -26,7 +26,10 @@ const makeChunks = (pages) => {
 };
 
 const extractEvidenceText = async (bytes, mime) => {
-  if (!Buffer.isBuffer(bytes) || bytes.length === 0 || bytes.length > MAX_BYTES) {
+  if (!Buffer.isBuffer(bytes)) {
+    throw new TypeError("El archivo debe ser un Buffer binario.");
+  }
+  if (bytes.length === 0 || bytes.length > MAX_BYTES) {
     throw new Error("Archivo fuera del límite de 3 MB.");
   }
   if (!SEARCHABLE_MIME.has(mime)) return { chunks: [], truncated: false, status: "unsupported" };
