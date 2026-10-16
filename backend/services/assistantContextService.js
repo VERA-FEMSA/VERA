@@ -184,10 +184,12 @@ const buildAssistantContext = async (user, question, focus = null) => {
       records: selected
     },
     references, sourceCatalog, brief,
+    // Solo para composición del lado del servidor; las rutas no envían estos objetos completos al navegador ni a Azure.
+    visibleRecords: { audits, risks, controls, findings, pending: notifications },
     verifiedData: { risks: risks.map((item) => ({ area: clean(item.area, 100), level: item.level })) },
     asOf: new Date().toISOString(),
     coverage: { partial: coverageTypes.some((type) => selection[type].included < selection[type].visible), selection }
   };
 };
 
-module.exports = { buildAssistantContext, rankAssistantRecords };
+module.exports = { buildAssistantContext, rankAssistantRecords, sourceFor };

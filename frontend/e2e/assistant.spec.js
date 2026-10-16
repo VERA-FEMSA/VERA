@@ -23,6 +23,36 @@ test("Copiloto: distingue un indicador calculado de una respuesta generada", asy
   await expect(page.getByText("Sin registros citados en esta respuesta.")).toHaveCount(0);
 });
 
+test("Copiloto: briefing de auditoría muestra hechos vinculados y sugerencia citada en móvil", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: true, mode: "read-only" } }));
+  await page.route("**/api/assistant/dossier/AUD-77", (route) => {
+    expect(route.request().method()).toBe("POST");
+    return route.fulfill({ json: {
+      audit: { sourceId: "audits:AUD-77", title: "Auditoría de compras", path: "/auditorias-activas/AUD-77",
+        facts: [{ label: "Estado", value: "ACTIVE" }] },
+      sections: [{ key: "risks", label: "Riesgos vinculados", total: 1, shown: 1,
+        items: [{ sourceId: "risks:RSK-77", title: "Riesgo de proveedores", path: "/riesgos#risk-RSK-77",
+          facts: [{ label: "Nivel", value: "Alto" }] }] },
+      { key: "controls", label: "Controles relacionados", total: 0, shown: 0, items: [] },
+      { key: "findings", label: "Hallazgos relacionados", total: 0, shown: 0, items: [] },
+      { key: "pending", label: "Pendientes para tu cuenta", total: 0, shown: 0, items: [] }],
+      suggestion: { text: "Borrador: revisar el riesgo de proveedores.", citations: [
+        { sourceId: "risks:RSK-77", type: "Riesgo", title: "Riesgo de proveedores", path: "/riesgos#risk-RSK-77" }
+      ] }, asOf: "2026-10-16T20:20:00.000Z"
+    } });
+  });
+  await page.goto("/asistente?type=audit&id=AUD-77");
+  await page.getByRole("button", { name: "Preparar briefing" }).click();
+  const briefing = page.getByRole("region", { name: "Briefing de auditoría" });
+  await expect(briefing.getByText("Auditoría de compras")).toBeVisible();
+  await expect(briefing.getByText("Riesgos vinculados")).toBeVisible();
+  await expect(briefing.getByText("Borrador: revisar el riesgo de proveedores.")).toBeVisible();
+  await expect(briefing.getByRole("link", { name: /Riesgo: Riesgo de proveedores/ })).toHaveAttribute("href", "/riesgos#risk-RSK-77");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - visualViewport.width)).toBeLessThanOrEqual(1);
+});
+
 test("Copiloto: el conteo por área abre los mismos filtros exactos en riesgos", async ({ page }, testInfo) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: true, mode: "read-only" } }));

@@ -24,3 +24,12 @@ export const askAssistant = async (question, { history = [], focus = null } = {}
   if (!response.ok) throw new Error(data.message || "No se pudo obtener una respuesta.");
   return data;
 };
+
+export const getAuditDossier = async (auditId) => {
+  const response = await fetch(`/api/assistant/dossier/${encodeURIComponent(auditId)}`, {
+    method: "POST", headers: headers()
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "No se pudo preparar el briefing.");
+  return data;
+};

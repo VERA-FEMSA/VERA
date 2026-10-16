@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Bot, RotateCcw, Send } from "lucide-react";
-import { askAssistant, getAssistantBrief, getAssistantStatus } from "../services/assistantService";
+import { ArrowRight, Bot, FileText, RotateCcw, Send } from "lucide-react";
+import { askAssistant, getAssistantBrief, getAssistantStatus, getAuditDossier } from "../services/assistantService";
 import { AssistantConversationContext } from "../contexts/AssistantConversationContext";
 import "../pages/Asistente.css";
 
@@ -25,6 +25,9 @@ function AssistantPanel({ focus = null }) {
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [dossier, setDossier] = useState(null);
+  const [dossierBusy, setDossierBusy] = useState(false);
+  const [dossierError, setDossierError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -54,6 +57,14 @@ function AssistantPanel({ focus = null }) {
     finally { setBusy(false); }
   };
 
+  const prepareDossier = async () => {
+    if (dossierBusy || focus?.type !== "audit") return;
+    setDossierBusy(true); setDossierError("");
+    try { setDossier(await getAuditDossier(focus.id)); }
+    catch (cause) { setDossierError(cause.message); }
+    finally { setDossierBusy(false); }
+  };
+
   const prompts = focus
     ? [`Resume este ${focus.type === "audit" ? "expediente de auditoría" : focus.type === "risk" ? "riesgo" : "registro"} y sus relaciones.`,
       ...(focus.type === "risk" ? ["¿Cuál es el nivel y el puntaje de este riesgo?"] : []),
@@ -62,6 +73,19 @@ function AssistantPanel({ focus = null }) {
 
   return <section className="assistant-chat" aria-label="Conversación con el asistente">
     {focus && <div className="assistant-focus"><b>Expediente en contexto</b><span>{focus.title || focus.id}</span><small>La respuesta usará solo los registros que tu cuenta puede consultar.</small></div>}
+    {focus?.type === "audit" && <section className="assistant-dossier" aria-label="Briefing de auditoría">
+      <div className="assistant-dossier-header"><div><h2>Briefing del expediente</h2><p>Estado y relaciones calculados desde registros visibles.</p></div>
+        <button type="button" onClick={prepareDossier} disabled={dossierBusy || reason === "persistent-stores-required"}><FileText size={15} aria-hidden="true" /> {dossierBusy ? "Preparando..." : dossier ? "Actualizar briefing" : "Preparar briefing"}</button></div>
+      {dossierError && <p className="assistant-error" role="alert">{dossierError}</p>}
+      {dossier && <div className="assistant-dossier-result"><p><Link to={dossier.audit.path}><b>{dossier.audit.title}</b> <ArrowRight size={13} aria-hidden="true" /></Link></p>
+        <small>{dossier.audit.facts?.map((fact) => `${fact.label}: ${fact.value}`).join(" · ")} · Datos consultados: {new Date(dossier.asOf).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}</small>
+        <div className="assistant-dossier-sections">{dossier.sections.map((item) => <section key={item.key}><h3>{item.label} <span>{item.total}</span></h3>
+          {item.items.length ? <ul>{item.items.map((record) => <li key={record.sourceId}><Link to={record.path}>{record.title} <ArrowRight size={12} aria-hidden="true" /></Link><small>{record.facts?.map((fact) => `${fact.label}: ${fact.value}`).join(" · ")}</small></li>)}</ul> : <p>Sin registros vinculados visibles.</p>}
+          {item.shown < item.total && <small>Se muestran {item.shown} de {item.total}; abre el módulo para revisar el resto.</small>}</section>)}</div>
+        {dossier.suggestion && <div className="assistant-dossier-suggestion"><b>Siguiente paso sugerido por IA · requiere revisión</b><p>{dossier.suggestion.text}</p><ul>{dossier.suggestion.citations.map((item) => <li key={item.sourceId}><Link to={item.path}>{item.type}: {item.title} <ArrowRight size={12} aria-hidden="true" /></Link></li>)}</ul></div>}
+        {!dossier.suggestion && <small>Sin sugerencia de IA con fuente verificable. Los datos calculados siguen disponibles.</small>}
+      </div>}
+    </section>}
     {available === null && <p className="assistant-state" role="status">Comprobando disponibilidad...</p>}
     {available === false && <p className="assistant-state" role="status">{reason === "persistent-stores-required"
       ? "El asistente requiere activar los almacenes persistentes de cuentas, auditorías y riesgos en este entorno."

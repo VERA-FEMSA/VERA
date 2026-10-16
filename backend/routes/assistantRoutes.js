@@ -4,6 +4,7 @@ const { verifyToken } = require("../middleware/authMiddleware");
 const { buildAssistantContext } = require("../services/assistantContextService");
 const { getVerifiedAnswer } = require("../services/assistantVerifiedAnswers");
 const { askAzureOpenAi, readiness } = require("../services/azureOpenAiService");
+const { buildAuditDossier } = require("../services/assistantDossierService");
 
 const router = express.Router();
 router.use(verifyToken);
@@ -26,6 +27,33 @@ router.get("/brief", async (req, res) => {
     return res.json({ role: req.user.role, signals: brief });
   } catch {
     return res.status(502).json({ message: "No se pudieron consultar las prioridades." });
+  }
+});
+
+router.post("/dossier/:auditId", rateLimit({ windowMs: 15 * 60 * 1000, limit: 5,
+  keyGenerator: (req) => String(req.user.id), standardHeaders: "draft-8", legacyHeaders: false }), async (req, res) => {
+  const startedAt = Date.now();
+  const auditId = req.params.auditId;
+  if (typeof auditId !== "string" || !auditId.trim() || auditId.length > 80) {
+    return res.status(400).json({ message: "Selecciona una auditoría válida." });
+  }
+  try {
+    const state = readiness();
+    if (state.reason === "persistent-stores-required") {
+      return res.status(503).json({ message: "El expediente requiere almacenes persistentes en producción." });
+    }
+    const dossier = await buildAuditDossier(req.user, auditId, { generate: state.available });
+    console.info(JSON.stringify({ event: "VERA_AI_DOSSIER", status: 200, role: req.user.role,
+      suggestionStatus: dossier.suggestionStatus, durationMs: Date.now() - startedAt,
+      promptTokens: dossier.usage?.promptTokens ?? null, completionTokens: dossier.usage?.completionTokens ?? null }));
+    return res.json({ ...dossier, durationMs: Date.now() - startedAt });
+  } catch (error) {
+    if (error.status === 400 || error.status === 403 || error.status === 404) {
+      return res.status(error.status).json({ message: error.message });
+    }
+    console.warn(JSON.stringify({ event: "VERA_AI_DOSSIER_ERROR", status: 502,
+      durationMs: Date.now() - startedAt }));
+    return res.status(502).json({ message: "No se pudo preparar el briefing del expediente." });
   }
 });
 
