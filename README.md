@@ -8,7 +8,7 @@
 
 [▶ Abrir ejecución completa de calidad y pruebas](https://github.com/humbertofigb15/VERA/actions/workflows/classroom-quality.yml) · [Guía rápida para revisión docente](docs/testing/professor-quick-run.md)
 
-> **Estado:** prototipo académico. Por defecto los datos se mantienen en memoria y se reinician con el backend. El código permite activar progresivamente la persistencia de planificación, cuentas, riesgos, controles, evidencias, comentarios y bitácora en Supabase siguiendo [esta guía](docs/supabase-planning.md). La conexión, las migraciones y los triggers aún requieren verificación en el proyecto remoto del equipo. El modo demo contiene cuentas de ejemplo y no debe usarse con datos reales.
+> **Estado:** prototipo académico. Por defecto los datos se mantienen en memoria y se reinician con el backend. Las ocho migraciones quedaron aplicadas y verificadas en el proyecto Supabase VERA el 15-16 de octubre de 2026; la API local pudo leer sus datos reales con los almacenes persistentes activados. Los modos del despliegue en Vercel siguen pendientes de configuración y de una prueba funcional con cuentas reales. Consulta la [guía de activación](docs/supabase-planning.md) y la [bitácora de despliegue](docs/supabase-rollout-2026-10.md). El modo demo contiene cuentas de ejemplo y no debe usarse con datos reales.
 
 ## Funcionalidades actuales
 
@@ -174,7 +174,7 @@ CodeQL analiza JavaScript y TypeScript en los pull requests, en `main` y semanal
 - `.env` está excluido de Git. Comparte únicamente `.env.example`, nunca el archivo local.
 - Todos los almacenes usan memoria por defecto. Los modos Supabase son optativos y deben activarse en el orden documentado, tras conciliar el esquema y los datos existentes.
 - Las cuentas y contraseñas de demostración son solo para desarrollo y no deben reutilizarse.
-- Antes de usar datos reales, se requiere aplicar y verificar las migraciones en el proyecto del equipo, activar los modos persistentes, gestionar los secretos en la plataforma, configurar CORS, compartir el estado del límite de solicitudes entre instancias, retirar las cuentas demo del entorno y evaluar la seguridad del despliegue.
+- Antes de usar datos reales, verifica las migraciones en el proyecto de destino, activa los modos persistentes, gestiona los secretos en la plataforma, configura CORS, comparte el estado del límite de solicitudes entre instancias, retira las cuentas demo del entorno y evalúa la seguridad del despliegue. Las migraciones ya se aplicaron al proyecto Supabase VERA; los pasos del despliegue siguen pendientes.
 
 ## Contribuir
 
