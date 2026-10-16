@@ -24,6 +24,7 @@
     "express-rate-limit": "^8.7.1",
     "jsonwebtoken": "^9.0.3",
     "otplib": "^12.0.1",
+    "pdfjs-dist": "5.4.296",
     "qrcode": "^1.5.4"
   }
 }

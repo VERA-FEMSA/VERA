@@ -29,7 +29,10 @@ export const uploadEvidenceFile = async (details, file) => {
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "No se pudo cargar el archivo.");
-  return data.evidence;
+  return data;
 };
 
 export const getEvidenceDownloadUrl = async (id) => (await request(`/${encodeURIComponent(id)}/download`)).url;
+export const askEvidenceFile = async (id, question) => request(`/${encodeURIComponent(id)}/ask`, {
+  method: "POST", body: JSON.stringify({ question })
+});

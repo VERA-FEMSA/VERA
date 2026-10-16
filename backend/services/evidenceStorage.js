@@ -85,8 +85,31 @@ const remove = async (file) => {
   if (!response.ok) throw new EvidenceStorageError("No se pudo retirar un archivo sin metadatos.");
 };
 
+const validFile = (file) => file && file.bucket === BUCKET &&
+  /^(risk|control|audit)\/[^/]+\/[0-9a-f-]{36}\.(pdf|png|jpg|webp|txt)$/.test(file.path) &&
+  MIME_EXTENSIONS[file.mime] && file.path.endsWith(`.${MIME_EXTENSIONS[file.mime]}`);
+
+const downloadBytes = async (file) => {
+  if (!validFile(file)) throw new EvidenceStorageError("Archivo de evidencia no válido.", 400);
+  const { root, key } = config();
+  const url = new URL(`/storage/v1/object/${BUCKET}/${file.path}`, root);
+  let response;
+  try { response = await fetch(url, { headers: headersFor(key), signal: AbortSignal.timeout(15_000) }); }
+  catch { throw new EvidenceStorageError("No se pudo conectar con el almacén de archivos."); }
+  if (!response.ok || Number(response.headers.get("content-length")) > MAX_BYTES) {
+    throw new EvidenceStorageError("No se pudo leer el archivo privado.");
+  }
+  let bytes;
+  try { bytes = Buffer.from(await response.arrayBuffer()); }
+  catch { throw new EvidenceStorageError("No se pudo leer el archivo privado."); }
+  if (bytes.length === 0 || bytes.length > MAX_BYTES || !hasValidSignature(bytes, file.mime)) {
+    throw new EvidenceStorageError("El archivo privado no coincide con sus metadatos.");
+  }
+  return bytes;
+};
+
 const signedDownloadUrl = async (file) => {
-  if (!file || file.bucket !== BUCKET || !/^(risk|control|audit)\/[^/]+\/[0-9a-f-]{36}\.(pdf|png|jpg|webp|txt)$/.test(file.path)) {
+  if (!validFile(file)) {
     throw new EvidenceStorageError("Archivo de evidencia no válido.", 400);
   }
   const { root, key } = config();
@@ -106,4 +129,4 @@ const signedDownloadUrl = async (file) => {
   return new URL(`/storage/v1${data.signedURL}`, root).toString();
 };
 
-module.exports = { MAX_BYTES, MIME_EXTENSIONS, EvidenceStorageError, upload, remove, signedDownloadUrl };
+module.exports = { MAX_BYTES, MIME_EXTENSIONS, EvidenceStorageError, upload, remove, signedDownloadUrl, downloadBytes };

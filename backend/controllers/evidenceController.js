@@ -6,6 +6,9 @@ const userRepository = require("../repositories/userRepository");
 const { logActivity } = require("../services/auditLogger");
 const { ROLES } = require("../config/roles");
 const evidenceStorage = require("../services/evidenceStorage");
+const { indexFile, askEvidenceContent } = require("../services/evidenceContentService");
+const { SEARCHABLE_MIME } = require("../services/evidenceTextExtraction");
+const { readiness } = require("../services/azureOpenAiService");
 
 const ENTITY_TYPES = ["RISK", "CONTROL", "AUDIT"];
 const EVIDENCE_TYPES = ["DOCUMENT", "SCREENSHOT", "REPORT", "OTHER"];
@@ -112,7 +115,12 @@ const uploadEvidence = async (req, res) => {
   await logActivity({ actor: req.user, action: "EVIDENCE_FILE_UPLOADED", details: {
     evidenceId: evidence.id, entityType, entityId, size: file.size, mime: file.mime
   } });
-  res.status(201).json({ evidence });
+  let contentIndex = { status: "unsupported", chunks: 0, truncated: false };
+  if (SEARCHABLE_MIME.has(file.mime)) {
+    try { contentIndex = await indexFile(evidence, req.body); }
+    catch { contentIndex = { status: "pending", chunks: 0, truncated: false }; }
+  }
+  res.status(201).json({ evidence, contentIndex });
 };
 
 const downloadEvidence = async (req, res) => {
@@ -125,4 +133,39 @@ const downloadEvidence = async (req, res) => {
   res.json({ url, expiresIn: 60 });
 };
 
-module.exports = { listEvidence, createEvidence, uploadEvidence, downloadEvidence };
+const askEvidence = async (req, res) => {
+  const startedAt = Date.now();
+  const evidence = await evidenceRepository.findById(req.params.id);
+  if (!evidence?.file || !await canAccessEntity(evidence.entityType, evidence.entityId, req.user)) {
+    return res.status(404).json({ message: "Archivo de evidencia no encontrado." });
+  }
+  const question = req.body?.question;
+  if (typeof question !== "string" || question.trim().length < 3 || question.length > 500) {
+    return res.status(400).json({ message: "Escribe una pregunta de 3 a 500 caracteres." });
+  }
+  try {
+    if ((process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production") &&
+        process.env.VERA_EVIDENCE_COMMENT_STORE !== "supabase") {
+      return res.status(503).json({ message: "La consulta de archivos requiere evidencias persistentes." });
+    }
+    if (!readiness().available) return res.status(503).json({ message: "La consulta de archivos requiere Azure OpenAI activo." });
+    const result = await askEvidenceContent(evidence, question.trim(), req.user.role);
+    const durationMs = Date.now() - startedAt;
+    console.info(JSON.stringify({ event: "VERA_AI_EVIDENCE", status: 200, role: req.user.role,
+      mode: result.mode, durationMs, promptTokens: result.usage?.prompt_tokens ?? null,
+      completionTokens: result.usage?.completion_tokens ?? null }));
+    return res.set("Cache-Control", "no-store").json({ ...result, durationMs,
+      usage: result.usage ? { promptTokens: result.usage.prompt_tokens ?? null,
+        completionTokens: result.usage.completion_tokens ?? null } : null });
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "VERA_AI_EVIDENCE_ERROR", status: error.status || 502,
+      durationMs: Date.now() - startedAt }));
+    if ([415, 422, 503].includes(error.status)) return res.status(error.status).json({ message: error.message });
+    if (error.name === "TimeoutError" || error.name === "AbortError") {
+      return res.status(504).json({ message: "La consulta tardó demasiado. Intenta de nuevo." });
+    }
+    return res.status(502).json({ message: "No se pudo consultar el contenido de la evidencia." });
+  }
+};
+
+module.exports = { listEvidence, createEvidence, uploadEvidence, downloadEvidence, askEvidence };
