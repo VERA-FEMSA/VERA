@@ -87,6 +87,8 @@ test("Copiloto: conserva la conversación al navegar y cerrar el panel", async (
   await page.getByLabel("Tu pregunta").fill("Resume mis riesgos");
   await page.getByRole("button", { name: "Enviar pregunta" }).click();
   await expect(page.getByText("Respuesta 1")).toBeVisible();
+  const mobileMenu = page.getByRole("button", { name: "Abrir menú de navegación" });
+  if (await mobileMenu.isVisible()) await mobileMenu.click();
   await page.getByRole("button", { name: "Panel de Portafolio" }).click();
   await page.getByRole("button", { name: "Abrir asistente de IA" }).click();
   const dialog = page.getByRole("dialog", { name: "Copiloto VERA" });
@@ -102,6 +104,7 @@ test("Copiloto: conserva la conversación al navegar y cerrar el panel", async (
   await page.getByRole("button", { name: "Abrir asistente de IA" }).click();
   await expect(page.getByRole("dialog", { name: "Copiloto VERA" }).getByText("Respuesta 2")).toBeVisible();
   await page.getByRole("dialog", { name: "Copiloto VERA" }).getByRole("button", { name: "Cerrar asistente" }).click();
+  if (await mobileMenu.isVisible()) await mobileMenu.click();
   await page.getByRole("button", { name: "Cerrar sesión" }).click();
   await page.evaluate(() => {
     localStorage.setItem("token", "second-account-token");
