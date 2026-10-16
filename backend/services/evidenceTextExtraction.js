@@ -29,19 +29,20 @@ const extractEvidenceText = async (bytes, mime) => {
   if (!Buffer.isBuffer(bytes)) {
     throw new TypeError("El archivo debe ser un Buffer binario.");
   }
-  if (bytes.length === 0 || bytes.length > MAX_BYTES) {
+  const data = Buffer.from(bytes);
+  if (data.length === 0 || data.length > MAX_BYTES) {
     throw new Error("Archivo fuera del límite de 3 MB.");
   }
   if (!SEARCHABLE_MIME.has(mime)) return { chunks: [], truncated: false, status: "unsupported" };
   if (mime === "text/plain") {
-    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(data);
     const result = makeChunks([{ pageNumber: null, text: decoded }]);
     return { ...result, status: result.chunks.length ? "ready" : "no-text" };
   }
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const standardFontDataUrl = path.join(path.dirname(require.resolve("pdfjs-dist/package.json")),
     "standard_fonts").replace(/\\/g, "/") + "/";
-  const task = getDocument({ data: new Uint8Array(bytes), isEvalSupported: false,
+  const task = getDocument({ data: new Uint8Array(data), isEvalSupported: false,
     disableFontFace: true, useSystemFonts: false, standardFontDataUrl });
   try {
     const document = await task.promise;
