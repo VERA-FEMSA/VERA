@@ -28,6 +28,8 @@ La respuesta HTTP lleva `Cache-Control: no-store`. Se mantienen el límite por u
 
 ## Evaluación reproducible
 
+Para una comprobación puntual de la **versión publicada** sin copiar claves Azure, usa la [guía de aceptación en producción](ai-production-acceptance.md). Requiere una cuenta activa de VERA; separa lo observado sin sesión de lo que falta verificar con datos y roles reales.
+
 Desde `backend`, `npm run ai:eval` ejecuta cuatro consultas **sintéticas** al despliegue Azure configurado: dato con fuente, ausencia de información, instrucción maliciosa dentro de un título y borrador sin ejecución. Imprime una línea JSON por caso con estado, duración y tokens, más el total. Requiere las variables de Azure en el entorno local del operador; no consulta Supabase ni imprime claves o respuestas. Es una evaluación de muestra: una ejecución exitosa no certifica precisión general ni ausencia de filtraciones. Revisar manualmente respuestas de todos los roles con datos autorizados antes de declarar aceptación de producción.
 
 Los escenarios automatizados de API y navegador cubren contexto, permisos, memoria de conversación, citas, indisponibilidad, navegación y diseño móvil. CI no llama a Azure; usa un proveedor simulado para evitar costo y resultados variables.

@@ -12,6 +12,8 @@
 
 **HU-34 Asistente de IA:** la interfaz y el backend de solo lectura usan Azure OpenAI con contexto filtrado por rol. El copiloto contextual abre desde las pantallas protegidas, permite preguntar sobre riesgos, controles y auditorías concretos, conserva seis intervenciones recientes en la sesión y muestra registros citados y prioridades deterministas. El despliegue propio en Vercel respondió HTTP 200 a una consulta autenticada de la versión inicial; la evolución requiere nueva aceptación tras publicarse. No se configuraron claves en `figbo/vera`; su integración con GitHub puede desplegar automáticamente los cambios fusionados a `main`. Consulta el [runbook de HU-34](docs/hu34-azure-openai.md) y la [guía del copiloto](docs/ai-copilot-evolution.md).
 
+La [aceptación puntual en producción](docs/ai-production-acceptance.md) incluye un comando PowerShell para comprobar acceso público, sesión, disponibilidad, prioridades, una respuesta real de Azure y la cita de un riesgo visible, con tiempos en terminal y sin guardar credenciales ni respuestas.
+
 La [entrega de alcance del 16 de octubre](docs/entrega-alcance-2026-10-16.md) resume PRs, resultados medidos y responsabilidades pendientes, y separa HU-34 como nuevo alcance.
 
 ## Funcionalidades actuales
