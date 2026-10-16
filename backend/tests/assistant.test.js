@@ -115,7 +115,9 @@ test("HU-34: la ruta responde con Azure simulado y excluye datos ajenos antes de
   process.env.AZURE_OPENAI_API_KEY = "test-key-only";
   process.env.AZURE_OPENAI_DEPLOYMENT = "vera-chat";
   global.fetch = (url, options) => {
-    if (!String(url).startsWith("https://vera-test.openai.azure.com")) return originalFetch(url, options);
+    const target = new URL(String(url));
+    if (target.hostname !== "vera-test.openai.azure.com" ||
+        target.pathname !== "/openai/v1/chat/completions") return originalFetch(url, options);
     const prompt = JSON.parse(options.body).messages[1].content;
     assert.ok(prompt.includes("Riesgo asignado"));
     assert.ok(!prompt.includes("Riesgo ajeno confidencial"));
