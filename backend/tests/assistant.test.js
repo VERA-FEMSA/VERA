@@ -7,6 +7,7 @@ process.env.JWT_SECRET ||= "assistant-integration-test-secret-32-characters";
 const app = require("../server");
 const { startTestServer } = require("./helpers/testServer");
 const { buildAssistantContext, rankAssistantRecords } = require("../services/assistantContextService");
+const { getVerifiedAnswer } = require("../services/assistantVerifiedAnswers");
 const { askAzureOpenAi, configuration, readiness } = require("../services/azureOpenAiService");
 const riskRepository = require("../repositories/riskRepository");
 const controlRepository = require("../repositories/controlRepository");
@@ -16,6 +17,34 @@ const auth = (id, method = "GET", body) => ({ method, headers: {
   Authorization: `Bearer ${jwt.sign({ id }, process.env.JWT_SECRET)}`,
   ...(body ? { "Content-Type": "application/json" } : {})
 }, ...(body ? { body: JSON.stringify(body) } : {}) });
+
+test("Copiloto: responde conteos exactos autorizados y rechaza filtros no calculados", () => {
+  const brief = [
+    { key: "highRisks", label: "Riesgos altos", count: 3, path: "/riesgos" },
+    { key: "activeAudits", label: "Auditorías activas", count: 2, path: "/auditorias-activas" }
+  ];
+  const input = { context: { focus: null }, brief, sourceCatalog: [] };
+  assert.deepEqual(getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos hay?" }), {
+    answer: "Riesgos altos en tu alcance: 3.", sourceIds: [], metric: brief[0], mode: "computed"
+  });
+  assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuántas auditorías activas tengo en mi alcance?" }).metric.count, 2);
+  assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos hay en Finanzas?" }), null);
+  assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos residuales hay?" }), null);
+  assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos hay este trimestre?" }), null);
+  assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos hay?", brief: [{ ...brief[0], count: -1 }] }), null);
+});
+
+test("Copiloto: el dato de un riesgo exige foco visible y fuente registrada", () => {
+  const input = { question: "¿Cuál es el nivel y el puntaje de este riesgo?", brief: [],
+    context: { focus: { type: "risk", id: "RSK-1", level: "Alto", score: 6 } },
+    sourceCatalog: [{ sourceId: "risks:RSK-1" }] };
+  assert.deepEqual(getVerifiedAnswer(input), {
+    answer: "El nivel de este riesgo es Alto y su puntaje es 6.", sourceIds: ["risks:RSK-1"], mode: "computed"
+  });
+  assert.equal(getVerifiedAnswer({ ...input, sourceCatalog: [] }), null);
+  assert.equal(getVerifiedAnswer({ ...input, context: { focus: null } }), null);
+  assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuál es el riesgo residual de este riesgo?" }), null);
+});
 
 test("Copiloto: prioriza registros que coinciden con la intención aunque estén fuera de los primeros 20", () => {
   const risks = Array.from({ length: 25 }, (_, index) => ({
@@ -78,6 +107,42 @@ test("HU-34: la API exige sesión, valida la pregunta y muestra estado sin secre
   assert.equal(brief.status, 200);
   assert.equal((await brief.json()).role, "AUDITOR");
   assert.equal((await fetch(`${base}/api/assistant/ask`, auth(5, "POST", { question: "¿Qué riesgos hay?" }))).status, 503);
+});
+
+test("Copiloto: la API calcula un indicador filtrado por rol sin llamar a Azure", async (t) => {
+  const base = await startTestServer(t, app);
+  const originalFetch = global.fetch;
+  process.env.VERA_AI_ENABLED = "true";
+  process.env.AZURE_OPENAI_ENDPOINT = "https://vera-test.openai.azure.com";
+  process.env.AZURE_OPENAI_API_KEY = "test-key-only";
+  process.env.AZURE_OPENAI_DEPLOYMENT = "vera-chat";
+  let azureCalls = 0;
+  global.fetch = (url, options) => {
+    if (String(url).includes("vera-test.openai.azure.com")) {
+      azureCalls += 1;
+      throw new Error("Azure no debe recibir una pregunta exacta");
+    }
+    return originalFetch(url, options);
+  };
+  try {
+    const briefResponse = await global.fetch(`${base}/api/assistant/brief`, auth(5));
+    const { signals } = await briefResponse.json();
+    const response = await global.fetch(`${base}/api/assistant/ask`, auth(5, "POST", { question: "¿Cuántos riesgos altos tengo?" }));
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.equal(result.mode, "computed");
+    assert.equal(result.metric.count, signals.find((item) => item.key === "highRisks").count);
+    assert.deepEqual(result.citations, []);
+    assert.equal(result.usage, null);
+    assert.equal(azureCalls, 0);
+    assert.ok(!JSON.stringify(result).includes("test-key-only"));
+  } finally {
+    global.fetch = originalFetch;
+    delete process.env.VERA_AI_ENABLED;
+    delete process.env.AZURE_OPENAI_ENDPOINT;
+    delete process.env.AZURE_OPENAI_API_KEY;
+    delete process.env.AZURE_OPENAI_DEPLOYMENT;
+  }
 });
 
 test("HU-34: Azure recibe contexto filtrado y la respuesta no contiene la clave", async () => {

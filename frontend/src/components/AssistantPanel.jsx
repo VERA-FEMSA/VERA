@@ -6,8 +6,8 @@ import { AssistantConversationContext } from "../contexts/AssistantConversationC
 import "../pages/Asistente.css";
 
 const promptsByRole = {
-  AUDITOR: ["¿Qué auditorías tengo asignadas?", "¿Qué riesgos altos están bajo mi responsabilidad?", "¿Qué actividades tengo pendientes?"],
-  DIRECTOR: ["¿Qué decisiones del portafolio están pendientes?", "¿Qué riesgos altos requieren atención?", "Resume las auditorías activas."],
+  AUDITOR: ["¿Qué auditorías tengo asignadas?", "¿Cuántos riesgos altos tengo?", "¿Qué actividades tengo pendientes?"],
+  DIRECTOR: ["¿Qué decisiones del portafolio están pendientes?", "¿Cuántas auditorías activas hay?", "Resume las auditorías activas."],
   SUPER_ADMIN: ["Resume las prioridades del portafolio.", "¿Qué controles necesitan revisión?", "¿Qué propuestas están pendientes?"],
   GERENTE: ["Resume las propuestas abiertas.", "¿Qué riesgos altos hay en el portafolio?", "Prepara un borrador de seguimiento para revisión."],
   JEFATURA: ["¿Qué propuestas esperan revisión?", "Resume los riesgos altos del portafolio.", "Prepara un borrador de propuesta para revisión."]
@@ -46,6 +46,7 @@ function AssistantPanel({ focus = null }) {
     try {
       const result = await askAssistant(value, { history, focus: focus ? { type: focus.type, id: focus.id } : null });
       setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", text: result.answer,
+        mode: result.mode, metric: result.metric,
         citations: result.citations || [], references: result.references || [], coverage: result.coverage,
         durationMs: result.durationMs }]);
     } catch (cause) { setError(cause.message); }
@@ -54,6 +55,7 @@ function AssistantPanel({ focus = null }) {
 
   const prompts = focus
     ? [`Resume este ${focus.type === "audit" ? "expediente de auditoría" : focus.type === "risk" ? "riesgo" : "registro"} y sus relaciones.`,
+      ...(focus.type === "risk" ? ["¿Cuál es el nivel y el puntaje de este riesgo?"] : []),
       "¿Qué requiere atención en este expediente?", "Prepara un borrador de próximos pasos para revisión."]
     : promptsByRole[user?.role] || ["Resume mis pendientes."];
 
@@ -71,10 +73,11 @@ function AssistantPanel({ focus = null }) {
     </div>}
     <div className="assistant-messages" aria-live="polite">{messages.map((message) => <article key={message.id} className={`assistant-message ${message.role}`}>
       <strong>{message.role === "user" ? "Tú" : "Asistente VERA"}</strong><p>{message.text}</p>
-      {message.role === "assistant" && <><small className="assistant-answer-note">Respuesta generada · comprueba el expediente{Number.isFinite(message.durationMs) ? ` · ${(message.durationMs / 1000).toFixed(1)} s` : ""}</small>
-        {message.coverage?.partial && <small className="assistant-answer-note">Se consultó una muestra de expedientes visibles; los conteos abarcan el total de tu alcance.</small>}
+      {message.role === "assistant" && <><small className="assistant-answer-note">{message.mode === "computed" ? "Dato calculado desde registros autorizados" : "Respuesta generada · comprueba el expediente"}{Number.isFinite(message.durationMs) ? ` · ${(message.durationMs / 1000).toFixed(1)} s` : ""}</small>
+        {message.mode !== "computed" && message.coverage?.partial && <small className="assistant-answer-note">Se consultó una muestra de expedientes visibles; los conteos abarcan el total de tu alcance.</small>}
+        {message.metric && <div className="assistant-citations"><b>Indicador calculado</b><ul><li><Link to={message.metric.path}>{message.metric.label}: {message.metric.count} <ArrowRight size={13} aria-hidden="true" /></Link></li></ul></div>}
         {message.citations?.length > 0 && <div className="assistant-citations"><b>Registros citados</b><ul>{message.citations.map((item) => <li key={item.sourceId}><Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link></li>)}</ul></div>}
-        {message.citations?.length === 0 && <small className="assistant-answer-note">Sin registros citados en esta respuesta.</small>}
+        {message.citations?.length === 0 && !message.metric && <small className="assistant-answer-note">Sin registros citados en esta respuesta.</small>}
         {message.references?.length > 0 && <details><summary>Registros relacionados ({message.references.length})</summary><ul>{message.references.map((item) => <li key={item.sourceId || `${item.type}:${item.id}`}><Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link></li>)}</ul></details>}
       </>}</article>)}</div>
     {busy && <p className="assistant-state" role="status">Consultando información autorizada...</p>}

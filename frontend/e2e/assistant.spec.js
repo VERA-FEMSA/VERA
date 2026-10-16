@@ -6,6 +6,23 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/assistant/brief", (route) => route.fulfill({ json: { role: "AUDITOR", signals: [] } }));
 });
 
+test("Copiloto: distingue un indicador calculado de una respuesta generada", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: true, mode: "read-only" } }));
+  await page.route("**/api/assistant/ask", (route) => route.fulfill({ json: {
+    answer: "Riesgos altos en tu alcance: 3.", mode: "computed",
+    metric: { key: "highRisks", label: "Riesgos altos", count: 3, path: "/riesgos" },
+    citations: [], references: [], durationMs: 30
+  } }));
+  await page.goto("/asistente");
+  await page.getByLabel("Tu pregunta").fill("¿Cuántos riesgos altos tengo?");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Riesgos altos en tu alcance: 3.")).toBeVisible();
+  await expect(page.getByText(/Dato calculado desde registros autorizados/)).toBeVisible();
+  await expect(page.getByRole("link", { name: /Riesgos altos: 3/ })).toHaveAttribute("href", "/riesgos");
+  await expect(page.getByText("Sin registros citados en esta respuesta.")).toHaveCount(0);
+});
+
 test("HU-34: consulta autorizada y navegación a registros relacionados", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: true, mode: "read-only" } }));

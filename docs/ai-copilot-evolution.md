@@ -5,6 +5,7 @@
 - El acceso flotante **Preguntar a VERA** abre un panel desde las pantallas protegidas. La página `/asistente` sigue disponible.
 - En las tarjetas de riesgo y control, y en el expediente de auditoría, **Analizar con IA** abre el panel con ese registro en contexto. El servidor comprueba la visibilidad antes de incorporarlo; un ID ajeno recibe 404 sin revelar el título.
 - Las sugerencias iniciales cambian según el rol. Una tarjeta de señales muestra conteos deterministas de riesgos altos, controles con efectividad inferior a 4, hallazgos abiertos, pendientes de prioridad alta y auditorías activas. Esos conteos no provienen del modelo.
+- Las preguntas exactas «¿Cuántos riesgos altos hay/tengo?», «¿Cuántos controles por revisar hay?», «¿Cuántos hallazgos abiertos hay?», «¿Cuántos pendientes prioritarios hay?» y «¿Cuántas auditorías activas hay?» reutilizan esos indicadores **del alcance visible del usuario**. En el contexto de un riesgo autorizado, «¿Cuál es el nivel y el puntaje de este riesgo?» consulta sus campos. Estas respuestas llevan la marca **Dato calculado** y no llaman a Azure. Preguntas con filtros adicionales, fechas, riesgo residual o análisis siguen la ruta generativa; no se presenta un indicador global como respuesta a un subconjunto.
 - El usuario puede hacer preguntas de seguimiento. Las seis intervenciones recientes se envían como historial **no confiable** junto al contexto vigente. Cada expediente y el chat general conservan su propia conversación mientras siga abierta la aplicación, incluso al cambiar de módulo o cerrar el panel. Se mantienen hasta 12 hilos recientes y 40 mensajes por hilo en memoria; **Nueva conversación** elimina solo el hilo actual. Al recargar, cerrar sesión o abrir otra pestaña, se pierde el historial; no hay almacenamiento del chat en Supabase ni en el navegador.
 - El proveedor devuelve texto y IDs de fuentes. El servidor acepta solamente IDs que ya estén en el catálogo de registros visibles y construye enlaces internos. La interfaz separa **Registros citados** de **Registros relacionados** y advierte que se debe comprobar el expediente. Un ID válido no demuestra por sí solo que cada frase sea correcta.
 - La selección de contexto prioriza el expediente enfocado, IDs y términos de la pregunta, y estados como riesgo alto, auditoría activa o control inefectivo. Se mantienen los conteos de todos los registros visibles; si el contexto contiene solo una muestra de un módulo consultado, la respuesta muestra un aviso. Una muestra no debe describirse como la lista completa.
@@ -23,9 +24,9 @@ El modelo recibe campos reducidos, hasta 20 registros por tipo, conteos de todo 
 | --- | --- |
 | `GET /api/assistant/status` | Disponibilidad de Azure y almacenes requeridos. |
 | `GET /api/assistant/brief` | Señales deterministas según los registros visibles del usuario. |
-| `POST /api/assistant/ask` | `{ question, history?, focus? }`; `focus` admite `audit`, `risk`, `control` o `finding` y un ID visible. Devuelve `answer`, `citations`, `references`, `coverage` (muestra consultada frente a total visible), `durationMs` y consumo de tokens. |
+| `POST /api/assistant/ask` | `{ question, history?, focus? }`; `focus` admite `audit`, `risk`, `control` o `finding` y un ID visible. Devuelve `answer`, `mode` (`computed` o `generated`), `citations`, `references`, `coverage` (muestra consultada frente a total visible), `durationMs` y `usage` (nulo para cálculo). Para un conteo exacto agrega `metric` con clave, etiqueta, valor y enlace. |
 
-La respuesta HTTP lleva `Cache-Control: no-store`. Se mantienen el límite por usuario y la desactivación por `VERA_AI_ENABLED=false`. El presupuesto mensual de Azure **avisa**, pero no bloquea el gasto. La telemetría registra duración, rol, estado y tokens; no registra preguntas, respuestas ni contenido del contexto.
+La respuesta HTTP lleva `Cache-Control: no-store`. Se mantienen el límite por usuario y la desactivación por `VERA_AI_ENABLED=false`. Los indicadores también requieren la disponibilidad configurada del asistente y los almacenes persistentes en producción. El presupuesto mensual de Azure **avisa**, pero no bloquea el gasto. La telemetría distingue `VERA_AI_COMPUTED` de `VERA_AI_ANSWER` y registra duración, rol, estado y tokens cuando aplica; no registra preguntas, respuestas ni contenido del contexto.
 
 ## Evaluación reproducible
 
@@ -33,7 +34,7 @@ Para una comprobación puntual de la **versión publicada** sin copiar claves Az
 
 Desde `backend`, `npm run ai:eval` ejecuta cuatro consultas **sintéticas** al despliegue Azure configurado: dato con fuente, ausencia de información, instrucción maliciosa dentro de un título y borrador sin ejecución. Imprime una línea JSON por caso con estado, duración y tokens, más el total. Requiere las variables de Azure en el entorno local del operador; no consulta Supabase ni imprime claves o respuestas. Es una evaluación de muestra: una ejecución exitosa no certifica precisión general ni ausencia de filtraciones. Revisar manualmente respuestas de todos los roles con datos autorizados antes de declarar aceptación de producción.
 
-Los escenarios automatizados de API y navegador cubren contexto, permisos, memoria de conversación, citas, indisponibilidad, navegación y diseño móvil. CI no llama a Azure; usa un proveedor simulado para evitar costo y resultados variables.
+Los escenarios automatizados de API y navegador cubren contexto, permisos, memoria de conversación, citas, conteos exactos sin llamada a Azure, filtros que deben volver al modelo, indisponibilidad, navegación y diseño móvil. CI no llama a Azure; usa un proveedor simulado para evitar costo y resultados variables.
 
 ## Publicación y operación
 
