@@ -98,7 +98,7 @@ function Login() {
                 id="login-username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="nombre@vera.local"
+                placeholder="correo@institucion.mx"
                 autoComplete="username"
               />
 

@@ -6,8 +6,6 @@ export const USER_STATUS = {
   DISABLED: "DISABLED"
 };
 
-export const INSTITUTIONAL_DOMAINS = ["vera.local"];
-
 // RNF-17: reglas de contraseña, para mostrarlas mientras la persona escribe.
 export const PASSWORD_CHECKS = [
   { label: "Al menos 8 caracteres", test: (p) => p.length >= 8 },

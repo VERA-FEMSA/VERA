@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { registerUser } from "../services/authService";
-import { PASSWORD_CHECKS, INSTITUTIONAL_DOMAINS, validateName } from "../constants/accountRules";
+import { PASSWORD_CHECKS, validateName } from "../constants/accountRules";
 import "./Login.css";
 import "./Registro.css";
 
@@ -15,7 +15,6 @@ function Registro() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const domainHint = INSTITUTIONAL_DOMAINS.map((d) => "@" + d).join(", ");
   const passwordOk = PASSWORD_CHECKS.every((check) => check.test(password));
 
   const handleSubmit = async (e) => {
@@ -99,7 +98,7 @@ function Registro() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={`nombre${domainHint.split(",")[0]}`}
+                placeholder="correo@institucion.mx"
                 autoComplete="email"
                 required
               />
