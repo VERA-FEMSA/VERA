@@ -71,7 +71,8 @@ test("HU-34: contexto de Auditoría excluye expedientes, riesgos y hallazgos aje
     effectiveness: 2, note: "Control compartido", createdBy: { id: 3 } });
   findingRepository.create({ title: "Hallazgo propio", riskId: ownedRisk.id, controlId: sharedControl.id, createdBy: { id: 5 } });
   findingRepository.create({ title: "Hallazgo ajeno confidencial", riskId: otherRisk.id, controlId: sharedControl.id, createdBy: { id: 3 } });
-  const { context, references } = await buildAssistantContext({ id: 5, role: "AUDITOR" }, "riesgos y auditorías");
+  const { context, references, asOf } = await buildAssistantContext({ id: 5, role: "AUDITOR" }, "riesgos y auditorías");
+  assert.ok(Number.isFinite(Date.parse(asOf)));
   assert.equal(context.scope.includes("Solo auditorías"), true);
   assert.ok(context.records.audits.every((item) => item.id !== "AUD-01"));
   assert.ok(context.records.risks.some((item) => item.id === ownedRisk.id));
@@ -87,6 +88,9 @@ test("HU-34: contexto de Auditoría excluye expedientes, riesgos y hallazgos aje
   assert.equal(focused.context.focus.id, ownedRisk.id);
   assert.ok(focused.context.records.risks.some((item) => item.id === ownedRisk.id));
   assert.ok(focused.sourceCatalog.some((item) => item.sourceId === `risks:${ownedRisk.id}`));
+  assert.deepEqual(focused.sourceCatalog.find((item) => item.sourceId === `risks:${ownedRisk.id}`).facts,
+    [{ label: "Nivel", value: "Alto" }, { label: "Puntaje", value: "6" }]);
+  assert.ok(!focused.sourceCatalog.some((item) => item.sourceId === `risks:${otherRisk.id}`));
   await assert.rejects(buildAssistantContext({ id: 5, role: "AUDITOR" }, "resume este riesgo",
     { type: "risk", id: otherRisk.id }), (error) => error.status === 404 && !error.message.includes("confidencial"));
   await assert.rejects(buildAssistantContext({ id: 5, role: "UNKNOWN" }, "riesgo"),
@@ -214,6 +218,8 @@ test("HU-34: fallas del proveedor no filtran el cuerpo remoto", async () => {
 
 test("HU-34: la ruta responde con Azure simulado y excluye datos ajenos antes de enviarlos", async (t) => {
   const base = await startTestServer(t, app);
+  const citedRisk = riskRepository.create({ title: "Riesgo trazable de prueba", ownerId: 5, level: "Alto", score: 8,
+    likelihood: 4, impact: 2, createdBy: { id: 3 } });
   const originalFetch = global.fetch;
   process.env.VERA_AI_ENABLED = "true";
   process.env.AZURE_OPENAI_ENDPOINT = "https://vera-test.openai.azure.com";
@@ -227,7 +233,7 @@ test("HU-34: la ruta responde con Azure simulado y excluye datos ajenos antes de
     assert.ok(prompt.includes("Riesgo asignado"));
     assert.ok(!prompt.includes("Riesgo ajeno confidencial"));
     assert.ok(!prompt.includes("Hallazgo ajeno confidencial"));
-    return Promise.resolve(Response.json({ choices: [{ message: { content: JSON.stringify({ answer: "Tienes un riesgo visible.", sourceIds: [] }) } }],
+    return Promise.resolve(Response.json({ choices: [{ message: { content: JSON.stringify({ answer: "Tienes un riesgo visible.", sourceIds: [`risks:${citedRisk.id}`] }) } }],
       usage: { prompt_tokens: 42, completion_tokens: 6 } }));
   };
   try {
@@ -235,6 +241,9 @@ test("HU-34: la ruta responde con Azure simulado y excluye datos ajenos antes de
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.answer, "Tienes un riesgo visible.");
+    assert.equal(body.mode, "generated");
+    assert.ok(Number.isFinite(Date.parse(body.asOf)));
+    assert.deepEqual(body.citations[0].facts, [{ label: "Nivel", value: "Alto" }, { label: "Puntaje", value: "8" }]);
     assert.ok(body.references.every((item) => item.type === "Riesgo"));
     assert.ok(!JSON.stringify(body).includes("test-key-only"));
   } finally {

@@ -44,6 +44,7 @@
 .assistant-brief a strong { font-size: 16px; color: #126879; }
 .assistant-citations { margin-top: 12px; padding: 10px 12px; border-left: 3px solid #138a7a; background: #fff; font-size: 12px; }
 .assistant-citations ul { margin: 6px 0 0; }
+.assistant-citations small,.assistant-source-facts { display: block; margin-top: 4px; color: #536b76; font-size: 11px; line-height: 1.45; }
 .assistant-answer-note { display: block; margin-top: 9px; color: #607680; font-size: 11px; }
 .assistant-clear { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 7px 0; border: 0; background: transparent; color: #176c77; cursor: pointer; font: inherit; font-size: 12px; }
 .assistant-drawer-backdrop { position: fixed; z-index: 1000; inset: 0; display: flex; justify-content: flex-end; background: #1427318a; }

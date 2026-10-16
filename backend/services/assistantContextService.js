@@ -16,6 +16,17 @@ const termsFor = (question) => [...new Set((normalize(question).match(/[\p{L}\p{
   .filter((word) => !STOP_WORDS.has(word))
   .map((word) => word.length > 4 && word.endsWith("es") ? word.slice(0, -2)
     : word.length > 4 && word.endsWith("s") ? word.slice(0, -1) : word))];
+const factsFor = (type, item) => {
+  const fields = {
+    audits: [["Estado", item.status], ["Área", item.area], ["Avance", Number.isFinite(item.progress) ? `${item.progress}%` : null]],
+    risks: [["Nivel", item.level], ["Puntaje", item.score]],
+    controls: [["Efectividad", item.effectiveness]],
+    findings: [["Estado", item.status]],
+    pending: [["Prioridad", item.priority]]
+  }[type] || [];
+  return fields.filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .map(([label, value]) => ({ label, value: clean(value, 80) }));
+};
 const sourceFor = (type, item) => {
   const label = { audits: "Auditoría", risks: "Riesgo", controls: "Control",
     findings: "Hallazgo", pending: "Pendiente" }[type];
@@ -25,7 +36,8 @@ const sourceFor = (type, item) => {
       controls: `/controles#control-${encodeURIComponent(item.id)}`,
       findings: `/controles#finding-${encodeURIComponent(item.id)}`,
       pending: "/notificaciones" }[type];
-  return { sourceId: `${type}:${item.id}`, type: label, id: item.id, title: item.title, path };
+  return { sourceId: `${type}:${item.id}`, type: label, id: item.id, title: item.title, path,
+    facts: factsFor(type, item) };
 };
 
 const rankAssistantRecords = (type, items, question, preferred = new Set()) => {
@@ -171,7 +183,7 @@ const buildAssistantContext = async (user, question, focus = null) => {
       sources: sourceCatalog.map(({ sourceId, type, id, title }) => ({ sourceId, type, id, title })),
       records: selected
     },
-    references, sourceCatalog, brief,
+    references, sourceCatalog, brief, asOf: new Date().toISOString(),
     coverage: { partial: coverageTypes.some((type) => selection[type].included < selection[type].visible), selection }
   };
 };

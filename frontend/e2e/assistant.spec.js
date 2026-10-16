@@ -73,14 +73,17 @@ test("Copiloto: conserva el contexto de expediente y la pregunta anterior en la 
     else expect(body.history.some((item) => item.role === "user" && item.text === "Resume este riesgo")).toBe(true);
     calls += 1;
     await route.fulfill({ json: { answer: "Respuesta con contexto.", citations: [
-      { sourceId: "risks:RSK-1", type: "Riesgo", id: "RSK-1", title: "Riesgo de acceso", path: "/riesgos#risk-RSK-1" }
-    ], references: [], durationMs: 1200 } });
+      { sourceId: "risks:RSK-1", type: "Riesgo", id: "RSK-1", title: "Riesgo de acceso", path: "/riesgos#risk-RSK-1",
+        facts: [{ label: "Nivel", value: "Alto" }, { label: "Puntaje", value: "6" }] }
+    ], references: [], asOf: "2026-10-16T20:20:00.000Z", durationMs: 1200 } });
   });
   await page.goto("/asistente?type=risk&id=RSK-1");
   await expect(page.getByText("Expediente en contexto")).toBeVisible();
   await page.getByLabel("Tu pregunta").fill("Resume este riesgo");
   await page.getByRole("button", { name: "Enviar pregunta" }).click();
   await expect(page.getByText("Registros citados")).toBeVisible();
+  await expect(page.getByText("Nivel: Alto · Puntaje: 6")).toBeVisible();
+  await expect(page.locator("time[datetime='2026-10-16T20:20:00.000Z']")).toBeVisible();
   await page.getByLabel("Tu pregunta").fill("¿Y sus controles?");
   await page.getByRole("button", { name: "Enviar pregunta" }).click();
   await expect.poll(() => calls).toBe(2);

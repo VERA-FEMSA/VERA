@@ -31,6 +31,8 @@ El script hace **una** consulta al modelo por ejecución autenticada. Se puede p
 | Respuesta real | `/api/assistant/ask` responde HTTP 200 y texto no vacío; se muestran latencia y tokens, nunca el texto de la respuesta. |
 | Dato y fuente | Si hay al menos un riesgo visible, el script lo enfoca y exige que la respuesta incluya su nivel, puntuación y una cita con ruta interna. Si no hay riesgos visibles, valida una pregunta general y marca esta parte `SKIP`. |
 
+La revisión visual del copiloto debe mostrar la hora de consulta y, cuando haya registros citados, sus campos básicos junto al enlace. Es una copia tomada al responder: comprueba el expediente actual antes de actuar. El script de terminal anterior no imprime esos campos para evitar exponer información en capturas compartidas.
+
 `PASS` significa que pasó esa comprobación puntual; `FAIL` deja código de salida 1. `SKIP` indica algo que no se pudo demostrar con esa cuenta. Los milisegundos son los medidos por la terminal y pueden variar. El script no guarda contraseña, token, pregunta, respuesta ni registros en archivos; no imprimas el tráfico HTTP detallado al compartir una captura.
 
 ## Revisión visual y de permisos
