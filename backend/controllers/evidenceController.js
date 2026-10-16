@@ -34,7 +34,7 @@ const listEvidence = async (req, res) => {
   const { entityType, entityId, search } = req.query;
   const needle = text(search).toLowerCase();
   const items = [];
-  for (const item of evidenceRepository.getAll()) {
+  for (const item of await evidenceRepository.getAll()) {
     if (entityType && item.entityType !== entityType) continue;
     if (entityId && item.entityId !== entityId) continue;
     if (needle && !`${item.title} ${item.description} ${item.reference} ${item.entityTitle}`.toLowerCase().includes(needle)) continue;
@@ -63,7 +63,7 @@ const createEvidence = async (req, res) => {
   if (!await canAccessEntity(entityType, entityId, req.user)) return res.status(404).json({ message: "El elemento relacionado no existe." });
 
   const author = await userRepository.findById(req.user.id);
-  const evidence = evidenceRepository.create({
+  const evidence = await evidenceRepository.create({
     title,
     description,
     evidenceType,

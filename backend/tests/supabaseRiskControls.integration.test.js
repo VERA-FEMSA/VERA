@@ -6,6 +6,7 @@ process.env.JWT_SECRET ||= "supabase-risk-control-test-secret-32-characters";
 process.env.VERA_RISK_CONTROL_STORE = "supabase";
 process.env.VERA_USER_STORE = "supabase";
 process.env.VERA_PLANNING_STORE = "supabase";
+process.env.VERA_EVIDENCE_COMMENT_STORE = "supabase";
 process.env.SUPABASE_URL = "https://supabase.example";
 process.env.SUPABASE_SECRET_KEY = "sb_secret_test";
 
@@ -24,7 +25,10 @@ test("HU-14/HU-15 use persistent risk and control sources across HTTP requests",
     { id: 1000, username: "gerente", email: "gerente@vera.local", name: "Gerente", role: "GERENTE", status: "ACTIVE", version: 1 },
     { id: 1001, username: "auditor", email: "auditor@vera.local", name: "Auditor", role: "AUDITOR", status: "ACTIVE", version: 1 }
   ];
-  const tables = { vera_risks: new Map(), vera_controls: new Map() };
+  const tables = {
+    vera_risks: new Map(), vera_controls: new Map(), vera_evidence: new Map(),
+    vera_audit_comments: new Map(), vera_audit_proposals: new Map()
+  };
   global.fetch = async (input, options) => {
     if (!String(input).startsWith("https://supabase.example/")) return nativeFetch(input, options);
     const url = new URL(input);
@@ -88,6 +92,26 @@ test("HU-14/HU-15 use persistent risk and control sources across HTTP requests",
     entityType: "RISK", entityId: risk.id
   }));
   assert.equal(evidence.status, 201);
+  assert.equal(tables.vera_evidence.size, 1);
+  const listedEvidence = await fetch(`${base}/api/evidence?entityType=RISK&entityId=${risk.id}`, auth(1001));
+  assert.equal((await listedEvidence.json()).evidence.length, 1);
+
+  const proposalResponse = await fetch(`${base}/api/planning`, auth(1000, "POST", {
+    title: "Auditoría de prueba", objective: "Verificar la eficacia de los controles.",
+    scope: "Proceso financiero.", justification: "Se requiere seguimiento de la exposición.",
+    area: "Finanzas", year: 2026, quarter: "Q4", responsibleId: 1001,
+    likelihood: 2, impact: 3
+  }));
+  assert.equal(proposalResponse.status, 201);
+  const proposal = (await proposalResponse.json()).proposal;
+  const commentResponse = await fetch(`${base}/api/planning/${proposal.id}/comments`, auth(1001, "POST", {
+    text: "Revisé los documentos iniciales."
+  }));
+  assert.equal(commentResponse.status, 201);
+  assert.equal(tables.vera_audit_comments.size, 1);
+  const history = await fetch(`${base}/api/planning/${proposal.id}/history`, auth(1001));
+  assert.equal((await history.json()).comments.length, 1);
+
   const assessment = await fetch(`${base}/api/controls/${control.id}/evaluate`, auth(1000, "POST", {
     rating: 2, note: "La evaluación posterior detectó excepciones abiertas."
   }));

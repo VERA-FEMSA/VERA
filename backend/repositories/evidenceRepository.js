@@ -13,4 +13,7 @@ const create = (data) => {
   return { ...evidence, author: { ...evidence.author } };
 };
 
-module.exports = { getAll, create };
+const memoryRepository = { getAll, create };
+module.exports = process.env.VERA_EVIDENCE_COMMENT_STORE === "supabase"
+  ? require("./supabaseEvidenceRepository")
+  : memoryRepository;

@@ -22,7 +22,7 @@ const getHistory = async (req, res) => {
   if (!proposal) return;
   res.json({
     history: query({ entityId: proposal.id, limit: 200 }),
-    comments: commentRepository.listByProposal(proposal.id)
+    comments: await commentRepository.listByProposal(proposal.id)
   });
 };
 
@@ -34,7 +34,7 @@ const addComment = async (req, res) => {
     return res.status(400).json({ message: "El comentario debe tener entre 3 y 2,000 caracteres." });
   }
 
-  const comment = commentRepository.create({
+  const comment = await commentRepository.create({
     proposalId: proposal.id,
     text,
     author: { id: req.user.id, username: req.user.username, role: req.user.role }

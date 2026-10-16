@@ -32,6 +32,12 @@ La cuarta migración crea `vera_risks` y `vera_controls`. Los riesgos conservan 
 
 Activa `VERA_RISK_CONTROL_STORE=supabase` **solo después** de activar `VERA_USER_STORE=supabase` y `VERA_PLANNING_STORE=supabase`, aplicar la migración y conciliar las referencias a cuentas. La API rechaza esa combinación incompleta al iniciar. Comprueba en un entorno de prueba que un riesgo, su evaluación y un control asociado conservan los mismos IDs y versiones después de reiniciar el backend; verifica además que un Auditor solo ve los riesgos asignados y sus controles. Las pruebas automatizadas del repositorio simulan la API de Supabase; todavía falta la comprobación contra el proyecto remoto.
 
+## Evidencias y comentarios persistentes
+
+La quinta migración crea `vera_evidence` y `vera_audit_comments` para las referencias de evidencia y los comentarios de auditoría. Ambas tablas tienen RLS habilitado y solo la API con clave de servidor puede accederlas. La API conserva el control de acceso por rol y asignación antes de devolver evidencias o comentarios.
+
+Activa `VERA_EVIDENCE_COMMENT_STORE=supabase` después de activar y comprobar planificación, cuentas, riesgos y controles persistentes. La API rechaza una combinación incompleta. En un entorno de prueba, registra una evidencia vinculada a un riesgo y un comentario en una propuesta; reinicia el backend y comprueba que ambos permanecen con sus IDs originales, que la persona Auditor solo ve los elementos a los que tiene acceso y que no aparecen claves en las respuestas. Esta migración guarda **referencias y metadatos**, no archivos binarios; no implica un bucket de Supabase Storage.
+
 ## Comprobación del entorno conectado
 
 En un entorno de prueba con `VERA_PLANNING_STORE=supabase`, verifica con cuentas de Jefatura, Dirección y Auditor: crea una propuesta, apruébala, iníciala y consulta `/api/planning/active` y `/api/dashboard`. Reinicia el backend y repite las lecturas; el mismo ID y estado deben seguir presentes. Comprueba que el Auditor solo ve sus asignaciones, que la tabla `logins` recibió el acceso y que ninguna respuesta incluye la clave secreta. No uses esta comprobación para escribir datos sintéticos en producción.
@@ -44,6 +50,6 @@ Sin configuración completa, las solicitudes de planificación responden `503` e
 
 - Se almacenan título, objetivo, alcance temporal, área, responsable, factores y nivel de riesgo, estado y actor/fecha de cada decisión. Los cambios de estado y las ediciones usan una versión para detectar modificaciones concurrentes; la base impide duplicados por título, área y año.
 - La API consulta Supabase en cada solicitud del panel, matriz, planificación y notificaciones. Los permisos por rol y asignación se aplican antes de responder.
-- Las cuentas pueden persistirse al activar `VERA_USER_STORE=supabase`; riesgos y controles pueden persistirse juntos con `VERA_RISK_CONTROL_STORE=supabase`. Referencias de evidencia, comentarios y bitácora general todavía usan memoria; no se debe declarar persistencia integral ni historial permanente.
+- Las cuentas pueden persistirse al activar `VERA_USER_STORE=supabase`; riesgos y controles pueden persistirse juntos con `VERA_RISK_CONTROL_STORE=supabase`; evidencias y comentarios pueden persistirse con `VERA_EVIDENCE_COMMENT_STORE=supabase`. La bitácora general todavía usa memoria; no se debe declarar persistencia integral ni historial permanente.
 - La matriz principal clasifica el riesgo de cada auditoría con sus factores almacenados. El riesgo residual requiere datos persistentes de controles/evaluaciones y sigue pendiente.
 - Este repositorio no contiene credenciales ni acceso a un proyecto Supabase; la migración SQL y la conexión real deben ejecutarse en el proyecto del equipo para cerrar la evidencia de aceptación.

@@ -19,4 +19,7 @@ const create = ({ proposalId, text, author }) => {
   return clone(comment);
 };
 
-module.exports = { listByProposal, create };
+const memoryRepository = { listByProposal, create };
+module.exports = process.env.VERA_EVIDENCE_COMMENT_STORE === "supabase"
+  ? require("./supabaseCommentRepository")
+  : memoryRepository;

@@ -1,5 +1,5 @@
 const PAGE_SIZE = 1000;
-const TABLES = new Set(["vera_risks", "vera_controls"]);
+const TABLES = new Set(["vera_risks", "vera_controls", "vera_evidence", "vera_audit_comments"]);
 
 class DomainStorageError extends Error {
   constructor(message, status = 503) {
@@ -12,7 +12,7 @@ class DomainStorageError extends Error {
 const config = () => {
   const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!process.env.SUPABASE_URL || !key) {
-    throw new DomainStorageError("Falta configurar Supabase para riesgos y controles.");
+    throw new DomainStorageError("Falta configurar Supabase para datos GRC.");
   }
   let root;
   try { root = new URL(process.env.SUPABASE_URL); } catch {
@@ -50,10 +50,10 @@ const createStore = (table) => {
   };
 
   const unpack = (row) => row ? { ...row.payload, storageVersion: row.version } : null;
-  const getAll = async () => {
+  const getAll = async (filters = {}) => {
     const documents = [];
     for (let offset = 0; ; offset += PAGE_SIZE) {
-      const rows = await request("GET", { select: "payload,version", order: "created_at.desc" }, undefined, `${offset}-${offset + PAGE_SIZE - 1}`);
+      const rows = await request("GET", { select: "payload,version", order: "created_at.desc", ...filters }, undefined, `${offset}-${offset + PAGE_SIZE - 1}`);
       documents.push(...rows.map(unpack));
       if (rows.length < PAGE_SIZE) break;
     }
@@ -63,8 +63,8 @@ const createStore = (table) => {
     const rows = await request("GET", { select: "payload,version", id: `eq.${id}`, limit: "1" });
     return unpack(rows[0]);
   };
-  const create = async (payload) => {
-    const rows = await request("POST", { select: "payload,version" }, { id: payload.id, payload });
+  const create = async (payload, extraColumns = {}) => {
+    const rows = await request("POST", { select: "payload,version" }, { id: payload.id, payload, ...extraColumns });
     return unpack(rows[0]);
   };
   const mutate = async (id, changes, expectedVersion) => {
