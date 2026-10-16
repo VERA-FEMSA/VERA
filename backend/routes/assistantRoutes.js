@@ -1,0 +1,47 @@
+const express = require("express");
+const { rateLimit } = require("express-rate-limit");
+const { verifyToken } = require("../middleware/authMiddleware");
+const { buildAssistantContext } = require("../services/assistantContextService");
+const { askAzureOpenAi, readiness } = require("../services/azureOpenAiService");
+
+const router = express.Router();
+router.use(verifyToken);
+router.use((req, res, next) => { res.set("Cache-Control", "no-store"); next(); });
+
+router.get("/status", (req, res) => {
+  try {
+    res.json({ ...readiness(), mode: "read-only" });
+  } catch {
+    res.json({ available: false, reason: "invalid-configuration", mode: "read-only" });
+  }
+});
+
+router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerator: (req) => String(req.user.id),
+  standardHeaders: "draft-8", legacyHeaders: false }), async (req, res) => {
+  const startedAt = Date.now();
+  const question = req.body?.question;
+  if (typeof question !== "string" || question.trim().length < 3 || question.length > 800) {
+    return res.status(400).json({ message: "Escribe una pregunta de 3 a 800 caracteres." });
+  }
+  try {
+    if (!readiness().available) return res.status(503).json({ message: "El asistente requiere Azure OpenAI y almacenes persistentes en producción." });
+    const { context, references } = await buildAssistantContext(req.user, question.trim());
+    const { answer, usage } = await askAzureOpenAi({ question: question.trim(), context });
+    console.info(JSON.stringify({ event: "VERA_AI_ANSWER", status: 200, role: req.user.role,
+      durationMs: Date.now() - startedAt, promptTokens: usage?.prompt_tokens ?? null,
+      completionTokens: usage?.completion_tokens ?? null }));
+    return res.json({ answer, references, usage: usage ? {
+      promptTokens: usage.prompt_tokens ?? null, completionTokens: usage.completion_tokens ?? null
+    } : null });
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "VERA_AI_ERROR", status: error.status || 502,
+      durationMs: Date.now() - startedAt }));
+    if (error.status) return res.status(error.status).json({ message: error.message });
+    if (error.name === "TimeoutError" || error.name === "AbortError") {
+      return res.status(504).json({ message: "El servicio de IA tardó demasiado. Intenta de nuevo." });
+    }
+    return res.status(502).json({ message: "No se pudo consultar el asistente en este momento." });
+  }
+});
+
+module.exports = router;

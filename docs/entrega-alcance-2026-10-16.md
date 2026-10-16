@@ -34,6 +34,6 @@ La [matriz de aceptación](hu-acceptance-audit.md) documenta, HU por HU, la evid
 
 La persona que reciba esta entrega puede usar [la guía de activación](supabase-planning.md), [el plan de pruebas](testing/test-plan.md), [el runbook operativo](testing/operations-runbook.md) y [el acceso rápido de calidad](testing/professor-quick-run.md). Ningún pendiente de la tabla anterior se presenta como completado por haber pasado CI.
 
-## Nuevo alcance propuesto: HU-34
+## Seguimiento posterior: HU-34
 
-El asistente conversacional es un sprint separado. Su contrato inicial será de **consulta de solo lectura**, con recuperación de registros permitidos al usuario, respuestas fundamentadas en esos registros y enlaces generados por VERA. Toda operación que modifique datos queda fuera de la primera entrega; no se habilitará sin un flujo de confirmación y autorización explícito. La integración utilizará Azure OpenAI, sin guardar claves en Git. No existe todavía un recurso/despliegue Azure OpenAI para VERA; por ello el código podrá verificarse con respuestas simuladas, pero la aceptación del servicio real seguirá pendiente de activación y prueba.
+Después de esta entrega se inició HU-34 como un incremento separado. Se implementó un asistente de **consulta de solo lectura**, con registros visibles al usuario y enlaces generados por VERA; las modificaciones permanecen en los módulos existentes. Se creó un recurso y despliegue Azure OpenAI y se comprobó una llamada local real. El [runbook de HU-34](hu34-azure-openai.md) describe la evidencia y el bloqueo de activación en el Vercel actual. Este seguimiento no altera la conclusión histórica de entrega anterior: la aceptación de producción todavía requiere acceso al proyecto y almacenes Supabase persistentes.

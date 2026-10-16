@@ -15,7 +15,7 @@ Revisión del código en `main` y de las capturas de Azure DevOps compartidas po
 | 22 Propuestas | API/UI de creación, edición, validaciones y pruebas; modo Supabase optativo. | Validación funcional y persistencia en el despliegue. |
 | 23 Decisiones | API/UI de aprobación/rechazo y bitácora; modo Supabase optativo. | Validación funcional y persistencia en el despliegue. |
 | 26 Búsqueda y filtros | PR #55 agregó `GET /api/planning/search` y `/auditorias`, con filtros de texto, estado, riesgo, tipo, trimestre y año. El alcance de Auditoría se aplica antes de buscar. | Contrastar con los criterios completos de Azure DevOps y validar en el despliegue. |
-| 34 Asistente IA | No iniciada. | En espera por decisión del equipo: primero completar y comprobar las demás HU. Aún no existe recurso Azure OpenAI para VERA. |
+| 34 Asistente IA | Interfaz `/asistente`, API autenticada de solo lectura, contexto filtrado por rol, enlaces del servidor, pruebas y recurso/despliegue Azure OpenAI con llamada local real. Ver [runbook HU-34](hu34-azure-openai.md). | Activar secretos y almacenes persistentes en el proyecto Vercel actual, probar con cuentas reales y comparar todos los criterios en producción. Sin acceso a `figbo/vera` no hay aceptación remota. |
 
 ## Secuencia de cierre
 
@@ -24,7 +24,7 @@ Revisión del código en `main` y de las capturas de Azure DevOps compartidas po
 3. Validar carga, almacenamiento, descarga autorizada y vínculo de HU-16 en el despliegue; conservar la distinción entre archivo y referencia externa.
 4. Obtener criterios completos de HU-17/HU-18 y comprobar los modos Supabase en un despliegue con acceso del propietario.
 5. Ejecutar la prueba de carga de HU-19 en un entorno de pruebas autorizado; registrar tasa, latencia, errores y límites. No ejecutarla contra producción sin una ventana coordinada.
-6. Reconciliar el estado de Azure DevOps con evidencia de aceptación. La IA permanece fuera de esta secuencia hasta que se cierren las HU previas.
+6. Reconciliar el estado de Azure DevOps con evidencia de aceptación. HU-34 tiene implementación verificable, pero su activación remota sigue condicionada a persistencia y acceso al despliegue.
 
 ## Evidencia y límites
 

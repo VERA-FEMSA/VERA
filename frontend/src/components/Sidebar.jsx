@@ -13,6 +13,7 @@ import {
   Files,
   ScrollText,
   Search,
+  Bot,
   LogOut
 } from "lucide-react";
 import { ROLE_LABELS, USER_ADMIN_ROLES } from "../constants/roles";
@@ -48,6 +49,7 @@ function Sidebar({ active }) {
     { id: "riesgos", label: "Registro de riesgos", Icon: ShieldAlert, path: "/riesgos", show: true },
     { id: "controles", label: "Mapa de controles", Icon: ClipboardCheck, path: "/controles", show: true },
     { id: "notificaciones", label: "Pendientes", Icon: BellRing, path: "/notificaciones", show: true },
+    { id: "asistente", label: "Asistente de IA", Icon: Bot, path: "/asistente", show: true },
     { id: "evidencias", label: "Evidencias", Icon: Files, path: "/evidencias", show: true },
     { id: "reportes", label: "Reportes", Icon: FileChartColumn, show: canSeeReports },
     { id: "usuarios", label: "Usuarios", Icon: UserCog, path: "/usuarios", show: canSeeUsers },

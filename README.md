@@ -10,6 +10,8 @@
 
 > **Estado:** prototipo académico. Por defecto los datos se mantienen en memoria y se reinician con el backend. Las once migraciones, incluidas hallazgos, archivos y lecturas de notificaciones, quedaron aplicadas en el proyecto Supabase VERA el 15-16 de octubre de 2026. La API local pudo leer datos reales con los almacenes persistentes activados. Los modos del despliegue en Vercel siguen pendientes de configuración y de una prueba funcional con cuentas reales. Consulta la [guía de activación](docs/supabase-planning.md) y la [bitácora de despliegue](docs/supabase-rollout-2026-10.md). El modo demo contiene cuentas de ejemplo y no debe usarse con datos reales.
 
+**HU-34 Asistente de IA:** la interfaz y el backend de solo lectura usan Azure OpenAI con contexto filtrado por rol. El recurso y modelo responden a una prueba directa; la activación y aceptación en la URL pública dependen del acceso a `figbo/vera` y de los almacenes Supabase persistentes. Consulta el [runbook de HU-34](docs/hu34-azure-openai.md).
+
 La [entrega de alcance del 16 de octubre](docs/entrega-alcance-2026-10-16.md) resume PRs, resultados medidos y responsabilidades pendientes, y separa HU-34 como nuevo alcance.
 
 ## Funcionalidades actuales
