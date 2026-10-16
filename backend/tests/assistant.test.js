@@ -118,7 +118,7 @@ test("Copiloto: la API calcula un indicador filtrado por rol sin llamar a Azure"
   process.env.AZURE_OPENAI_DEPLOYMENT = "vera-chat";
   let azureCalls = 0;
   global.fetch = (url, options) => {
-    if (String(url).includes("vera-test.openai.azure.com")) {
+    if (new URL(String(url)).hostname === "vera-test.openai.azure.com") {
       azureCalls += 1;
       throw new Error("Azure no debe recibir una pregunta exacta");
     }
