@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { createFinding, getFindings } from "../services/findingService";
 import { RISK_CONTROL_MANAGE_ROLES } from "../constants/planning";
 import "./ControlFindings.css";
 
 function ControlFindings({ controls, risks, role }) {
+  const location = useLocation();
   const [findings, setFindings] = useState([]);
   const [control, setControl] = useState(null);
   const [riskId, setRiskId] = useState("");
@@ -18,6 +20,12 @@ function ControlFindings({ controls, risks, role }) {
       .catch((cause) => { if (!cancelled) setError(cause.message); });
     return () => { cancelled = true; };
   }, []);
+  useEffect(() => {
+    try {
+      const target = decodeURIComponent(location.hash.slice(1));
+      if (target.startsWith("finding-")) document.getElementById(target)?.scrollIntoView({ block: "center" });
+    } catch { /* Un fragmento inválido no altera los hallazgos. */ }
+  }, [location.hash, findings]);
 
   const canCreate = RISK_CONTROL_MANAGE_ROLES.includes(role) || role === "AUDITOR";
   const open = (item) => {
@@ -45,7 +53,7 @@ function ControlFindings({ controls, risks, role }) {
         Registrar hallazgo · {item.id} {item.title}
       </button>)}
     {findings.length === 0 ? <p className="control-empty">No hay hallazgos registrados para los controles visibles.</p> :
-      <div className="finding-list">{findings.map((item) => <article key={item.id} className="finding-card">
+      <div className="finding-list">{findings.map((item) => <article key={item.id} id={`finding-${item.id}`} className="finding-card">
         <strong>{item.id} · {item.title}</strong><span>{item.status === "OPEN" ? "Abierto" : item.status}</span>
         <p>{item.description}</p><small>Control {item.controlId}: {item.controlTitle} · Riesgo {item.riskId}: {item.riskTitle}</small>
         <small>Evaluación v{item.evaluationVersion} · {new Date(item.createdAt).toLocaleString("es-MX")}</small>

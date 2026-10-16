@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Activity, ClipboardCheck, Pencil, Plus, ShieldAlert, X } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { Activity, Bot, ClipboardCheck, Pencil, Plus, ShieldAlert, X } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import AssistantDrawer from "../components/AssistantDrawer";
 import { RISK_CONTROL_MANAGE_ROLES } from "../constants/planning";
 import { createRisk, evaluateRisk, getRiskOwners, getRisks, updateRisk } from "../services/riskService";
 import { getPlanningAudits } from "../services/planningService";
@@ -11,6 +13,7 @@ const levelFor = (score) => score <= 2 ? "Bajo" : score <= 4 ? "Medio" : "Alto";
 const dateLabel = (value) => new Date(value).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
 
 function Riesgos() {
+  const location = useLocation();
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const canManage = RISK_CONTROL_MANAGE_ROLES.includes(user?.role);
   const [risks, setRisks] = useState([]);
@@ -25,6 +28,7 @@ function Riesgos() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [assistantFocus, setAssistantFocus] = useState(null);
 
   const refresh = async () => setRisks(await getRisks(filters));
   useEffect(() => {
@@ -33,6 +37,12 @@ function Riesgos() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [filters, canManage]);
+  useEffect(() => {
+    try {
+      const target = decodeURIComponent(location.hash.slice(1));
+      if (target.startsWith("risk-")) document.getElementById(target)?.scrollIntoView({ block: "center" });
+    } catch { /* Un fragmento inválido no altera el registro. */ }
+  }, [location.hash, risks]);
 
   const summary = ["Alto", "Medio", "Bajo"].map((level) => ({ level, count: risks.filter((risk) => risk.level === level).length }));
   const startCreate = () => { setEditing(null); setForm(EMPTY); setError(""); setModal(true); };
@@ -72,7 +82,7 @@ function Riesgos() {
           <label>Nivel<select value={filters.level} onChange={(event) => setFilters({ ...filters, level: event.target.value })}><option value="">Todos los niveles</option><option>Bajo</option><option>Medio</option><option>Alto</option></select></label>
         </section>
         {loading ? <div className="risk-empty">Cargando registro...</div> : risks.length === 0 ? <div className="risk-empty">No hay riesgos que coincidan con estos filtros.</div> :
-          <div className="risk-list">{risks.map((risk) => <article className="risk-record" key={risk.id}>
+          <div className="risk-list">{risks.map((risk) => <article className="risk-record" id={`risk-${risk.id}`} key={risk.id}>
             <div className="risk-record-icon"><ShieldAlert size={22} /></div>
             <div className="risk-record-main">
               <div className="risk-record-heading"><span className="risk-record-id">{risk.id}</span><span className={`risk-badge risk-${risk.level.toLowerCase()}`}>{risk.level}</span><span className="risk-score">P×I {risk.score} / 9</span></div>
@@ -81,10 +91,11 @@ function Riesgos() {
               {risk.responsePlan && <p className="risk-plan"><b>Plan de respuesta:</b> {risk.responsePlan}</p>}
               <details className="risk-history"><summary><Activity size={15} /> Historial de evaluación ({risk.evaluations.length})</summary><ol>{[...risk.evaluations].reverse().map((evaluation) => <li key={evaluation.version}><div><b>Versión {evaluation.version}</b><span className={`risk-badge risk-${evaluation.level.toLowerCase()}`}>{evaluation.level} · {evaluation.score}/9</span></div><p>{evaluation.note}</p><small>{evaluation.assessedBy?.name || "Usuario"} · {dateLabel(evaluation.assessedAt)} · Probabilidad {evaluation.likelihood}, impacto {evaluation.impact}</small></li>)}</ol></details>
             </div>
-            {canManage && <div className="risk-record-actions"><button onClick={() => startEdit(risk)}><Pencil size={15} /> Editar</button><button onClick={() => startAssessment(risk)}><ClipboardCheck size={15} /> Reevaluar</button></div>}
+            <div className="risk-record-actions"><button type="button" onClick={() => setAssistantFocus({ type: "risk", id: risk.id, title: risk.title })}><Bot size={15} /> Analizar con IA</button>{canManage && <><button onClick={() => startEdit(risk)}><Pencil size={15} /> Editar</button><button onClick={() => startAssessment(risk)}><ClipboardCheck size={15} /> Reevaluar</button></>}</div>
           </article>)}</div>}
       </section>
     </main>
+    {assistantFocus && <AssistantDrawer key={assistantFocus.id} focus={assistantFocus} onClose={() => setAssistantFocus(null)} />}
     {modal && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal(); }}><form className="proposal-modal risk-modal" onSubmit={submit}>
       <div className="modal-header"><div><span className="eyebrow">{assessing ? `EVALUACIÓN ${assessing.id}` : editing ? `EDITAR ${editing.id}` : "NUEVO REGISTRO"}</span><h2>{assessing ? "Reevaluar riesgo" : editing ? "Editar riesgo" : "Registrar riesgo"}</h2><p>{assessing ? "Cada evaluación conserva sus valores, motivo, autor y fecha." : "Documenta el riesgo, su responsable y la primera evaluación."}</p></div><button type="button" className="modal-close" onClick={closeModal} aria-label="Cerrar"><X size={20} /></button></div>
       {error && <p className="risk-feedback error">{error}</p>}

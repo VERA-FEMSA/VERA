@@ -36,6 +36,14 @@ test("HU-34: contexto de Auditoría excluye expedientes, riesgos y hallazgos aje
   assert.ok(context.records.controls.every((item) => item.riskIds.every((id) =>
     context.records.risks.some((risk) => risk.id === id))));
   assert.ok(references.every((item) => item.path.startsWith("/")));
+  const focused = await buildAssistantContext({ id: 5, role: "AUDITOR" }, "resume este riesgo", { type: "risk", id: ownedRisk.id });
+  assert.equal(focused.context.focus.id, ownedRisk.id);
+  assert.ok(focused.context.records.risks.some((item) => item.id === ownedRisk.id));
+  assert.ok(focused.sourceCatalog.some((item) => item.sourceId === `risks:${ownedRisk.id}`));
+  await assert.rejects(buildAssistantContext({ id: 5, role: "AUDITOR" }, "resume este riesgo",
+    { type: "risk", id: otherRisk.id }), (error) => error.status === 404 && !error.message.includes("confidencial"));
+  await assert.rejects(buildAssistantContext({ id: 5, role: "UNKNOWN" }, "riesgo"),
+    (error) => error.status === 403);
 });
 
 test("HU-34: la API exige sesión, valida la pregunta y muestra estado sin secretos", async (t) => {
@@ -47,6 +55,10 @@ test("HU-34: la API exige sesión, valida la pregunta y muestra estado sin secre
   assert.equal(status.headers.get("cache-control"), "no-store");
   assert.deepEqual(await status.json(), { available: false, reason: "azure-not-configured", mode: "read-only" });
   assert.equal((await fetch(`${base}/api/assistant/ask`, auth(5, "POST", { question: "x" }))).status, 400);
+  assert.equal((await fetch(`${base}/api/assistant/ask`, auth(5, "POST", { question: "riesgos", history: Array(7).fill({ role: "user", text: "hola" }) }))).status, 400);
+  const brief = await fetch(`${base}/api/assistant/brief`, auth(5));
+  assert.equal(brief.status, 200);
+  assert.equal((await brief.json()).role, "AUDITOR");
   assert.equal((await fetch(`${base}/api/assistant/ask`, auth(5, "POST", { question: "¿Qué riesgos hay?" }))).status, 503);
 });
 
@@ -65,16 +77,20 @@ test("HU-34: Azure recibe contexto filtrado y la respuesta no contiene la clave"
     process.env.VERCEL_ENV = "production";
     assert.deepEqual(readiness(), { available: false, reason: "persistent-stores-required" });
     delete process.env.VERCEL_ENV;
-    const result = await askAzureOpenAi({ question: "¿Qué hay?", context: { counts: { risks: 0 } },
+    const result = await askAzureOpenAi({ question: "¿Qué hay?", context: { counts: { risks: 0 },
+      sources: [{ sourceId: "risks:RSK-1" }] }, history: [{ role: "user", text: "¿Y ese riesgo?" }],
       fetchImpl: async (url, options) => {
         assert.equal(url, "https://vera-test.openai.azure.com/openai/v1/chat/completions");
         assert.equal(options.headers["api-key"], "test-key-only");
         const request = JSON.parse(options.body);
         assert.equal(request.model, "vera-chat");
         assert.ok(request.messages[1].content.includes('"risks":0'));
-        return { ok: true, json: async () => ({ choices: [{ message: { content: "No hay riesgos visibles." } }], usage: { prompt_tokens: 30, completion_tokens: 9 } }) };
+        assert.ok(request.messages[1].content.includes("¿Y ese riesgo?"));
+        assert.equal(request.response_format.type, "json_object");
+        return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ answer: "No hay riesgos visibles.", sourceIds: ["risks:RSK-1", "risks:FAKE"] }) } }], usage: { prompt_tokens: 30, completion_tokens: 9 } }) };
       } });
     assert.equal(result.answer, "No hay riesgos visibles.");
+    assert.deepEqual(result.sourceIds, ["risks:RSK-1"]);
     assert.ok(!JSON.stringify(result).includes("test-key-only"));
     process.env.AZURE_OPENAI_ENDPOINT = "http://localhost:3000";
     assert.throws(() => configuration(), /recurso oficial/);
@@ -99,6 +115,12 @@ test("HU-34: fallas del proveedor no filtran el cuerpo remoto", async () => {
     await assert.rejects(askAzureOpenAi({ question: "Hola", context: {},
       fetchImpl: async () => ({ ok: false, status: 500, text: async () => "SECRET FROM PROVIDER" }) }),
     (error) => error.status === 502 && !error.message.includes("SECRET"));
+    await assert.rejects(askAzureOpenAi({ question: "Hola", context: {},
+      fetchImpl: async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: "texto inválido" } }] }) }) }),
+    (error) => error.status === 502);
+    await assert.rejects(askAzureOpenAi({ question: "Hola", context: {},
+      fetchImpl: async () => ({ ok: true, json: async () => ({ choices: [{ finish_reason: "length", message: { content: "{\"answer\":\"incompleta\"}" } }] }) }) }),
+    (error) => error.status === 502);
   } finally {
     delete process.env.AZURE_OPENAI_ENDPOINT;
     delete process.env.AZURE_OPENAI_API_KEY;
@@ -122,7 +144,7 @@ test("HU-34: la ruta responde con Azure simulado y excluye datos ajenos antes de
     assert.ok(prompt.includes("Riesgo asignado"));
     assert.ok(!prompt.includes("Riesgo ajeno confidencial"));
     assert.ok(!prompt.includes("Hallazgo ajeno confidencial"));
-    return Promise.resolve(Response.json({ choices: [{ message: { content: "Tienes un riesgo visible." } }],
+    return Promise.resolve(Response.json({ choices: [{ message: { content: JSON.stringify({ answer: "Tienes un riesgo visible.", sourceIds: [] }) } }],
       usage: { prompt_tokens: 42, completion_tokens: 6 } }));
   };
   try {

@@ -16,6 +16,18 @@ router.get("/status", (req, res) => {
   }
 });
 
+router.get("/brief", async (req, res) => {
+  try {
+    if (readiness().reason === "persistent-stores-required") {
+      return res.status(503).json({ message: "Las prioridades requieren almacenes persistentes en producción." });
+    }
+    const { brief } = await buildAssistantContext(req.user, "prioridades de mi portafolio");
+    return res.json({ role: req.user.role, signals: brief });
+  } catch {
+    return res.status(502).json({ message: "No se pudieron consultar las prioridades." });
+  }
+});
+
 router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerator: (req) => String(req.user.id),
   standardHeaders: "draft-8", legacyHeaders: false }), async (req, res) => {
   const startedAt = Date.now();
@@ -23,14 +35,23 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
   if (typeof question !== "string" || question.trim().length < 3 || question.length > 800) {
     return res.status(400).json({ message: "Escribe una pregunta de 3 a 800 caracteres." });
   }
+  const history = req.body?.history ?? [];
+  const focus = req.body?.focus ?? null;
+  if (!Array.isArray(history) || history.length > 6 || history.some((item) =>
+    !item || !["user", "assistant"].includes(item.role) ||
+    typeof item.text !== "string" || item.text.length > 800) ||
+    (focus !== null && (typeof focus !== "object" || Array.isArray(focus)))) {
+    return res.status(400).json({ message: "El historial o el expediente solicitado no es válido." });
+  }
   try {
     if (!readiness().available) return res.status(503).json({ message: "El asistente requiere Azure OpenAI y almacenes persistentes en producción." });
-    const { context, references } = await buildAssistantContext(req.user, question.trim());
-    const { answer, usage } = await askAzureOpenAi({ question: question.trim(), context });
+    const { context, references, sourceCatalog } = await buildAssistantContext(req.user, question.trim(), focus);
+    const { answer, sourceIds, usage } = await askAzureOpenAi({ question: question.trim(), context, history });
+    const citations = sourceIds.map((id) => sourceCatalog.find((item) => item.sourceId === id)).filter(Boolean);
     console.info(JSON.stringify({ event: "VERA_AI_ANSWER", status: 200, role: req.user.role,
       durationMs: Date.now() - startedAt, promptTokens: usage?.prompt_tokens ?? null,
       completionTokens: usage?.completion_tokens ?? null }));
-    return res.json({ answer, references, usage: usage ? {
+    return res.json({ answer, citations, references, durationMs: Date.now() - startedAt, usage: usage ? {
       promptTokens: usage.prompt_tokens ?? null, completionTokens: usage.completion_tokens ?? null
     } : null });
   } catch (error) {

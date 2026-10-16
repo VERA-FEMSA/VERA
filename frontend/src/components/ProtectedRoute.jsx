@@ -1,4 +1,5 @@
 import { Navigate } from "react-router-dom";
+import AssistantQuickAccess from "./AssistantQuickAccess";
 
 function ProtectedRoute({ children, allowedRoles  }) {
   const token = localStorage.getItem("token");
@@ -12,7 +13,7 @@ function ProtectedRoute({ children, allowedRoles  }) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return children;
+  return <>{children}<AssistantQuickAccess /></>;
 }
 
 export default ProtectedRoute;

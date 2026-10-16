@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Activity, ArrowLeft, ArrowRight, CheckCircle2, ClipboardCheck, FileText, Flag, LockKeyhole, Pencil, Play, RefreshCw, ShieldAlert, Target } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, Bot, CheckCircle2, ClipboardCheck, FileText, Flag, LockKeyhole, Pencil, Play, RefreshCw, ShieldAlert, Target } from "lucide-react";
 import Sidebar from "../components/Sidebar";
+import AssistantDrawer from "../components/AssistantDrawer";
 import PlanningHistoryButton from "../components/PlanningHistoryButton";
 import EditAuditModal from "../components/EditAuditModal";
 import { PLANNING_APPROVE_ROLES, RISK_FACTORS } from "../constants/planning";
@@ -34,6 +35,7 @@ function AuditoriasActivas() {
   const [message, setMessage] = useState("");
   const [editingAudit, setEditingAudit] = useState(null);
   const [selectedAudit, setSelectedAudit] = useState(null);
+  const [assistantFocus, setAssistantFocus] = useState(null);
   const [activeStep, setActiveStep] = useState("execution");
   const [activeTab, setActiveTab] = useState("summary");
   const [evidence, setEvidence] = useState([]);
@@ -326,6 +328,7 @@ function AuditoriasActivas() {
                     <div>
                       <h2 id="governance-title">{selectedAudit.title}</h2>
                       <span className="planning-id">{selectedAudit.id} · {selectedAudit.area}</span>
+                      <button type="button" className="secondary-action" onClick={() => setAssistantFocus({ type: "audit", id: selectedAudit.id, title: selectedAudit.title })}><Bot size={15} aria-hidden="true" /> Analizar con IA</button>
                     </div>
                     <div className="governance-progress">
                       <span>PROGRESO GENERAL</span>
@@ -430,6 +433,7 @@ function AuditoriasActivas() {
           )}
         </section>
       </main>
+      {assistantFocus && <AssistantDrawer key={assistantFocus.id} focus={assistantFocus} onClose={() => setAssistantFocus(null)} />}
     </div>
   );
 }

@@ -1,5 +1,7 @@
 # HU-34 · Asistente conversacional de VERA con Azure OpenAI
 
+La evolución contextual de la interfaz, el historial en sesión, las fuentes citadas y la evaluación sintética están descritos en [Copiloto contextual de VERA](ai-copilot-evolution.md). Los resultados históricos de esta página corresponden a la implementación inicial y no sustituyen la aceptación del nuevo PR.
+
 ## Estado comprobado el 16 de octubre de 2026
 
 - Se creó el grupo `rg-vera-ai-prod` y el recurso `vera-grc-ai-2026-csg` en `eastus2`, bajo la suscripción Azure a la que tiene acceso `A01412419@tec.mx`.
