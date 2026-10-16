@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Activity, Bot, ClipboardCheck, Pencil, Plus, ShieldAlert, X } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import AssistantDrawer from "../components/AssistantDrawer";
@@ -11,15 +11,26 @@ import "./Riesgos.css";
 const EMPTY = { title: "", description: "", area: "", ownerId: "", responsePlan: "", linkedAuditId: "", likelihood: 2, impact: 2, note: "" };
 const levelFor = (score) => score <= 2 ? "Bajo" : score <= 4 ? "Medio" : "Alto";
 const dateLabel = (value) => new Date(value).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+const filtersFromQuery = (query) => {
+  const params = new URLSearchParams(query);
+  const level = params.get("level") || "";
+  return { level: ["Bajo", "Medio", "Alto"].includes(level) ? level : "",
+    area: (params.get("area") || "").slice(0, 100), search: (params.get("search") || "").slice(0, 120) };
+};
 
 function Riesgos() {
   const location = useLocation();
+  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const canManage = RISK_CONTROL_MANAGE_ROLES.includes(user?.role);
   const [risks, setRisks] = useState([]);
   const [owners, setOwners] = useState([]);
   const [audits, setAudits] = useState([]);
-  const [filters, setFilters] = useState({ level: "", search: "" });
+  const filters = useMemo(() => filtersFromQuery(location.search), [location.search]);
+  const setFilters = (next) => {
+    const query = new URLSearchParams(Object.entries(next).filter(([, value]) => value)).toString();
+    navigate({ pathname: location.pathname, search: query ? `?${query}` : "", hash: location.hash }, { replace: true });
+  };
   const [form, setForm] = useState(EMPTY);
   const [editing, setEditing] = useState(null);
   const [assessing, setAssessing] = useState(null);
@@ -79,6 +90,7 @@ function Riesgos() {
         </div>
         <section className="risk-filters" aria-label="Filtros de riesgos">
           <label>Buscar<input value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} placeholder="Nombre, área, responsable..." /></label>
+          <label>Área exacta<input value={filters.area} onChange={(event) => setFilters({ ...filters, area: event.target.value })} maxLength={100} placeholder="Todas las áreas" /></label>
           <label>Nivel<select value={filters.level} onChange={(event) => setFilters({ ...filters, level: event.target.value })}><option value="">Todos los niveles</option><option>Bajo</option><option>Medio</option><option>Alto</option></select></label>
         </section>
         {loading ? <div className="risk-empty">Cargando registro...</div> : risks.length === 0 ? <div className="risk-empty">No hay riesgos que coincidan con estos filtros.</div> :

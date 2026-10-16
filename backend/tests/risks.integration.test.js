@@ -101,5 +101,9 @@ test("HU-14: auditors only see risks assigned to them; active managers can manag
     assert.equal(unauthorized.status, 403);
     const filtered = await fetch(`${baseUrl}/api/risks?level=Medio&search=${encodeURIComponent(body.area)}`, json(director));
     assert.ok((await filtered.json()).risks.some((risk) => risk.id === created.id));
+    const byArea = await fetch(`${baseUrl}/api/risks?level=Medio&area=operaciones`, json(director));
+    const exact = (await byArea.json()).risks;
+    assert.ok(exact.some((risk) => risk.id === created.id));
+    assert.ok(exact.every((risk) => risk.area.toLowerCase() === "operaciones"));
   });
 });

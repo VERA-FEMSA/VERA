@@ -4,6 +4,7 @@ const planningRepository = require("../repositories/planningRepository");
 const { logActivity } = require("../services/auditLogger");
 const { USER_STATUS } = require("../config/accountRules");
 const { classifyRisk } = require("../config/riskRules");
+const { normalizeArea } = require("../utils/normalizeArea");
 
 const FACTORS = [1, 2, 3];
 const text = (value) => String(value ?? "").trim();
@@ -55,11 +56,12 @@ const parseAssessment = (body) => {
 };
 
 const listRisks = async (req, res) => {
-  const { level, search } = req.query;
+  const { level, search, area } = req.query;
   const needle = text(search).toLowerCase();
   let risks = await riskRepository.getAll();
   if (req.user.role === "AUDITOR") risks = risks.filter((risk) => risk.ownerId === req.user.id);
   if (["Bajo", "Medio", "Alto"].includes(level)) risks = risks.filter((risk) => risk.level === level);
+  if (area) risks = risks.filter((risk) => normalizeArea(risk.area) === normalizeArea(area));
   if (needle) risks = risks.filter((risk) => `${risk.title} ${risk.description} ${risk.area} ${risk.ownerName}`.toLowerCase().includes(needle));
   res.json({ risks });
 };

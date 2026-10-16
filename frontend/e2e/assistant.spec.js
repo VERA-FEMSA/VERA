@@ -23,6 +23,34 @@ test("Copiloto: distingue un indicador calculado de una respuesta generada", asy
   await expect(page.getByText("Sin registros citados en esta respuesta.")).toHaveCount(0);
 });
 
+test("Copiloto: el conteo por área abre los mismos filtros exactos en riesgos", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: true, mode: "read-only" } }));
+  await page.route("**/api/assistant/ask", (route) => route.fulfill({ json: {
+    answer: "Riesgos altos en el área Gestión Financiera: 2.", mode: "computed",
+    metric: { key: "highRisksByArea", label: "Riesgos altos · Área: Gestión Financiera", count: 2,
+      path: "/riesgos?level=Alto&area=Gesti%C3%B3n+Financiera", filter: { area: "Gestión Financiera" } },
+    citations: [], references: []
+  } }));
+  await page.route("**/api/planning", (route) => route.fulfill({ json: { proposals: [] } }));
+  let riskRequests = 0;
+  await page.route("**/api/risks/**", (route) => {
+    const url = new URL(route.request().url());
+    expect(url.searchParams.get("level")).toBe("Alto");
+    expect(url.searchParams.get("area")).toBe("Gestión Financiera");
+    riskRequests += 1;
+    return route.fulfill({ json: { risks: [] } });
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Tu pregunta").fill("¿Cuántos riesgos altos hay en el área Gestión Financiera?");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Riesgos altos en el área Gestión Financiera: 2.")).toBeVisible();
+  await page.getByRole("link", { name: /Riesgos altos · Área: Gestión Financiera: 2/ }).click();
+  await expect(page.getByLabel("Área exacta")).toHaveValue("Gestión Financiera");
+  await expect(page.getByLabel("Nivel")).toHaveValue("Alto");
+  await expect.poll(() => riskRequests).toBeGreaterThan(0);
+});
+
 test("HU-34: consulta autorizada y navegación a registros relacionados", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: true, mode: "read-only" } }));

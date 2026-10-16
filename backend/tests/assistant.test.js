@@ -34,6 +34,24 @@ test("Copiloto: responde conteos exactos autorizados y rechaza filtros no calcul
   assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos hay?", brief: [{ ...brief[0], count: -1 }] }), null);
 });
 
+test("Copiloto: cuenta todos los riesgos del área exacta y distingue un área desconocida", () => {
+  const input = { context: { focus: null }, brief: [], sourceCatalog: [],
+    verifiedData: { risks: [
+      ...Array.from({ length: 25 }, () => ({ area: "Gestión Financiera", level: "Alto" })),
+      { area: "Gestión Financiera", level: "Medio" }, { area: "Finanzas", level: "Alto" }
+    ] } };
+  const found = getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos hay en el área de Gestion Financiera?" });
+  assert.equal(found.metric.count, 25);
+  assert.equal(found.metric.filter.area, "Gestión Financiera");
+  assert.equal(found.metric.path, "/riesgos?level=Alto&area=Gesti%C3%B3n+Financiera");
+  assert.equal(found.mode, "computed");
+  const missing = getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos hay en el área Jurídica?" });
+  assert.equal(missing.metric, undefined);
+  assert.match(missing.answer, /No encontré esa área/);
+  assert.deepEqual(missing.references, []);
+  assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos hay en Gestión Financiera?" }), null);
+});
+
 test("Copiloto: el dato de un riesgo exige foco visible y fuente registrada", () => {
   const input = { question: "¿Cuál es el nivel y el puntaje de este riesgo?", brief: [],
     context: { focus: { type: "risk", id: "RSK-1", level: "Alto", score: 6 } },
@@ -140,6 +158,26 @@ test("Copiloto: la API calcula un indicador filtrado por rol sin llamar a Azure"
     assert.equal(result.usage, null);
     assert.equal(azureCalls, 0);
     assert.ok(!JSON.stringify(result).includes("test-key-only"));
+    const area = `Gestión Estratégica ${Date.now()}`;
+    riskRepository.create({ title: "Riesgo propio del área", ownerId: 5, area, level: "Alto", score: 6,
+      likelihood: 3, impact: 2, createdBy: { id: 3 } });
+    riskRepository.create({ title: "Otro riesgo propio del área", ownerId: 5, area, level: "Medio", score: 4,
+      likelihood: 2, impact: 2, createdBy: { id: 3 } });
+    riskRepository.create({ title: "Riesgo ajeno del área", ownerId: 4, area, level: "Alto", score: 6,
+      likelihood: 3, impact: 2, createdBy: { id: 3 } });
+    const question = `¿Cuántos riesgos altos hay en el área ${area}?`;
+    const filtered = await global.fetch(`${base}/api/assistant/ask`, auth(5, "POST", { question }));
+    assert.equal(filtered.status, 200);
+    const filteredBody = await filtered.json();
+    assert.equal(filteredBody.metric.count, 1);
+    assert.equal(filteredBody.metric.filter.area, area);
+    assert.equal(filteredBody.references.length, 0);
+    const linkedQuery = new URL(filteredBody.metric.path, base).search;
+    const linked = await global.fetch(`${base}/api/risks/${linkedQuery}`, auth(5));
+    assert.equal((await linked.json()).risks.length, 1);
+    const portfolio = await global.fetch(`${base}/api/assistant/ask`, auth(2, "POST", { question }));
+    assert.equal((await portfolio.json()).metric.count, 2);
+    assert.equal(azureCalls, 0);
   } finally {
     global.fetch = originalFetch;
     delete process.env.VERA_AI_ENABLED;

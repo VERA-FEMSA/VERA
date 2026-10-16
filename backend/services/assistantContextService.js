@@ -183,7 +183,9 @@ const buildAssistantContext = async (user, question, focus = null) => {
       sources: sourceCatalog.map(({ sourceId, type, id, title }) => ({ sourceId, type, id, title })),
       records: selected
     },
-    references, sourceCatalog, brief, asOf: new Date().toISOString(),
+    references, sourceCatalog, brief,
+    verifiedData: { risks: risks.map((item) => ({ area: clean(item.area, 100), level: item.level })) },
+    asOf: new Date().toISOString(),
     coverage: { partial: coverageTypes.some((type) => selection[type].included < selection[type].visible), selection }
   };
 };
