@@ -8,9 +8,9 @@
 
 [▶ Abrir ejecución completa de calidad y pruebas](https://github.com/humbertofigb15/VERA/actions/workflows/classroom-quality.yml) · [Guía rápida para revisión docente](docs/testing/professor-quick-run.md)
 
-> **Estado:** prototipo académico. Por defecto los datos se mantienen en memoria y se reinician con el backend. Las once migraciones, incluidas hallazgos, archivos y lecturas de notificaciones, quedaron aplicadas en el proyecto Supabase VERA el 15-16 de octubre de 2026. La API local pudo leer datos reales con los almacenes persistentes activados. Los modos del despliegue en Vercel siguen pendientes de configuración y de una prueba funcional con cuentas reales. Consulta la [guía de activación](docs/supabase-planning.md) y la [bitácora de despliegue](docs/supabase-rollout-2026-10.md). El modo demo contiene cuentas de ejemplo y no debe usarse con datos reales.
+> **Estado:** prototipo académico. Por defecto los datos se mantienen en memoria y se reinician con el backend. Las once migraciones, incluidos hallazgos, archivos y lecturas de notificaciones, quedaron aplicadas en el proyecto Supabase VERA el 15-16 de octubre de 2026. La instancia propia de producción [vera-salva-ventures.vercel.app](https://vera-salva-ventures.vercel.app) usa los seis almacenes persistentes y pasó una prueba remota puntual del asistente; la aceptación funcional con sesiones reales de todos los roles sigue pendiente. Consulta la [guía de Supabase](docs/supabase-planning.md) y el [runbook de HU-34](docs/hu34-azure-openai.md). El modo demo contiene cuentas de ejemplo y no debe usarse con datos reales.
 
-**HU-34 Asistente de IA:** la interfaz y el backend de solo lectura usan Azure OpenAI con contexto filtrado por rol. El recurso y modelo responden a una prueba directa; la activación y aceptación en la URL pública dependen del acceso a `figbo/vera` y de los almacenes Supabase persistentes. Consulta el [runbook de HU-34](docs/hu34-azure-openai.md).
+**HU-34 Asistente de IA:** la interfaz y el backend de solo lectura usan Azure OpenAI con contexto filtrado por rol. El despliegue propio en Vercel respondió HTTP 200 a una consulta autenticada sobre el flujo de Gobierno. El proyecto `figbo/vera` sigue siendo independiente y no fue modificado. Consulta el [runbook de HU-34](docs/hu34-azure-openai.md).
 
 La [entrega de alcance del 16 de octubre](docs/entrega-alcance-2026-10-16.md) resume PRs, resultados medidos y responsabilidades pendientes, y separa HU-34 como nuevo alcance.
 
@@ -80,7 +80,7 @@ npm run dev --prefix frontend
 
 Vite muestra la dirección local de la interfaz al iniciar. Las llamadas `/api` se redirigen al backend local mediante la configuración de desarrollo de Vite.
 
-Con los cinco almacenes en `memory`, el inicio de sesión demo funciona sin claves de Supabase y se registra en la bitácora local. Si activas cuentas en Supabase, la API exige registrar cada inicio de sesión en la tabla `logins` antes de emitir la sesión. Un valor distinto de `memory` o `supabase` en cualquier variable `VERA_*_STORE` detiene el backend al iniciar.
+Con los seis almacenes en `memory`, el inicio de sesión demo funciona sin claves de Supabase y se registra en la bitácora local. Si activas cuentas en Supabase, la API exige registrar cada inicio de sesión en la tabla `logins` antes de emitir la sesión. Un valor distinto de `memory` o `supabase` en cualquier variable `VERA_*_STORE` detiene el backend al iniciar.
 
 ## Comandos de calidad
 
