@@ -10,7 +10,7 @@
 
 > **Estado:** prototipo académico. Por defecto los datos se mantienen en memoria y se reinician con el backend. Las once migraciones, incluidos hallazgos, archivos y lecturas de notificaciones, quedaron aplicadas en el proyecto Supabase VERA el 15-16 de octubre de 2026. La instancia propia de producción [vera-salva-ventures.vercel.app](https://vera-salva-ventures.vercel.app) usa los seis almacenes persistentes y pasó una prueba remota puntual del asistente; la aceptación funcional con sesiones reales de todos los roles sigue pendiente. Consulta la [guía de Supabase](docs/supabase-planning.md) y el [runbook de HU-34](docs/hu34-azure-openai.md). El modo demo contiene cuentas de ejemplo y no debe usarse con datos reales.
 
-**HU-34 Asistente de IA:** la interfaz y el backend de solo lectura usan Azure OpenAI con contexto filtrado por rol. El despliegue propio en Vercel respondió HTTP 200 a una consulta autenticada sobre el flujo de Gobierno. El proyecto `figbo/vera` sigue siendo independiente y no fue modificado. Consulta el [runbook de HU-34](docs/hu34-azure-openai.md).
+**HU-34 Asistente de IA:** la interfaz y el backend de solo lectura usan Azure OpenAI con contexto filtrado por rol. El despliegue propio en Vercel respondió HTTP 200 a una consulta autenticada sobre el flujo de Gobierno. No se configuraron claves en `figbo/vera`; su integración con GitHub puede desplegar automáticamente los cambios fusionados a `main`. Consulta el [runbook de HU-34](docs/hu34-azure-openai.md).
 
 La [entrega de alcance del 16 de octubre](docs/entrega-alcance-2026-10-16.md) resume PRs, resultados medidos y responsabilidades pendientes, y separa HU-34 como nuevo alcance.
 
