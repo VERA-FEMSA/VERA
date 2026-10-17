@@ -16,10 +16,10 @@ const authLimiter = rateLimit({
   }
 });
 
-router.post("/login", login);
-router.post("/register", register); // HU-01
-router.post("/verify-2fa", verify2FA);
-router.post("/2fa/setup", verifyToken, setup2FA);
-router.post("/2fa/enable", verifyToken, enable2FA);
+router.post("/login", authLimiter, login);
+router.post("/register", authLimiter, register); // HU-01
+router.post("/verify-2fa", authLimiter, verify2FA);
+router.post("/2fa/setup", verifyToken, authLimiter, setup2FA);
+router.post("/2fa/enable", verifyToken, authLimiter, enable2FA);
 
 module.exports = router;

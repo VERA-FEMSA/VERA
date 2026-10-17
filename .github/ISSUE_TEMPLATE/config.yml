@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Reportar vulnerabilidad en privado
+    url: https://github.com/VERA-FEMSA/VERA/security/advisories
+    about: Usa este canal para fallos de seguridad y secretos expuestos.
+  - name: Historias de usuario del equipo
+    url: https://dev.azure.com/FEMSA-GRC-IRM/FEMSA-GRC-IRM
+    about: Consulta el backlog académico en Azure DevOps; no dupliques HU aquí.

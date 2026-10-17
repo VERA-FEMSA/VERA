@@ -5,19 +5,19 @@
 <p align="center">Un recorrido verificable desde la propuesta hasta el seguimiento.</p>
 
 <p align="center">
-  <img src="https://github.com/humbertofigb15/VERA/actions/workflows/quality.yml/badge.svg?branch=main" alt="Estado de calidad en main">
-  <img src="https://github.com/humbertofigb15/VERA/actions/workflows/e2e.yml/badge.svg?branch=main" alt="Estado E2E en main">
-  <img src="https://github.com/humbertofigb15/VERA/actions/workflows/codeql.yml/badge.svg?branch=main" alt="Estado de CodeQL en main">
+  <img src="https://github.com/VERA-FEMSA/VERA/actions/workflows/quality.yml/badge.svg?branch=main" alt="Estado de calidad en main">
+  <img src="https://github.com/VERA-FEMSA/VERA/actions/workflows/e2e.yml/badge.svg?branch=main" alt="Estado E2E en main">
+  <img src="https://github.com/VERA-FEMSA/VERA/actions/workflows/codeql.yml/badge.svg?branch=main" alt="Estado de CodeQL en main">
 </p>
 
 <p align="center">
-  <a href="https://github.com/humbertofigb15/VERA/wiki">Centro de conocimiento</a> ·
-  <a href="https://vera-salva-ventures.vercel.app">Abrir aplicación</a> ·
-  <a href="https://github.com/humbertofigb15/VERA/actions/workflows/classroom-quality.yml">Ver calidad completa</a> ·
+  <a href="https://github.com/VERA-FEMSA/VERA/wiki">Centro de conocimiento</a> ·
+  <a href="https://vera-figbo.vercel.app">Despliegue del equipo (acceso Vercel)</a> ·
+  <a href="https://github.com/VERA-FEMSA/VERA/actions/workflows/classroom-quality.yml">Ver calidad completa</a> ·
   <a href="docs/testing/professor-quick-run.md">Guía para docentes</a>
 </p>
 
-> **Estado del proyecto.** VERA es un prototipo académico con código funcional y pruebas automatizadas. La aplicación publicada exige una cuenta de VERA; el acceso universitario o a Azure DevOps no inicia sesión automáticamente. Un check verde acredita la verificación indicada, no la aceptación de todas las historias en producción. [Estado y límites por HU](docs/hu-acceptance-audit.md).
+> **Estado del proyecto.** VERA es un prototipo académico con código funcional y pruebas automatizadas. El despliegue del equipo muestra actualmente la pantalla de acceso de Vercel antes de la aplicación; exige permiso sobre ese proyecto para verificarlo. La [instancia independiente](https://vera-salva-ventures.vercel.app) es una demo distinta y puede usar otro commit o configuración. Un check verde acredita la verificación indicada, no la aceptación de todas las historias en producción. [Estado y límites por HU](docs/hu-acceptance-audit.md).
 
 ## VERA en un minuto
 
@@ -38,7 +38,7 @@ flowchart LR
     E --> F[Seguimiento y cierre]
 ```
 
-El flujo se apoya en autorización del servidor y registros de actividad. La interfaz orienta al usuario; no sustituye los permisos de la API. El [centro de conocimiento](https://github.com/humbertofigb15/VERA/wiki) explica el recorrido, las reglas y sus límites.
+El flujo se apoya en autorización del servidor y registros de actividad. La interfaz orienta al usuario; no sustituye los permisos de la API. El [centro de conocimiento](https://github.com/VERA-FEMSA/VERA/wiki) explica el recorrido, las reglas y sus límites.
 
 ## Explorar el producto
 
@@ -55,9 +55,9 @@ El asistente combina indicadores calculados por VERA con respuestas de Azure Ope
 
 ## Una revisión docente en tres pasos
 
-1. **Entender la solución:** recorre el [centro de conocimiento](https://github.com/humbertofigb15/VERA/wiki), que separa producto, arquitectura, permisos y estado de aceptación.
-2. **Ver resultados sin instalar nada:** abre [VERA — Calidad y pruebas completas](https://github.com/humbertofigb15/VERA/actions/workflows/classroom-quality.yml), elige una corrida y consulta *Summary*, logs y artefacto. La [guía de dos minutos](docs/testing/professor-quick-run.md) indica qué cubre y qué no.
-3. **Inspeccionar la ingeniería:** revisa [calidad](https://github.com/humbertofigb15/VERA/actions/workflows/quality.yml), [navegadores](https://github.com/humbertofigb15/VERA/actions/workflows/e2e.yml), [CodeQL](https://github.com/humbertofigb15/VERA/actions/workflows/codeql.yml), [plan de pruebas](docs/testing/test-plan.md) y [PR fusionados](https://github.com/humbertofigb15/VERA/pulls?q=is%3Apr+is%3Amerged). Cada corrida indica el commit y la duración observada.
+1. **Entender la solución:** recorre el [centro de conocimiento](https://github.com/VERA-FEMSA/VERA/wiki), que separa producto, arquitectura, permisos y estado de aceptación.
+2. **Ver resultados sin instalar nada:** abre [VERA — Calidad y pruebas completas](https://github.com/VERA-FEMSA/VERA/actions/workflows/classroom-quality.yml), elige una corrida y consulta *Summary*, logs y artefacto. La [guía de dos minutos](docs/testing/professor-quick-run.md) indica qué cubre y qué no.
+3. **Inspeccionar la ingeniería:** revisa [calidad](https://github.com/VERA-FEMSA/VERA/actions/workflows/quality.yml), [navegadores](https://github.com/VERA-FEMSA/VERA/actions/workflows/e2e.yml), [CodeQL](https://github.com/VERA-FEMSA/VERA/actions/workflows/codeql.yml), [plan de pruebas](docs/testing/test-plan.md) y [PR fusionados](https://github.com/VERA-FEMSA/VERA/pulls?q=is%3Apr+is%3Amerged). Cada corrida indica el commit y la duración observada.
 
 El workflow completo puede iniciarlo manualmente una persona con permiso de escritura; cualquier visitante puede leer las corridas públicas. La prueba de carga de 150/250 usuarios está **preparada, no acreditada como ejecutada**: requiere un staging autorizado. Los E2E usan fixtures de API y no sustituyen pruebas funcionales con cuentas reales y datos persistentes.
 
@@ -101,15 +101,15 @@ Vite indica la URL local de la interfaz. Los almacenes predeterminados son `memo
 
 | Verificación | Cómo se ejecuta | Qué demuestra |
 | --- | --- | --- |
-| Calidad de código | `npm run quality` y [workflow](https://github.com/humbertofigb15/VERA/actions/workflows/quality.yml) | Pruebas de backend con cobertura, sintaxis/lint, build y auditoría de dependencias del commit. |
-| Interfaz | [Workflow E2E](https://github.com/humbertofigb15/VERA/actions/workflows/e2e.yml) | Flujos automatizados en navegadores y perfiles móvil/tablet con fixtures. |
-| Seguridad estática | [CodeQL](https://github.com/humbertofigb15/VERA/actions/workflows/codeql.yml) | Análisis de JavaScript/TypeScript; no equivale a una auditoría de seguridad completa. |
-| IA | [Evaluación continua manual](https://github.com/humbertofigb15/VERA/actions/workflows/ai-evaluation.yml) | Regresiones sintéticas del contrato y fuentes permitidas, sin llamada ni costo de Azure. |
+| Calidad de código | `npm run quality` y [workflow](https://github.com/VERA-FEMSA/VERA/actions/workflows/quality.yml) | Pruebas de backend con cobertura, sintaxis/lint, build y auditoría de dependencias del commit. |
+| Interfaz | [Workflow E2E](https://github.com/VERA-FEMSA/VERA/actions/workflows/e2e.yml) | Flujos automatizados en navegadores y perfiles móvil/tablet con fixtures. |
+| Seguridad estática | [CodeQL](https://github.com/VERA-FEMSA/VERA/actions/workflows/codeql.yml) | Análisis de JavaScript/TypeScript; no equivale a una auditoría de seguridad completa. |
+| IA | [Evaluación continua manual](https://github.com/VERA-FEMSA/VERA/actions/workflows/ai-evaluation.yml) | Regresiones sintéticas del contrato y fuentes permitidas, sin llamada ni costo de Azure. |
 | Aceptación | [Matriz de HU](docs/hu-acceptance-audit.md) y [runbook](docs/testing/operations-runbook.md) | Distinguen lo implementado, lo probado y lo pendiente en el entorno real. |
 
 ## Documentación y contribución
 
-La **[Wiki de VERA](https://github.com/humbertofigb15/VERA/wiki)** es la puerta de entrada para lectura. Sus páginas se conservan también en [`docs/wiki/`](docs/wiki/Home.md) para revisión por PR y sincronización con la Wiki nativa. Los runbooks de `docs/` y el código son la fuente técnica versionada para detalles que cambian. Si una página contradice una ruta o una prueba del commit actual, se corrige con la discrepancia documentada.
+La **[Wiki de VERA](https://github.com/VERA-FEMSA/VERA/wiki)** es la puerta de entrada para lectura. Sus páginas se conservan también en [`docs/wiki/`](docs/wiki/Home.md) para revisión por PR y sincronización con la Wiki nativa. Los runbooks de `docs/` y el código son la fuente técnica versionada para detalles que cambian. Si una página contradice una ruta o una prueba del commit actual, se corrige con la discrepancia documentada.
 
 Para colaborar, parte de `main`, consulta [AGENTS.md](AGENTS.md) y la [guía para asistentes de código](docs/ai-development/README.md), mantén el PR enfocado y explica las verificaciones que **realmente** ejecutaste. Los resultados de CI y la revisión humana forman parte de la entrega.
 

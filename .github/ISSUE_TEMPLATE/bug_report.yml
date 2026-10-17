@@ -1,0 +1,42 @@
+name: Defecto reproducible
+description: Reporta un fallo técnico sin incluir datos sensibles.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Para vulnerabilidades o secretos, usa el reporte privado de Security en vez de un issue público."
+  - type: input
+    id: revision
+    attributes:
+      label: Commit o versión
+      description: Indica el SHA, rama o despliegue observado.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Entorno
+      description: Local, Preview o Production; navegador y dispositivo si aplica.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducir
+      description: Usa cuentas y datos sintéticos.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Resultado esperado y observado
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidencia y alcance
+      description: Puedes enlazar logs redactados o un PR; no adjuntes tokens, claves ni datos personales.
+    validations:
+      required: false
