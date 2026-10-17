@@ -97,8 +97,8 @@ La disponibilidad de 99.5% requiere una ventana de medición mensual; RTO de 4 h
 | TC-28 | RF-29: exportar filtro vacío | API/UI | Media | 5 | Bloqueado: falta función de exportación |
 | TC-29 | RF-30/RNF-03: funciones distintas por rol | Unit/API/E2E | Alta | 2 | Parcial: listado/edición y denegación por rol cubiertos en API; falta matriz completa de módulos |
 | TC-30 | RF-33: cerrar auditoría y evitar edición posterior | API/UI | Alta | 3 | Parcial: flujo API y rechazo de transiciones/edición posteriores; reflejo visual queda en PR-5 |
-| TC-31 | RNF-01: 150 usuarios concurrentes | Carga | Alta | 7 | Implementación preparada en k6; no ejecutada: requiere staging HTTPS y JWT de cuenta de carga activa; límite global actual de 100 solicitudes/IP/15 min puede rechazar la corrida |
-| TC-32 | RNF-01: 250 o más usuarios y umbral de respuesta | Carga | Alta | 7 | Implementación preparada en k6 con 250 VUs, error <1% y p95 <1500 ms; no ejecutada por ausencia de ambiente/token; revisar el límite global 100/IP antes de interpretar capacidad |
+| TC-31 | RNF-01: 150 usuarios concurrentes | Carga | Alta | 7 | Implementación preparada en k6; no ejecutada: requiere staging HTTPS y JWT de cuenta de carga activa; límite global actual de 600 solicitudes/IP/15 min puede rechazar la corrida |
+| TC-32 | RNF-01: 250 o más usuarios y umbral de respuesta | Carga | Alta | 7 | Implementación preparada en k6 con 250 VUs, error <1% y p95 <1500 ms; no ejecutada por ausencia de ambiente/token; revisar el límite global 600/IP antes de interpretar capacidad |
 | TC-33 | RNF-06: navegadores compatibles | E2E | Media | 6 | Parcial: Playwright cubre Chromium y Firefox; CI añade Chrome y Edge. La ejecución local de Firefox se limita por el runner Windows; validar el check Linux del PR antes de declarar la matriz completa |
 | TC-34 | RNF-06: navegador no compatible | E2E/manual | Media | 6 | Pendiente; acordar comportamiento soportado y mensaje esperado |
 | TC-35 | RNF-07: escritorio, tablet, orientación | UI/E2E/manual | Media | 6 | Parcial: flujo del panel verificado en Chromium escritorio y viewport tablet; orientación y hardware físico quedan manuales |
