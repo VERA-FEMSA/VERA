@@ -30,6 +30,6 @@ La interfaz tiene rutas explícitas en [`frontend/src/App.jsx`](https://github.c
 
 ## Cómo explorarla
 
-- [Abrir la aplicación del equipo](https://vera-figbo.vercel.app). Se necesita una cuenta activa de VERA; el login de Azure DevOps no se comparte automáticamente.
+- [Abrir el despliegue del equipo](https://vera-figbo.vercel.app). Actualmente aparece primero el acceso de Vercel; para verificar la aplicación se necesitan permisos de ese proyecto y una cuenta activa de VERA. La sesión de Azure DevOps no sustituye ninguno de ellos.
 - Para una evaluación sin cuenta, abre los [resultados de GitHub Actions](https://github.com/VERA-FEMSA/VERA/actions) y el [plan de pruebas](https://github.com/VERA-FEMSA/VERA/blob/main/docs/testing/test-plan.md).
 - Para ver la implementación de una historia concreta, sigue [Módulos y HU](https://github.com/VERA-FEMSA/VERA/wiki/Modulos-y-HU).

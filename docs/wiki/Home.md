@@ -34,7 +34,7 @@ flowchart LR
 
 ## Accesos directos
 
-- [Repositorio y README](https://github.com/VERA-FEMSA/VERA) · [Aplicación publicada del equipo](https://vera-figbo.vercel.app) — requiere cuenta de VERA.
+- [Repositorio y README](https://github.com/VERA-FEMSA/VERA) · [Despliegue del equipo](https://vera-figbo.vercel.app) — requiere acceso a Vercel y cuenta de VERA.
 - [Workflow integral para docentes](https://github.com/VERA-FEMSA/VERA/actions/workflows/classroom-quality.yml) · [PR fusionados](https://github.com/VERA-FEMSA/VERA/pulls?q=is%3Apr+is%3Amerged).
 - [Plan de pruebas](https://github.com/VERA-FEMSA/VERA/blob/main/docs/testing/test-plan.md) · [Matriz de aceptación](https://github.com/VERA-FEMSA/VERA/blob/main/docs/hu-acceptance-audit.md).
 

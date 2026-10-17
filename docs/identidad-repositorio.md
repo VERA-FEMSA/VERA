@@ -8,7 +8,7 @@ Esta ficha reúne el texto y la imagen necesarios para completar la tarjeta **Ab
 
 > VERA organiza auditorías, riesgos, controles y evidencias para dar seguimiento a decisiones trazables.
 
-**Homepage del repositorio del equipo:** `https://vera-figbo.vercel.app`. GitHub registró un despliegue de Production del commit `720cef05d2e1c5b16a5552837dbc0c5c3043381e` desde este repositorio y la URL pública respondió HTTP 200 el 17 de octubre de 2026. El README y la Wiki enlazan ese entorno. La instancia `https://vera-salva-ventures.vercel.app` permanece documentada como despliegue independiente; no se presume que comparta datos, configuración o versión con el entorno del equipo.
+**Homepage pública del repositorio:** [Wiki del equipo](https://github.com/VERA-FEMSA/VERA/wiki). GitHub registró un despliegue de Production del commit `720cef05d2e1c5b16a5552837dbc0c5c3043381e` en `https://vera-figbo.vercel.app`, pero el 17 de octubre de 2026 la portada y `/api/assistant/status` devolvieron la pantalla **Login – Vercel** con HTTP 200. Ese código confirma que respondió la barrera de acceso, no la aplicación ni la API. Hace falta sesión autorizada de Vercel y una prueba funcional para evaluar este entorno. La instancia `https://vera-salva-ventures.vercel.app` mostró la portada de VERA y HTTP 401 JSON sin sesión en `/api/assistant/status`; es un despliegue independiente y no se presume que comparta datos, configuración o SHA con el del equipo.
 
 **Topics configurados:** `academic-project`, `grc`, `audit-management`, `risk-management`, `evidence-management`, `react`, `supabase`, `azure-openai`. Son etiquetas descriptivas, no afirmaciones de aceptación funcional.
 

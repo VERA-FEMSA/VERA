@@ -12,12 +12,12 @@
 
 <p align="center">
   <a href="https://github.com/VERA-FEMSA/VERA/wiki">Centro de conocimiento</a> ·
-  <a href="https://vera-figbo.vercel.app">Abrir aplicación</a> ·
+  <a href="https://vera-figbo.vercel.app">Despliegue del equipo (acceso Vercel)</a> ·
   <a href="https://github.com/VERA-FEMSA/VERA/actions/workflows/classroom-quality.yml">Ver calidad completa</a> ·
   <a href="docs/testing/professor-quick-run.md">Guía para docentes</a>
 </p>
 
-> **Estado del proyecto.** VERA es un prototipo académico con código funcional y pruebas automatizadas. La aplicación publicada exige una cuenta de VERA; el acceso universitario o a Azure DevOps no inicia sesión automáticamente. Un check verde acredita la verificación indicada, no la aceptación de todas las historias en producción. [Estado y límites por HU](docs/hu-acceptance-audit.md).
+> **Estado del proyecto.** VERA es un prototipo académico con código funcional y pruebas automatizadas. El despliegue del equipo muestra actualmente la pantalla de acceso de Vercel antes de la aplicación; exige permiso sobre ese proyecto para verificarlo. La [instancia independiente](https://vera-salva-ventures.vercel.app) es una demo distinta y puede usar otro commit o configuración. Un check verde acredita la verificación indicada, no la aceptación de todas las historias en producción. [Estado y límites por HU](docs/hu-acceptance-audit.md).
 
 ## VERA en un minuto
 
