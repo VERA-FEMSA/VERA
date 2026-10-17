@@ -1,0 +1,63 @@
+name: Portal público de calidad
+
+on:
+  workflow_run:
+    workflows:
+      - Software quality
+      - Browser and accessibility tests
+      - CodeQL
+      - VERA — Calidad y pruebas completas
+      - AI continuous evaluation
+    types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/quality-portal.yml
+      - scripts/build-quality-portal.py
+      - frontend/public/vera-logo.svg
+  schedule:
+    - cron: "15 15 * * 1"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: vera-quality-portal
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
+    name: Publicar evidencia docente
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Generate read-only quality portal
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/build-quality-portal.py --output-dir "$RUNNER_TEMP/vera-quality-portal"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Upload static portal
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: ${{ runner.temp }}/vera-quality-portal
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
