@@ -2,12 +2,24 @@
 # Requiere PowerShell 7. No guarda credenciales, tokens, preguntas ni respuestas.
 param(
   [switch]$PublicOnly,
-  [string]$Username
+  [string]$Username,
+  [string]$AuditId,
+  [string]$EvidenceId,
+  [switch]$ExpectEvidenceDenied
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $baseUrl = 'https://vera-salva-ventures.vercel.app'
+if ($ExpectEvidenceDenied -and [string]::IsNullOrWhiteSpace($EvidenceId)) {
+  throw '-ExpectEvidenceDenied requiere -EvidenceId.'
+}
+if ($AuditId -and $AuditId -notmatch '^AUD-[A-Za-z0-9-]{1,80}$') {
+  throw 'El identificador de auditoria no es valido.'
+}
+if ($EvidenceId -and $EvidenceId -notmatch '^EVD-[A-Za-z0-9-]{1,80}$') {
+  throw 'El identificador de evidencia no es valido.'
+}
 
 function Write-Result {
   param([string]$State, [string]$Step, [int]$DurationMs = 0, [string]$Detail = '')
@@ -136,6 +148,40 @@ try {
     Write-Result PASS 'Dato y fuente trazable' 0 'Nivel, puntaje y enlace interno coinciden.'
   } else {
     Write-Result SKIP 'Dato y fuente trazable' 0 'La cuenta no tiene riesgos visibles; se valido el flujo general.'
+  }
+  if ($AuditId) {
+    $dossier = Invoke-VeraRequest -Method POST -Path "/api/assistant/dossier/$AuditId" -Body @{} -Token $token
+    if ($dossier.Status -ne 200 -or $dossier.Data.audit.id -ne $AuditId -or
+        $null -eq $dossier.Data.sections -or $dossier.Data.audit.path -notmatch '^/[^/]') {
+      throw "El briefing de auditoria no devolvio el expediente y secciones esperados (HTTP $($dossier.Status))."
+    }
+    Write-Result PASS 'Briefing de auditoria autorizada' $dossier.DurationMs 'Fuente y secciones presentes.'
+  } else {
+    Write-Result SKIP 'Briefing de auditoria' 0 'Proporciona -AuditId para verificar un expediente autorizado.'
+  }
+  if ($EvidenceId) {
+    $evidenceResult = Invoke-VeraRequest -Method POST -Path "/api/evidence/$EvidenceId/ask" -Body @{
+      question = 'Resume este documento.'
+    } -Token $token
+    if ($ExpectEvidenceDenied) {
+      if ($evidenceResult.Status -ne 404) {
+        throw "Una cuenta sin permiso obtuvo HTTP $($evidenceResult.Status) en lugar de 404."
+      }
+      Write-Result PASS 'Evidencia ajena denegada' $evidenceResult.DurationMs 'HTTP 404; sin mostrar contenido.'
+    } else {
+      $cited = @($evidenceResult.Data.citations) | Where-Object {
+        $null -ne $_ -and $_.evidenceId -eq $EvidenceId -and
+        -not [string]::IsNullOrWhiteSpace([string]$_.excerpt) -and
+        $_.path -match '^/[^/]'
+      }
+      if ($evidenceResult.Status -ne 200 -or $evidenceResult.Data.mode -ne 'generated' -or
+          [string]::IsNullOrWhiteSpace([string]$evidenceResult.Data.answer) -or $cited.Count -eq 0) {
+        throw "La consulta de evidencia no devolvio una respuesta con fragmento autorizado (HTTP $($evidenceResult.Status))."
+      }
+      Write-Result PASS 'Evidencia privada citada' $evidenceResult.DurationMs 'Respuesta y fragmento autorizados.'
+    }
+  } else {
+    Write-Result SKIP 'Consulta de evidencia privada' 0 'Proporciona -EvidenceId para verificarla.'
   }
   Write-Result PASS 'Aceptacion puntual terminada' 0 'No se guardaron credenciales ni respuestas.'
 } catch {
