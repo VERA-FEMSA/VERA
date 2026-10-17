@@ -4,6 +4,12 @@
 
 El repositorio comparte contexto y reglas de trabajo, **no entrena ni modifica el modelo** de la cuenta personal de cada integrante. Codex puede tomar `AGENTS.md` como instrucciones del proyecto; `CLAUDE.md` importa ese mismo archivo para Claude Code; `.github/copilot-instructions.md` da la entrada a Copilot. Un ChatGPT o Claude usado solo en la web necesita que se le adjunte el repositorio o los archivos pertinentes: tenerlos en GitHub no garantiza que los lea. Las instrucciones reducen errores, pero la revisión humana y las verificaciones automatizadas siguen siendo necesarias.
 
+## Revisión automática sin consumo de IA
+
+GitHub Actions, CodeQL, Dependabot y el control `PR documentation` son verificaciones deterministas: revisan archivos, dependencias, reglas y evidencia del PR sin enviar el código a un LLM. Usan tiempo de ejecución de GitHub Actions, pero no tokens de Azure OpenAI ni créditos de Copilot. La plantilla de PR guía a cualquier asistente que use un integrante; no asigna autonomía ni privilegios a un bot.
+
+Este cambio no activa revisión automática de código con GitHub Copilot: GitHub la factura mediante créditos de IA y minutos de Actions. Si el equipo decide usarla más adelante, primero debe comprobar presupuesto, alcance y tratamiento del código. Ningún bot sustituye la aprobación de otro integrante exigida para `main`.
+
 | Archivo | Propósito | Mantenimiento |
 | --- | --- | --- |
 | [`AGENTS.md`](../../AGENTS.md) | Reglas compartidas, invariantes y criterios de revisión | Fuente principal; mantener breve y verificable |
