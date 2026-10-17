@@ -6,13 +6,13 @@ Esta guía complementa las HU de Azure DevOps. GitHub conserva código, cambios 
 
 1. Partir de `main` y abrir un PR por resultado revisable. Enlazar la HU cuando exista.
 2. Completar la plantilla de PR con decisiones, pruebas realmente ejecutadas, entorno, commit, duración y riesgos.
-3. Esperar los checks obligatorios: `Quality gates (Node.js 22)`, `UI E2E (Chrome, Edge, Firefox, mobile/tablet)` y `Analyze JavaScript and TypeScript`.
-4. Obtener una aprobación ajena al autor y resolver conversaciones. Si cambia el PR, la aprobación anterior queda obsoleta.
+3. Esperar los checks obligatorios: `Quality gates (Node.js 22)`, `UI E2E (Chrome, Edge, Firefox, mobile/tablet)`, `Analyze JavaScript and TypeScript` y `Reviewable PR description`.
+4. Resolver conversaciones y revisar personalmente el diff, el alcance de los datos y la evidencia. El autor puede fusionar su propio PR cuando pasan los checks. Solicita una segunda revisión si el cambio afecta datos, permisos, migraciones o despliegues.
 5. Integrar y observar el despliegue correspondiente. GitHub elimina automáticamente la rama integrada; las ramas históricas se revisan antes de borrarlas.
 
-El [ruleset de main](https://github.com/VERA-FEMSA/VERA/rules/25312937) exige estos pasos, impide force push y protege la rama contra borrado. Ningún archivo está reservado a una persona o equipo.
+El [ruleset de main](https://github.com/VERA-GRC-IRM/VERA/rules/25312937) exige estos pasos, impide force push y protege la rama contra borrado. Ningún archivo está reservado a una persona o equipo.
 
-La plantilla `.github/pull_request_template.md` aparece al abrir un PR en GitHub. El workflow `PR documentation` comprueba sus cuatro secciones y una fila de verificación en PR humanos listos para revisión; omite borradores y PR de bots. Solo lee metadatos del PR y el código de la rama base: no ejecuta archivos propuestos ni llama a un modelo. Al integrarse este workflow se observará en PR futuros; no se añade a los checks obligatorios del ruleset hasta comprobar su operación en `main`.
+La plantilla `.github/pull_request_template.md` aparece al abrir un PR en GitHub. El workflow `PR documentation` comprueba sus cuatro secciones y una fila de verificación en PR humanos listos para revisión; omite borradores y PR de bots. Solo lee metadatos del PR y el código de la rama base: no ejecuta archivos propuestos ni llama a un modelo. Se verificó en PR del equipo y su check `Reviewable PR description` forma parte del ruleset.
 
 ## Calidad y seguridad
 

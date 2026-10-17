@@ -12,7 +12,7 @@ Esta es una evaluación **previa a producción y determinista**. Sigue la idea d
 2. Elige `main` y pulsa **Run workflow**. También puedes ejecutar desde una terminal autenticada:
 
    ```powershell
-   gh workflow run ai-evaluation.yml --repo VERA-FEMSA/VERA --ref main
+   gh workflow run ai-evaluation.yml --repo VERA-GRC-IRM/VERA --ref main
    ```
 
 3. Abre la corrida. El job ejecuta todas las pruebas del backend y luego la suite sintética. El log muestra `PASS` o `FAIL` por escenario y duración. En **Summary** aparece la tabla de evaluación; en **Artifacts** se descargan `ai-evaluation.json` y `ai-evaluation.md`, retenidos 30 días.
@@ -20,8 +20,8 @@ Esta es una evaluación **previa a producción y determinista**. Sigue la idea d
 Para localizar la corrida desde terminal:
 
 ```powershell
-gh run list --repo VERA-FEMSA/VERA --workflow ai-evaluation.yml --limit 5
-gh run view RUN_ID --repo VERA-FEMSA/VERA --log
+gh run list --repo VERA-GRC-IRM/VERA --workflow ai-evaluation.yml --limit 5
+gh run view RUN_ID --repo VERA-GRC-IRM/VERA --log
 ```
 
 El job falla si falla cualquier prueba backend o si el resultado observado de un escenario no coincide con su expectativa. Los artefactos contienen únicamente IDs sintéticos, estado, verificaciones booleanas, duración del arnés, SHA y hora UTC; no incluyen preguntas, respuestas, claves ni contexto. Si la suite no llega a ejecutarse, el artefacto puede faltar y debe revisarse el paso que falló.

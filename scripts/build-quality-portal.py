@@ -12,7 +12,7 @@ from urllib.request import Request, urlopen
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REPOSITORY = os.environ.get("GITHUB_REPOSITORY", "VERA-FEMSA/VERA")
+REPOSITORY = os.environ.get("GITHUB_REPOSITORY", "VERA-GRC-IRM/VERA")
 API = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
 WORKFLOWS = (

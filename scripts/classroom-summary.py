@@ -9,7 +9,7 @@ QUALITY_REPORT = ROOT / "quality-report" / "quality-report.json"
 E2E_REPORT = ROOT / "frontend" / "playwright-report" / "results.json"
 PLAN = ROOT / "docs" / "testing" / "test-plan.md"
 SUMMARY_FILE = ROOT / "quality-report" / "classroom-summary.md"
-REPO_URL = f"https://github.com/{os.getenv('GITHUB_REPOSITORY', 'VERA-FEMSA/VERA')}"
+REPO_URL = f"https://github.com/{os.getenv('GITHUB_REPOSITORY', 'VERA-GRC-IRM/VERA')}"
 
 
 def load_json(path):
