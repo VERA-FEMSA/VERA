@@ -8,3 +8,6 @@ playwright-report/
 quality-report/
 supabase/.temp/
 
+.vercel/
+.env*
+!.env.example

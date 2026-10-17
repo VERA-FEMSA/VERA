@@ -27,7 +27,7 @@ El resumen del workflow documenta resultado, hash, fecha/hora UTC, duración, n�
 
 ### Requisito previo y riesgo conocido
 
-La aplicación Express aplica un límite global de 100 solicitudes por 15 minutos por IP (`backend/server.js`). Dado que los VUs en el runner salen por una misma IP, es probable que la prueba reciba respuestas 429 y falle sus umbrales al superar 100 peticiones. La prueba no cambia ni salta ese límite. Antes de interpretar el resultado como capacidad de la plataforma, el responsable debe decidir y documentar la política de rate limiting para staging y producción y confirmar que el ambiente representa la configuración objetivo. No eleves el límite ni hagas esta prueba contra producción para obtener un resultado verde.
+La aplicación Express aplica actualmente un límite global de **600 solicitudes por 15 minutos por IP** (`backend/server.js`); el inicio de sesión tiene un límite adicional de 30 y el asistente otro de 10 preguntas por usuario. Dado que los VUs en el runner salen por una misma IP, es probable que la prueba reciba respuestas 429 y falle sus umbrales al superar 600 peticiones. El límite se mantiene por instancia, por lo que una corrida tampoco demostraría un límite distribuido. La prueba no cambia ni salta estos controles. Antes de interpretar el resultado como capacidad de la plataforma, el responsable debe decidir y documentar la política de rate limiting para staging y producción y confirmar que el ambiente representa la configuración objetivo. No eleves el límite ni hagas esta prueba contra producción para obtener un resultado verde.
 
 Campos de análisis para cada corrida:
 
