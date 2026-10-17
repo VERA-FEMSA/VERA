@@ -32,4 +32,4 @@ Para una entrega publicable, conserva un registro con commit, fecha, entorno, ca
 
 ## Documentación
 
-El README es la entrada para visitantes. La Wiki explica producto y operación. Su fuente revisable vive en `docs/wiki/`; al integrar cambios allí, sincroniza la Wiki pública y comprueba los enlaces. Las evidencias históricas permanecen identificadas por fecha y commit para evitar que se lean como estado actual.
+El README es la entrada para visitantes. La Wiki explica producto y operación. Su fuente revisable vive en `docs/wiki/`; el workflow `Publicar Wiki desde main` copia esas páginas a la Wiki nativa cuando cambian en `main`. Comprueba la corrida y los enlaces después del merge. No edites la Wiki nativa como fuente principal: la siguiente sincronización puede sobrescribir esos cambios. Las evidencias históricas permanecen identificadas por fecha y commit para evitar que se lean como estado actual.

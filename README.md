@@ -110,7 +110,7 @@ Vite indica la URL local de la interfaz. Los almacenes predeterminados son `memo
 
 ## Documentación y contribución
 
-La **[Wiki de VERA](https://github.com/VERA-GRC-IRM/VERA/wiki)** es la puerta de entrada para lectura. Sus páginas se conservan también en [`docs/wiki/`](docs/wiki/Home.md) para revisión por PR y sincronización con la Wiki nativa. Los runbooks de `docs/` y el código son la fuente técnica versionada para detalles que cambian. Si una página contradice una ruta o una prueba del commit actual, se corrige con la discrepancia documentada.
+La **[Wiki de VERA](https://github.com/VERA-GRC-IRM/VERA/wiki)** es la puerta de entrada para lectura. Sus páginas se conservan en [`docs/wiki/`](docs/wiki/Home.md) para revisión por PR y se publican desde `main` mediante GitHub Actions. Los runbooks de `docs/` y el código son la fuente técnica versionada para detalles que cambian. Si una página contradice una ruta o una prueba del commit actual, se corrige con la discrepancia documentada.
 
 Para colaborar, parte de `main`, consulta [AGENTS.md](AGENTS.md) y la [guía para asistentes de código](docs/ai-development/README.md), mantén el PR enfocado y explica las verificaciones que **realmente** ejecutaste. Los resultados de CI y la revisión humana forman parte de la entrega.
 
