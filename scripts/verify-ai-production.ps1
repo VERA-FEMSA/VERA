@@ -98,6 +98,17 @@ try {
   $role = [string]$session.Data.user.role
   Write-Result PASS 'Sesion autenticada' $session.DurationMs "rol=$role"
 
+  if ($ExpectEvidenceDenied) {
+    $denied = Invoke-VeraRequest -Method POST -Path "/api/evidence/$EvidenceId/ask" -Body @{
+      question = 'Resume este documento.'
+    } -Token $token
+    if ($denied.Status -ne 404) {
+      throw "Una cuenta sin permiso obtuvo HTTP $($denied.Status) en lugar de 404."
+    }
+    Write-Result PASS 'Evidencia ajena denegada' $denied.DurationMs 'HTTP 404; sin mostrar contenido ni llamar al modelo.'
+    exit 0
+  }
+
   $status = Invoke-VeraRequest -Method GET -Path '/api/assistant/status' -Body $null -Token $token
   if ($status.Status -ne 200 -or $status.Data.available -ne $true) {
     throw "La IA no esta disponible para la cuenta (HTTP $($status.Status))."
@@ -163,23 +174,16 @@ try {
     $evidenceResult = Invoke-VeraRequest -Method POST -Path "/api/evidence/$EvidenceId/ask" -Body @{
       question = 'Resume este documento.'
     } -Token $token
-    if ($ExpectEvidenceDenied) {
-      if ($evidenceResult.Status -ne 404) {
-        throw "Una cuenta sin permiso obtuvo HTTP $($evidenceResult.Status) en lugar de 404."
-      }
-      Write-Result PASS 'Evidencia ajena denegada' $evidenceResult.DurationMs 'HTTP 404; sin mostrar contenido.'
-    } else {
-      $cited = @($evidenceResult.Data.citations) | Where-Object {
-        $null -ne $_ -and $_.evidenceId -eq $EvidenceId -and
-        -not [string]::IsNullOrWhiteSpace([string]$_.excerpt) -and
-        $_.path -match '^/[^/]'
-      }
-      if ($evidenceResult.Status -ne 200 -or $evidenceResult.Data.mode -ne 'generated' -or
-          [string]::IsNullOrWhiteSpace([string]$evidenceResult.Data.answer) -or $cited.Count -eq 0) {
-        throw "La consulta de evidencia no devolvio una respuesta con fragmento autorizado (HTTP $($evidenceResult.Status))."
-      }
-      Write-Result PASS 'Evidencia privada citada' $evidenceResult.DurationMs 'Respuesta y fragmento autorizados.'
+    $cited = @($evidenceResult.Data.citations) | Where-Object {
+      $null -ne $_ -and $_.evidenceId -eq $EvidenceId -and
+      -not [string]::IsNullOrWhiteSpace([string]$_.excerpt) -and
+      $_.path -match '^/[^/]'
     }
+    if ($evidenceResult.Status -ne 200 -or $evidenceResult.Data.mode -ne 'generated' -or
+        [string]::IsNullOrWhiteSpace([string]$evidenceResult.Data.answer) -or $cited.Count -eq 0) {
+      throw "La consulta de evidencia no devolvio una respuesta con fragmento autorizado (HTTP $($evidenceResult.Status))."
+    }
+    Write-Result PASS 'Evidencia privada citada' $evidenceResult.DurationMs 'Respuesta y fragmento autorizados.'
   } else {
     Write-Result SKIP 'Consulta de evidencia privada' 0 'Proporciona -EvidenceId para verificarla.'
   }

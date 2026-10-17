@@ -32,7 +32,7 @@ El briefing puede hacer una consulta adicional a Azure y la evidencia otra; no l
 pwsh -NoProfile -File .\scripts\verify-ai-production.ps1 -EvidenceId 'EVD-ID-DE-PRUEBA' -ExpectEvidenceDenied
 ```
 
-La segunda ejecución exige HTTP 404 sin mostrar contenido. `-ExpectEvidenceDenied` no acepta una cuenta autorizada como sustituto de la cuenta ajena. No pegues IDs reales ni nombres de expedientes privados en capturas públicas. Si no hay dos cuentas de prueba, registra esa verificación como pendiente, nunca como aprobada.
+La segunda ejecución exige HTTP 404 sin mostrar contenido y termina sin llamar al modelo. `-ExpectEvidenceDenied` no acepta una cuenta autorizada como sustituto de la cuenta ajena. No pegues IDs reales ni nombres de expedientes privados en capturas públicas. Si no hay dos cuentas de prueba, registra esa verificación como pendiente, nunca como aprobada.
 
 ## Qué comprueba
 
