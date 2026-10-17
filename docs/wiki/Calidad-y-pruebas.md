@@ -1,5 +1,7 @@
 # Calidad y pruebas
 
+Para una lectura ejecutiva con cifras, commit y límites fechados abre [Estado de calidad](https://github.com/VERA-FEMSA/VERA/wiki/Estado-de-calidad).
+
 VERA deja resultados accesibles desde GitHub Actions. Una persona sin entorno local puede ver el commit, el estado, los pasos, los logs y, cuando existen, los artefactos de cada corrida. **Lee siempre la corrida concreta**: un enlace a un workflow no garantiza que su última ejecución haya pasado.
 
 ## Acceso rápido para docentes

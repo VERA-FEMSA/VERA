@@ -16,6 +16,7 @@
 
 **Evidencia y operación**
 
+- [Estado de calidad](https://github.com/VERA-FEMSA/VERA/wiki/Estado-de-calidad)
 - [Calidad y pruebas](https://github.com/VERA-FEMSA/VERA/wiki/Calidad-y-pruebas)
 - [Operación y despliegue](https://github.com/VERA-FEMSA/VERA/wiki/Operacion-y-despliegue)
 - [Biblioteca de runbooks](https://github.com/VERA-FEMSA/VERA/wiki/Biblioteca-de-runbooks)

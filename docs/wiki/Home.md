@@ -11,7 +11,7 @@
 | Si quieres... | Empieza aquí | Después |
 | --- | --- | --- |
 | Entender la solución en 5 minutos | [Producto y flujos](https://github.com/VERA-FEMSA/VERA/wiki/Producto-y-flujos) | [Módulos y HU](https://github.com/VERA-FEMSA/VERA/wiki/Modulos-y-HU) |
-| Evaluar al equipo sin instalar software | [Calidad y pruebas](https://github.com/VERA-FEMSA/VERA/wiki/Calidad-y-pruebas) | [Guía rápida docente](https://github.com/VERA-FEMSA/VERA/blob/main/docs/testing/professor-quick-run.md) |
+| Evaluar al equipo sin instalar software | [Estado de calidad](https://github.com/VERA-FEMSA/VERA/wiki/Estado-de-calidad) | [Calidad y pruebas](https://github.com/VERA-FEMSA/VERA/wiki/Calidad-y-pruebas) |
 | Comprender cómo funciona | [Arquitectura](https://github.com/VERA-FEMSA/VERA/wiki/Arquitectura) | [Datos y Supabase](https://github.com/VERA-FEMSA/VERA/wiki/Datos-y-Supabase) |
 | Revisar quién puede hacer qué | [Acceso y permisos](https://github.com/VERA-FEMSA/VERA/wiki/Acceso-y-permisos) | [Política vigente en código](https://github.com/VERA-FEMSA/VERA/blob/main/backend/config/roles.js) |
 | Conocer la IA | [IA de VERA](https://github.com/VERA-FEMSA/VERA/wiki/IA-de-VERA) | [Evaluación continua](https://github.com/VERA-FEMSA/VERA/blob/main/docs/ai-continuous-evaluation.md) |

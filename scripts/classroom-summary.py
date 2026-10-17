@@ -62,7 +62,7 @@ rows = [
     "|---|---:|---:|---:|---|",
     f"| Backend y gates de calidad | {result_label(os.getenv('QUALITY_RESULT'))} | {quality_tests.get('passed', 'n/d')}/{quality_tests.get('total', 'n/d')} pruebas backend | {quality_duration if quality_duration is not None else 'n/d'} s | {vulnerabilities} vulnerabilidades altas/críticas |",
     f"| Interfaz E2E | {result_label(os.getenv('E2E_RESULT'))} | {e2e_stats.get('expected', 'n/d')} aprobadas; {e2e_stats.get('unexpected', 'n/d')} fallidas; {e2e_stats.get('flaky', 'n/d')} inestables; {e2e_stats.get('skipped', 'n/d')} omitidas | {round(e2e_duration / 1000, 2) if isinstance(e2e_duration, (int, float)) else 'n/d'} s | Chromium, Chrome, Edge, Firefox, móvil/tablet |",
-    f"| CodeQL | {codeql_status} | JavaScript/TypeScript | {os.getenv('CODEQL_DURATION_SECONDS', 'n/d')} s | Consulta de seguridad estática |",
+    f"| Análisis CodeQL | {codeql_status} | JavaScript/TypeScript | {os.getenv('CODEQL_DURATION_SECONDS', 'n/d')} s | Duración del análisis; puede haber alertas abiertas |",
     "",
     "## Alcance completo y casos pendientes",
     "",
