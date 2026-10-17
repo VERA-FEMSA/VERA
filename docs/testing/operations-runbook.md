@@ -48,12 +48,12 @@ Campos de análisis para cada corrida:
 | TC-63 crecimiento 300% | Baseline y carga de datos sintéticos, configuración, latencias/errores y recursos antes/después. | No ejecutado |
 | TC-64 escala sin interrupción | Deployment/escala documentada, réplicas, errores y medición de interrupción durante cambio. | No ejecutado |
 | TC-65 privacidad | Inventario de datos, finalidad/retención, jurisdicción aplicable, revisión del responsable y aprobación fechada. | No ejecutado |
-| TC-66 retención de historia/evidencia | Política vigente, storage persistente, fechas de creación/borrado y validación de consulta. | Bloqueado: prototipo actual mantiene datos en memoria |
+| TC-66 retención de historia/evidencia | Política vigente, storage persistente, fechas de creación/borrado y validación de consulta. | Bloqueado: el código contempla Supabase, pero falta evidencia de la política y su ejecución en el entorno real. |
 | TC-67 panel <=2 s | Navegador, red, viewport, dataset, p50/p95, repetición y artefacto de medición. | Parcial: PR-7 mide API; falta página completa con red/hardware representativos |
 | TC-68 reportes de 100 páginas <=10 s | Reporte/dataset/versiones, duración end-to-end, memoria y evidencia descargada. | Bloqueado: exportación/reportes no implementados |
 | TC-73 aviso de mantenimiento 48 h | Cambio planificado, hora de aviso, canales, audiencia y entrega comprobada. | No ejecutado |
 | TC-74 backup diario | Retención de 30 días de ejecuciones, resultado/alerta, almacenamiento y dueño de guardia. | Bloqueado: no se encontró configuración de backup |
-| TC-75 volumen alto de evidencia | Cantidad/tamaño de archivos, concurrencia, storage y p95 de carga/descarga. | Bloqueado: solo referencias/metadatos; no hay carga binaria |
+| TC-75 volumen alto de evidencia | Cantidad/tamaño de archivos, concurrencia, storage y p95 de carga/descarga. | Parcial: existe carga binaria individual con límite de 3 MB; falta probar volumen y concurrencia en almacenamiento persistente de staging. |
 | TC-76 integración externa | Contrato/fuente, ambiente sandbox, latencia/errores, reintentos y reconciliación. | No ejecutado: fuente externa no definida |
 | TC-77 privacidad/consentimiento | Texto aprobado, versión, evento almacenado, timestamp y prueba de retiro/consulta. | No ejecutado: requisito legal y persistencia por definir |
 

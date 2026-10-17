@@ -27,6 +27,8 @@ El workflow integral es manual y semanal. Solo quien tiene escritura puede pulsa
 
 El [plan de pruebas](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/test-plan.md) incluye casos funcionales, seguridad, compatibilidad y concurrencia. Algunos dependen de una función implementada, dispositivo, datos o entorno real. El script de 150 usuarios simultáneos y 250 o más **no equivale a una corrida ejecutada**. Hay que registrar VU efectivos, p95, tasa de error, fecha, SHA y configuración de staging.
 
+La [ruta de calidad y criterios de salida](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/quality-readiness.md) ordena los pendientes por riesgo y especifica qué evidencia hace falta antes de afirmar preparación de producción. Una cobertura elevada o un check verde no cierran por sí solos las verificaciones del entorno real.
+
 Las pruebas E2E con fixtures comprueban la interfaz y el contrato simulado; no acreditan persistencia Supabase ni permisos con cuentas reales desplegadas. La [matriz de aceptación](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/hu-acceptance-audit.md) enumera verificaciones pendientes por HU. Si una función se corrige, se repiten los casos relacionados y se registra el resultado antes de darla por aceptada.
 
 ## Ejecutar localmente
