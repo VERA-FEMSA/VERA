@@ -8,6 +8,8 @@ El workflow [`quality-portal.yml`](../../.github/workflows/quality-portal.yml) p
 
 El portal solo llama **vigente** a una verificación terminada cuyo SHA coincide con el `main` consultado. Si falta una corrida, está en curso o corresponde a otro commit, muestra ese límite. Si la API no permite identificar `main`, el generador falla y no publica un estado ambiguo. Un workflow verde puede mantener alertas abiertas en Security.
 
+Los tiempos de la tabla son aproximaciones calculadas con `run_started_at` y `updated_at` de la API. Para una duración exacta de un job o de una suite, abre la corrida y su `Summary`.
+
 ## Qué debe revisar un docente
 
 1. Abre el portal y anota su hora de actualización y el SHA de `main`.

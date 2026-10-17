@@ -138,6 +138,7 @@ def render(output_dir):
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
   <title>VERA · Evidencia de calidad</title>
   <style>
     :root {{ color-scheme: light; --navy:#0b2343; --ink:#17283d; --green:#0b765f; --line:#dce5e8; --muted:#536579; --paper:#f4f7f8; }}
@@ -171,7 +172,7 @@ def render(output_dir):
       <div class="metric"><span>Actualizado</span><b>{escape(generated)}</b><span>Generado automáticamente, sin modelo de IA</span></div>
     </section>
     <section class="panel"><h2>Corridas y tiempos</h2><div class="table-wrap"><table>
-      <thead><tr><th>Verificación</th><th>Estado</th><th>SHA probado</th><th>Fecha</th><th>Duración</th><th>Detalle</th></tr></thead>
+      <thead><tr><th>Verificación</th><th>Estado</th><th>SHA probado</th><th>Fecha</th><th>Tiempo aprox.</th><th>Detalle</th></tr></thead>
       <tbody>{''.join(rows)}</tbody></table></div></section>
     <section class="panel"><h2>Para revisar en dos minutos</h2><div class="links">
       <a href="{escape(classroom_url)}">Informe integral y Summary ↗</a>
@@ -214,7 +215,7 @@ def render(output_dir):
         f"- Commit actual de main: `{main_sha}`",
         f"- CI vigente: {core_passed}/3 verificaciones principales aprobadas",
         "",
-        "| Verificación | Estado | SHA | Duración | Evidencia |",
+        "| Verificación | Estado | SHA | Tiempo aprox. | Evidencia |",
         "| --- | --- | --- | --- | --- |",
     ]
     for record in records:
