@@ -2,6 +2,8 @@
 
 HU-07 y HU-09 exigen que los indicadores y la matriz consulten datos almacenados. La API puede usar Supabase para las propuestas y auditorías que alimentan ambas vistas. El modo predeterminado `memory` conserva el demo y sus pruebas locales.
 
+Consulta el [estado operativo verificado el 17 de octubre de 2026](supabase-operations-2026-10-17.md) antes de cambiar la configuración del proyecto compartido.
+
 ## Activación
 
 1. Aplica las [migraciones versionadas](../supabase/migrations/) en un proyecto Supabase bajo control del equipo. Las tablas de planificación y bitácora de accesos no admiten lectura directa con claves públicas.
