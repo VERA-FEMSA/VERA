@@ -65,6 +65,12 @@ def duration_label(run):
     return f"{seconds // 60} min {seconds % 60} s" if seconds >= 60 else f"{seconds} s"
 
 
+def duration_seconds(run):
+    start = parse_date(run.get("run_started_at"))
+    end = parse_date(run.get("updated_at")) if run.get("status") == "completed" else None
+    return int((end - start).total_seconds()) if start and end and end >= start else None
+
+
 def latest_run(filename):
     data = request_json(
         f"/repos/{REPOSITORY}/actions/workflows/{filename}/runs?branch=main&per_page=1"
@@ -92,6 +98,7 @@ def render(output_dir):
         raise RuntimeError("No se pudo identificar el commit actual de main; no se publicará un estado ambiguo.")
 
     rows = []
+    records = []
     core_passed = 0
     for title, filename, scope in WORKFLOWS:
         run = latest_run(filename)
@@ -102,6 +109,16 @@ def render(output_dir):
         run_url = run.get("html_url", workflow_url) if run else workflow_url
         sha = run.get("head_sha", "") if run else ""
         revision = escape(sha[:8]) if sha else "—"
+        records.append({
+            "workflow": filename,
+            "title": title,
+            "status": label,
+            "classification": css_class,
+            "sha": sha or None,
+            "run_url": run_url,
+            "created_at": run.get("created_at") if run else None,
+            "duration_seconds": duration_seconds(run) if run else None,
+        })
         rows.append(
             f'<tr><td><strong>{escape(title)}</strong><small>{escape(scope)}</small></td>'
             f'<td><span class="pill {css_class}">{escape(label)}</span></td>'
@@ -162,6 +179,8 @@ def render(output_dir):
       <a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/testing/test-plan.md">Plan de 78 casos ↗</a>
       <a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/hu-acceptance-audit.md">Estado por HU ↗</a>
       <a href="https://github.com/{escape(REPOSITORY)}/wiki">Wiki ↗</a>
+      <a href="status.md">Bitácora Markdown ↗</a>
+      <a href="status.json">Datos JSON ↗</a>
     </div></section>
     <section class="panel note"><h2>Cómo interpretar el resultado</h2>
       <p>Una corrida aprobada verifica únicamente sus pruebas en el SHA indicado. Los E2E utilizan fixtures de API; no demuestran persistencia ni autenticación en el despliegue. El flujo integral contiene recuentos de pruebas, cobertura y artefactos durante su periodo de retención. Las pruebas de carga de 150/250 usuarios requieren staging autorizado y no se ejecutan en esta página.</p>
@@ -171,6 +190,47 @@ def render(output_dir):
 </body></html>"""
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "index.html").write_text(page, encoding="utf-8", newline="\n")
+    generated_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    (output_dir / "status.json").write_text(
+        json.dumps({
+            "schemaVersion": 1,
+            "repository": REPOSITORY,
+            "branch": "main",
+            "main_sha": main_sha,
+            "generated_at": generated_iso,
+            "core_passed": core_passed,
+            "core_total": 3,
+            "workflows": records,
+            "scope": "GitHub Actions only; not production acceptance or zero security alerts",
+        }, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    markdown = [
+        "# VERA · Bitácora automática de calidad",
+        "",
+        f"- Generado: {generated_iso}",
+        f"- Repositorio: {REPOSITORY}",
+        f"- Commit actual de main: `{main_sha}`",
+        f"- CI vigente: {core_passed}/3 verificaciones principales aprobadas",
+        "",
+        "| Verificación | Estado | SHA | Duración | Evidencia |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for record in records:
+        sha_label = f"`{record['sha'][:8]}`" if record["sha"] else "—"
+        seconds = record["duration_seconds"]
+        markdown.append(
+            f"| {record['title']} | {record['status']} | {sha_label} | "
+            f"{seconds if seconds is not None else 'n/d'} s | [Corrida]({record['run_url']}) |"
+        )
+    markdown.extend([
+        "",
+        "Un resultado de CI no acredita persistencia, autenticación real, ausencia de alertas de seguridad ni aceptación en producción.",
+        "El informe integral contiene recuentos de pruebas y artefactos durante su retención.",
+        "",
+    ])
+    (output_dir / "status.md").write_text("\n".join(markdown), encoding="utf-8", newline="\n")
     shutil.copyfile(ROOT / "frontend" / "public" / "vera-logo.svg", output_dir / "vera-mark.svg")
     print(f"Quality portal generated for {main_sha[:12]} with {core_passed}/3 current checks.")
 

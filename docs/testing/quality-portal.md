@@ -1,6 +1,6 @@
 # Portal docente de calidad
 
-El [portal de calidad](https://vera-femsa.github.io/VERA/) ofrece una vista pública y de solo lectura del commit actual de `main`, el estado de las corridas de calidad, navegador, CodeQL, evaluación sintética de IA y el informe integral. Cada resultado abre la ejecución original de GitHub Actions con sus pasos, logs, duración y artefactos disponibles.
+El [portal de calidad](https://vera-femsa.github.io/VERA/) ofrece una vista pública y de solo lectura del commit actual de `main`, el estado de las corridas de calidad, navegador, CodeQL, evaluación sintética de IA y el informe integral. Cada resultado abre la ejecución original de GitHub Actions con sus pasos, logs, duración y artefactos disponibles. La misma publicación incluye una [bitácora Markdown](https://vera-femsa.github.io/VERA/status.md) y [datos JSON](https://vera-femsa.github.io/VERA/status.json) con hora, SHA, estados y tiempos observados.
 
 ## Actualización
 
