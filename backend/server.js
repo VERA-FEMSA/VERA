@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("node:path");
+const { rateLimit } = require("express-rate-limit");
 
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 require("./config/storeModes").validateStoreModes();
@@ -23,6 +24,16 @@ const app = express();
 app.set("trust proxy", 1); // 1 = one proxy hop in front of your app
 
 app.use(cors());
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 600,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    message: "Demasiadas solicitudes. Intenta más tarde.",
+    code: "API_RATE_LIMITED"
+  }
+}));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
