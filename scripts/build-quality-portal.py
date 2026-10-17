@@ -21,6 +21,8 @@ WORKFLOWS = (
     ("Análisis estático", "codeql.yml", "CodeQL para JavaScript y TypeScript"),
     ("Informe integral", "classroom-quality.yml", "Resumen ejecutivo, logs y artefactos"),
     ("Evaluación de IA", "ai-evaluation.yml", "Casos sintéticos; sin llamadas al modelo"),
+    ("Roles en vista previa", "preview-role-acceptance.yml", "Ejecución manual contra datos demo; no prueba producción"),
+    ("Smoke de producción", "production-smoke.yml", "Rutas públicas y rechazo anónimo; no prueba sesiones reales"),
 )
 
 
@@ -172,19 +174,20 @@ def render(output_dir):
       <div class="metric"><span>Actualizado</span><b>{escape(generated)}</b><span>Generado automáticamente, sin modelo de IA</span></div>
     </section>
     <section class="panel"><h2>Corridas y tiempos</h2><div class="table-wrap"><table>
-      <thead><tr><th>Verificación</th><th>Estado</th><th>SHA probado</th><th>Fecha</th><th>Tiempo aprox.</th><th>Detalle</th></tr></thead>
+      <thead><tr><th>Verificación</th><th>Estado</th><th>SHA del workflow</th><th>Fecha</th><th>Tiempo aprox.</th><th>Detalle</th></tr></thead>
       <tbody>{''.join(rows)}</tbody></table></div></section>
     <section class="panel"><h2>Para revisar en dos minutos</h2><div class="links">
       <a href="{escape(classroom_url)}">Informe integral y Summary ↗</a>
       <a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/testing/professor-quick-run.md">Guía docente ↗</a>
       <a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/testing/test-plan.md">Plan de 78 casos ↗</a>
       <a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/hu-acceptance-audit.md">Estado por HU ↗</a>
+      <a href="https://github.com/{escape(REPOSITORY)}/issues/113">Puertas de producción pendientes ↗</a>
       <a href="https://github.com/{escape(REPOSITORY)}/wiki">Wiki ↗</a>
       <a href="status.md">Bitácora Markdown ↗</a>
       <a href="status.json">Datos JSON ↗</a>
     </div></section>
     <section class="panel note"><h2>Cómo interpretar el resultado</h2>
-      <p>Una corrida aprobada verifica únicamente sus pruebas en el SHA indicado. Los E2E utilizan fixtures de API; no demuestran persistencia ni autenticación en el despliegue. El flujo integral contiene recuentos de pruebas, cobertura y artefactos durante su periodo de retención. Las pruebas de carga de 150/250 usuarios requieren staging autorizado y no se ejecutan en esta página.</p>
+      <p>Una corrida aprobada verifica únicamente su alcance. La columna SHA identifica el código del workflow; en los controles contra Vercel no identifica por sí sola el deployment examinado. Los E2E de interfaz utilizan fixtures de API; la aceptación de Preview usa cuentas demo aisladas y el smoke de Production solo rutas públicas y rechazo anónimo. Consulta el artifact de cada corrida para ver destino y tiempos. Las pruebas de carga de 150/250 usuarios requieren staging autorizado.</p>
       <p>Los resultados de seguridad requieren revisar también <a href="https://github.com/{escape(REPOSITORY)}/security">Security</a>: un check CodeQL verde no significa cero alertas. Un despliegue exitoso tampoco acredita por sí solo la aceptación de cada HU.</p>
     </section>
   </main><footer>VERA · Fuente: API de GitHub Actions y commit de main. Este sitio no usa datos personales, secretos ni servicios de IA.</footer>
@@ -202,7 +205,7 @@ def render(output_dir):
             "core_passed": core_passed,
             "core_total": 3,
             "workflows": records,
-            "scope": "GitHub Actions only; not production acceptance or zero security alerts",
+            "scope": "GitHub Actions and bounded deployed checks; workflow SHA is not necessarily target deployment SHA; not full production acceptance or zero security alerts",
         }, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
         newline="\n",
@@ -227,7 +230,7 @@ def render(output_dir):
         )
     markdown.extend([
         "",
-        "Un resultado de CI no acredita persistencia, autenticación real, ausencia de alertas de seguridad ni aceptación en producción.",
+        "El SHA indica el código del workflow; para controles desplegados, consulta el destino en su artifact. Un resultado de CI no acredita persistencia, autenticación real, ausencia de alertas de seguridad ni aceptación integral en producción.",
         "El informe integral contiene recuentos de pruebas y artefactos durante su retención.",
         "",
     ])

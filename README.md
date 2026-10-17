@@ -13,12 +13,12 @@
 <p align="center">
   <a href="https://github.com/VERA-GRC-IRM/VERA/wiki">Centro de conocimiento</a> ·
   <a href="https://vera-grc-irm.github.io/VERA/">Portal de calidad</a> ·
-  <a href="https://vera-figbo.vercel.app">Despliegue del equipo (acceso Vercel)</a> ·
+  <a href="https://vera-salva-ventures.vercel.app">Demo pública</a> ·
   <a href="https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml">Ver calidad completa</a> ·
   <a href="docs/testing/professor-quick-run.md">Guía para docentes</a>
 </p>
 
-> **Estado del proyecto.** VERA es un prototipo académico con código funcional y pruebas automatizadas. El despliegue del equipo muestra actualmente la pantalla de acceso de Vercel antes de la aplicación; exige permiso sobre ese proyecto para verificarlo. La [instancia independiente](https://vera-salva-ventures.vercel.app) es una demo distinta y puede usar otro commit o configuración. Un check verde acredita la verificación indicada, no la aceptación de todas las historias en producción. [Estado y límites por HU](docs/hu-acceptance-audit.md).
+> **Estado del proyecto.** VERA es un prototipo académico con código funcional y pruebas automatizadas. La [demo pública](https://vera-salva-ventures.vercel.app) está conectada a `main` de esta organización; el [smoke del 17 de octubre de 2026](https://github.com/VERA-GRC-IRM/VERA/actions/runs/39079557868) verificó el despliegue automático del commit `5b0af933`. Los resultados de CI y la disponibilidad pública acreditan solamente las comprobaciones ejecutadas; la [aceptación de producción pendiente](https://github.com/VERA-GRC-IRM/VERA/issues/113) y el [estado por HU](docs/hu-acceptance-audit.md) delimitan lo que falta.
 
 ## VERA en un minuto
 
@@ -106,6 +106,8 @@ Vite indica la URL local de la interfaz. Los almacenes predeterminados son `memo
 | Interfaz | [Workflow E2E](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/e2e.yml) | Flujos automatizados en navegadores y perfiles móvil/tablet con fixtures. |
 | Seguridad estática | [CodeQL](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/codeql.yml) | Análisis de JavaScript/TypeScript; no equivale a una auditoría de seguridad completa. |
 | IA | [Evaluación continua manual](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/ai-evaluation.yml) | Regresiones sintéticas del contrato y fuentes permitidas, sin llamada ni costo de Azure. |
+| Vista previa con roles | [Aceptación manual](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/preview-role-acceptance.yml) y [alcance](docs/testing/preview-acceptance.md) | Backend desplegado con datos demo: inicio de sesión, lecturas y denegaciones por cinco roles. No prueba Supabase ni Azure de producción. |
+| Disponibilidad desplegada | [Production smoke](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/production-smoke.yml) | Comprueba cada dos horas rutas públicas y rechazo anónimo; guarda tiempos y estados en JSON. |
 | Aceptación | [Matriz de HU](docs/hu-acceptance-audit.md) y [runbook](docs/testing/operations-runbook.md) | Distinguen lo implementado, lo probado y lo pendiente en el entorno real. |
 
 ## Documentación y contribución
