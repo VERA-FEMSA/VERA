@@ -17,6 +17,7 @@
 **Evidencia y operación**
 
 - [Estado de calidad](https://github.com/VERA-GRC-IRM/VERA/wiki/Estado-de-calidad)
+- [Gobierno de GitHub](https://github.com/VERA-GRC-IRM/VERA/wiki/Gobierno-de-GitHub)
 - [Calidad y pruebas](https://github.com/VERA-GRC-IRM/VERA/wiki/Calidad-y-pruebas)
 - [Operación y despliegue](https://github.com/VERA-GRC-IRM/VERA/wiki/Operacion-y-despliegue)
 - [Biblioteca de runbooks](https://github.com/VERA-GRC-IRM/VERA/wiki/Biblioteca-de-runbooks)
