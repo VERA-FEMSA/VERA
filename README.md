@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/wiki/Home.md">Centro de conocimiento</a> ·
+  <a href="https://github.com/humbertofigb15/VERA/wiki">Centro de conocimiento</a> ·
   <a href="https://vera-salva-ventures.vercel.app">Abrir aplicación</a> ·
   <a href="https://github.com/humbertofigb15/VERA/actions/workflows/classroom-quality.yml">Ver calidad completa</a> ·
   <a href="docs/testing/professor-quick-run.md">Guía para docentes</a>
@@ -42,7 +42,7 @@ flowchart LR
     E --> F[Seguimiento y cierre]
 ```
 
-El flujo se apoya en autorización del servidor y registros de actividad. La interfaz orienta al usuario; no sustituye los permisos de la API. El [centro de conocimiento](docs/wiki/Home.md) explica el recorrido, las reglas y sus límites.
+El flujo se apoya en autorización del servidor y registros de actividad. La interfaz orienta al usuario; no sustituye los permisos de la API. El [centro de conocimiento](https://github.com/humbertofigb15/VERA/wiki) explica el recorrido, las reglas y sus límites.
 
 ## Explorar el producto
 
@@ -59,7 +59,7 @@ El asistente combina indicadores calculados por VERA con respuestas de Azure Ope
 
 ## Una revisión docente en tres pasos
 
-1. **Entender la solución:** recorre el [centro de conocimiento](docs/wiki/Home.md), que separa producto, arquitectura, permisos y estado de aceptación.
+1. **Entender la solución:** recorre el [centro de conocimiento](https://github.com/humbertofigb15/VERA/wiki), que separa producto, arquitectura, permisos y estado de aceptación.
 2. **Ver resultados sin instalar nada:** abre [VERA — Calidad y pruebas completas](https://github.com/humbertofigb15/VERA/actions/workflows/classroom-quality.yml), elige una corrida y consulta *Summary*, logs y artefacto. La [guía de dos minutos](docs/testing/professor-quick-run.md) indica qué cubre y qué no.
 3. **Inspeccionar la ingeniería:** revisa [calidad](https://github.com/humbertofigb15/VERA/actions/workflows/quality.yml), [navegadores](https://github.com/humbertofigb15/VERA/actions/workflows/e2e.yml), [CodeQL](https://github.com/humbertofigb15/VERA/actions/workflows/codeql.yml), [plan de pruebas](docs/testing/test-plan.md) y [PR fusionados](https://github.com/humbertofigb15/VERA/pulls?q=is%3Apr+is%3Amerged). Cada corrida indica el commit y la duración observada.
 
@@ -113,7 +113,7 @@ Vite indica la URL local de la interfaz. Los almacenes predeterminados son `memo
 
 ## Documentación y contribución
 
-El **[centro de conocimiento de VERA](docs/wiki/Home.md)** es la puerta de entrada para lectura. Se conserva en `docs/wiki/` para revisión por PR; la publicación en la Wiki nativa de GitHub depende de que GitHub permita inicializar su primera página. Los runbooks de `docs/` y el código son la fuente técnica versionada para detalles que cambian. Si una página contradice una ruta o una prueba del commit actual, se corrige con la discrepancia documentada.
+La **[Wiki de VERA](https://github.com/humbertofigb15/VERA/wiki)** es la puerta de entrada para lectura. Sus páginas se conservan también en [`docs/wiki/`](docs/wiki/Home.md) para revisión por PR y sincronización con la Wiki nativa. Los runbooks de `docs/` y el código son la fuente técnica versionada para detalles que cambian. Si una página contradice una ruta o una prueba del commit actual, se corrige con la discrepancia documentada.
 
 Para colaborar, parte de `main`, consulta [AGENTS.md](AGENTS.md) y la [guía para asistentes de código](docs/ai-development/README.md), mantén el PR enfocado y explica las verificaciones que **realmente** ejecutaste. Los resultados de CI y la revisión humana forman parte de la entrega.
 

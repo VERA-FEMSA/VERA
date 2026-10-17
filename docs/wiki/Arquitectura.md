@@ -30,7 +30,7 @@ flowchart TB
 - **Demo local:** los seis modos de almacén predeterminados son `memory`. Sirve para desarrollo y pruebas reproducibles; sus datos se pierden cuando reinicia el backend.
 - **Persistencia Supabase:** cada almacén se activa por variable `VERA_*_STORE=supabase` tras aplicar migraciones y verificar dependencias. No basta con que exista el esquema; el entorno debe estar configurado y probado con sesiones reales.
 
-El [mapa de dependencias](https://github.com/humbertofigb15/VERA/blob/main/docs/wiki/Datos-y-Supabase.md) y el [runbook de Supabase](https://github.com/humbertofigb15/VERA/blob/main/docs/supabase-planning.md) dan la secuencia exacta.
+El [mapa de dependencias](https://github.com/humbertofigb15/VERA/wiki/Datos-y-Supabase) y el [runbook de Supabase](https://github.com/humbertofigb15/VERA/blob/main/docs/supabase-planning.md) dan la secuencia exacta.
 
 ## Principios de diseño verificables
 

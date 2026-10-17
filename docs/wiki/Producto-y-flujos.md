@@ -32,4 +32,4 @@ La interfaz tiene rutas explícitas en [`frontend/src/App.jsx`](https://github.c
 
 - [Abrir la aplicación](https://vera-salva-ventures.vercel.app). Se necesita una cuenta activa de VERA; el login de Azure DevOps no se comparte automáticamente.
 - Para una evaluación sin cuenta, abre los [resultados de GitHub Actions](https://github.com/humbertofigb15/VERA/actions) y el [plan de pruebas](https://github.com/humbertofigb15/VERA/blob/main/docs/testing/test-plan.md).
-- Para ver la implementación de una historia concreta, sigue [Módulos y HU](https://github.com/humbertofigb15/VERA/blob/main/docs/wiki/Modulos-y-HU.md).
+- Para ver la implementación de una historia concreta, sigue [Módulos y HU](https://github.com/humbertofigb15/VERA/wiki/Modulos-y-HU).

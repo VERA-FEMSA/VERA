@@ -24,7 +24,7 @@ Vite muestra la URL local. El modo inicial es `memory`; los datos demo se reinic
 
 ## Instancia publicada
 
-La [instancia propia de VERA](https://vera-salva-ventures.vercel.app) está accesible por HTTPS, pero las pantallas de trabajo exigen una cuenta activa del sistema. Los runbooks documentan configuración y comprobaciones puntuales de Supabase y Azure OpenAI. El [estado de aceptación por HU](https://github.com/humbertofigb15/VERA/blob/main/docs/wiki/Modulos-y-HU.md) mantiene separadas esas comprobaciones de una prueba funcional exhaustiva con todas las identidades.
+La [instancia propia de VERA](https://vera-salva-ventures.vercel.app) está accesible por HTTPS, pero las pantallas de trabajo exigen una cuenta activa del sistema. Los runbooks documentan configuración y comprobaciones puntuales de Supabase y Azure OpenAI. El [estado de aceptación por HU](https://github.com/humbertofigb15/VERA/wiki/Modulos-y-HU) mantiene separadas esas comprobaciones de una prueba funcional exhaustiva con todas las identidades.
 
 Para una comprobación de despliegue, registra **SHA publicado, entorno, fecha, rol, datos sintéticos, pasos y resultado**. No copies JWT, cookies, claves, contraseñas ni respuestas privadas a capturas o reportes. Un HTTP 200 en login o un despliegue `READY` demuestra disponibilidad de esa ruta, no cierre funcional.
 
