@@ -1,0 +1,51 @@
+name: AI continuous evaluation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-evaluation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    name: Synthetic AI regression suite (Node.js 22)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        id: install
+        run: npm ci --prefix backend
+
+      - name: Run backend contract tests
+        run: npm test --prefix backend
+
+      - name: Evaluate synthetic AI scenarios
+        if: always() && steps.install.outcome == 'success'
+        run: npm run ai:eval:offline --prefix backend
+
+      - name: Upload evaluation report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vera-ai-evaluation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            quality-report/ai-evaluation.json
+            quality-report/ai-evaluation.md
+          if-no-files-found: warn
+          retention-days: 30

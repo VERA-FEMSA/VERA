@@ -10,6 +10,7 @@
     "test:coverage": "node --experimental-test-coverage --test",
     "audit": "npm audit --audit-level=high",
     "ai:eval": "node scripts/evaluate-assistant.js",
+    "ai:eval:offline": "node scripts/evaluate-assistant-offline.js",
     "quality": "npm run lint && npm run test:coverage && npm run audit"
   },
   "keywords": [],

@@ -35,6 +35,8 @@ La respuesta HTTP lleva `Cache-Control: no-store`. Se mantienen el límite por u
 
 ## Evaluación reproducible
 
+La [evaluación continua sin Azure](ai-continuous-evaluation.md) se puede lanzar manualmente desde GitHub Actions. Sus casos positivos y negativos versionados ejercitan el adaptador con respuestas simuladas, comprueban citas permitidas y errores, y publican JSON/Markdown. También ejecuta las pruebas del backend. Un resultado aprobado identifica regresiones en esos contratos sintéticos; no es una medición de la calidad del modelo desplegado.
+
 Para una comprobación puntual de la **versión publicada** sin copiar claves Azure, usa la [guía de aceptación en producción](ai-production-acceptance.md). Requiere una cuenta activa de VERA; separa lo observado sin sesión de lo que falta verificar con datos y roles reales.
 
 Desde `backend`, `npm run ai:eval` ejecuta ocho consultas **sintéticas** al despliegue Azure configurado: dato con fuente, ausencia de información, instrucciones maliciosas en un registro y en el historial, historial que intenta ampliar permisos, lista parcial, flujo de gobierno y borrador sin ejecución. Cada línea JSON informa el caso, estado, verificaciones individuales, duración y tokens; el resumen informa casos aprobados, latencia p50/p95 de respuestas recibidas y suma de tokens. `npm run ai:eval -- --list` enumera los casos sin llamar a Azure; `npm run ai:eval -- --case=dato-y-fuente` ejecuta solo uno. La salida evita preguntas, respuestas, contexto y claves. El código sale con 0 si pasan todos los casos seleccionados, 1 si falla alguno y 2 si faltan variables o el argumento es inválido.

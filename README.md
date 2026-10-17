@@ -8,6 +8,8 @@
 
 [▶ Abrir ejecución completa de calidad y pruebas](https://github.com/humbertofigb15/VERA/actions/workflows/classroom-quality.yml) · [Guía rápida para revisión docente](docs/testing/professor-quick-run.md)
 
+[▶ Ejecutar evaluación continua de IA](https://github.com/humbertofigb15/VERA/actions/workflows/ai-evaluation.yml) · [Casos, límites e interpretación](docs/ai-continuous-evaluation.md)
+
 > **Estado:** prototipo académico. Por defecto los datos se mantienen en memoria y se reinician con el backend. Las once migraciones, incluidos hallazgos, archivos y lecturas de notificaciones, quedaron aplicadas en el proyecto Supabase VERA el 15-16 de octubre de 2026. La instancia propia de producción [vera-salva-ventures.vercel.app](https://vera-salva-ventures.vercel.app) usa los seis almacenes persistentes y pasó una prueba remota puntual del asistente; la aceptación funcional con sesiones reales de todos los roles sigue pendiente. Consulta la [guía de Supabase](docs/supabase-planning.md) y el [runbook de HU-34](docs/hu34-azure-openai.md). El modo demo contiene cuentas de ejemplo y no debe usarse con datos reales.
 
 **HU-34 Asistente de IA:** la interfaz y el backend de solo lectura usan Azure OpenAI con contexto filtrado por rol. El copiloto contextual abre desde las pantallas protegidas, permite preguntar sobre riesgos, controles y auditorías concretos, conserva seis intervenciones recientes en la sesión y muestra registros citados y prioridades deterministas. El despliegue propio en Vercel respondió HTTP 200 a una consulta autenticada de la versión inicial; la evolución requiere nueva aceptación tras publicarse. No se configuraron claves en `figbo/vera`; su integración con GitHub puede desplegar automáticamente los cambios fusionados a `main`. Consulta el [runbook de HU-34](docs/hu34-azure-openai.md) y la [guía del copiloto](docs/ai-copilot-evolution.md).
@@ -99,6 +101,7 @@ Desde la raíz del proyecto:
 | `npm run lint` | Revisión de sintaxis del backend y ESLint del frontend. |
 | `npm run build` | Build de producción del frontend. |
 | `npm run audit` | Auditoría de dependencias de backend y frontend. |
+| `npm run ai:eval:offline --prefix backend` | Ejecuta 20 regresiones sintéticas del asistente sin Azure y escribe JSON/Markdown en `quality-report/`. |
 
 El flujo de GitHub Actions ejecuta las verificaciones de calidad en pull requests dirigidos a `main` y en actualizaciones de `main`. El reporte detallado del workflow se conserva como artefacto de Actions durante 14 días.
 
