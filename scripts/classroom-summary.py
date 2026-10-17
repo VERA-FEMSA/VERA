@@ -9,6 +9,7 @@ QUALITY_REPORT = ROOT / "quality-report" / "quality-report.json"
 E2E_REPORT = ROOT / "frontend" / "playwright-report" / "results.json"
 PLAN = ROOT / "docs" / "testing" / "test-plan.md"
 SUMMARY_FILE = ROOT / "quality-report" / "classroom-summary.md"
+REPO_URL = f"https://github.com/{os.getenv('GITHUB_REPOSITORY', 'VERA-FEMSA/VERA')}"
 
 
 def load_json(path):
@@ -61,16 +62,17 @@ rows = [
     "|---|---:|---:|---:|---|",
     f"| Backend y gates de calidad | {result_label(os.getenv('QUALITY_RESULT'))} | {quality_tests.get('passed', 'n/d')}/{quality_tests.get('total', 'n/d')} pruebas backend | {quality_duration if quality_duration is not None else 'n/d'} s | {vulnerabilities} vulnerabilidades altas/críticas |",
     f"| Interfaz E2E | {result_label(os.getenv('E2E_RESULT'))} | {e2e_stats.get('expected', 'n/d')} aprobadas; {e2e_stats.get('unexpected', 'n/d')} fallidas; {e2e_stats.get('flaky', 'n/d')} inestables; {e2e_stats.get('skipped', 'n/d')} omitidas | {round(e2e_duration / 1000, 2) if isinstance(e2e_duration, (int, float)) else 'n/d'} s | Chromium, Chrome, Edge, Firefox, móvil/tablet |",
-    f"| CodeQL | {codeql_status} | JavaScript/TypeScript | {os.getenv('CODEQL_DURATION_SECONDS', 'n/d')} s | Consulta de seguridad estática |",
+    f"| Análisis CodeQL | {codeql_status} | JavaScript/TypeScript | {os.getenv('CODEQL_DURATION_SECONDS', 'n/d')} s | Duración del análisis; puede haber alertas abiertas |",
     "",
     "## Alcance completo y casos pendientes",
     "",
-    f"La matriz trazable contiene **{planned_cases} casos** en [el plan de pruebas](https://github.com/humbertofigb15/VERA/blob/main/docs/testing/test-plan.md). Este run ejecuta las pruebas automatizadas implementadas; la existencia de un caso en la matriz no lo convierte en aprobado.",
+    f"La matriz trazable contiene **{planned_cases} casos** en [el plan de pruebas]({REPO_URL}/blob/main/docs/testing/test-plan.md). Este run ejecuta las pruebas automatizadas implementadas; la existencia de un caso en la matriz no lo convierte en aprobado.",
     "",
-    "- La prueba k6 de 150/250 usuarios no se dispara aquí: necesita staging aprobado, hostname permitido y credencial dedicada; consulta [el runbook de operaciones](https://github.com/humbertofigb15/VERA/blob/main/docs/testing/operations-runbook.md).",
-    "- Las pruebas de archivos binarios, persistencia, exportación y otras funciones ausentes siguen bloqueadas hasta implementar esas capacidades.",
+    f"- La prueba k6 de 150/250 usuarios no se dispara aquí: necesita staging aprobado, hostname permitido y credencial dedicada; consulta [el runbook de operaciones]({REPO_URL}/blob/main/docs/testing/operations-runbook.md).",
+    f"- Persistencia, exportación y archivos requieren resultados de casos funcionales sobre el modo y entorno concretos; consulta [la matriz de aceptación]({REPO_URL}/blob/main/docs/hu-acceptance-audit.md).",
     "- TLS, disponibilidad mensual, backup/restore, privacidad y pruebas con hardware/lectores reales requieren evidencia del ambiente o revisión manual.",
     "- Las pruebas de UI usan fixtures de API; no se deben interpretar como pruebas de integración con un backend desplegado.",
+    f"- Un análisis CodeQL aprobado puede mantener alertas abiertas; revisa [Security]({REPO_URL}/security) antes de afirmar ausencia de hallazgos.",
     "",
     "El reporte detallado de backend, Playwright HTML, JSON, capturas y trazas está en el artefacto `vera-classroom-quality-*` durante 30 días.",
     ""

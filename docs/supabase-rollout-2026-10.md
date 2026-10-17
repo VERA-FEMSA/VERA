@@ -3,7 +3,7 @@
 ## Entorno y alcance
 
 - Proyecto Supabase del equipo: `VERA`, referencia `rsrsycokfdypliepcxgi`.
-- Repositorio: `humbertofigb15/VERA`; código de la octava migración en `5cc0580` (`main`).
+- Repositorio al momento de esta bitácora: `humbertofigb15/VERA` (hoy `VERA-FEMSA/VERA`); código de la octava migración en `5cc0580` (`main`).
 - Ejecución: CLI de Supabase desde una terminal local autenticada, con migraciones versionadas del repositorio. Ninguna clave o contraseña se guarda en este informe.
 - Esta bitácora registra la **preparación de la base y una lectura integrada local**. No representa la activación de los modos persistentes en Vercel.
 
@@ -14,8 +14,8 @@ Antes de aplicar cambios se revisaron el historial de migraciones y las tablas y
 ## Cambios aplicados
 
 1. `supabase db push --dry-run` confirmó el plan; `supabase db push` aplicó las seis migraciones iniciales. Los conteos previos permanecieron intactos.
-2. [PR #51](https://github.com/humbertofigb15/VERA/pull/51) añadió la séptima migración. Se aplicó tras el merge: `service_role` quedó solo con `INSERT` en `logins`; `anon` y `authenticated` no tienen privilegios SQL en `logins` ni en las tablas antiguas. Los datos no cambiaron.
-3. [PR #52](https://github.com/humbertofigb15/VERA/pull/52) añadió la octava migración. Se probó primero con `BEGIN`/`ROLLBACK`: copió 10 cuentas, generó 10 hashes bcrypt y conservó las referencias, sin dejar filas al deshacer. Tras el merge, se aplicó al proyecto remoto.
+2. [PR #51](https://github.com/VERA-FEMSA/VERA/pull/51) añadió la séptima migración. Se aplicó tras el merge: `service_role` quedó solo con `INSERT` en `logins`; `anon` y `authenticated` no tienen privilegios SQL en `logins` ni en las tablas antiguas. Los datos no cambiaron.
+3. [PR #52](https://github.com/VERA-FEMSA/VERA/pull/52) añadió la octava migración. Se probó primero con `BEGIN`/`ROLLBACK`: copió 10 cuentas, generó 10 hashes bcrypt y conservó las referencias, sin dejar filas al deshacer. Tras el merge, se aplicó al proyecto remoto.
 4. `supabase migration list` confirmó que las ocho versiones locales y remotas coincidían.
 
 ## Evidencia remota después de la migración
@@ -56,11 +56,11 @@ Esta comprobación demuestra conexión y lectura desde el backend local. El toke
 
 ## Migraciones de hallazgos y archivos (16 de octubre)
 
-Después de integrar los PR [#56](https://github.com/humbertofigb15/VERA/pull/56) y [#57](https://github.com/humbertofigb15/VERA/pull/57), `supabase db push --dry-run --project-ref rsrsycokfdypliepcxgi --skip-vault` identificó únicamente las migraciones novena y décima. `supabase db push --project-ref rsrsycokfdypliepcxgi --skip-vault --yes` las aplicó sin errores. `supabase migration list` mostró diez versiones locales y remotas coincidentes y `supabase storage ls ss:///vera-evidence --project-ref rsrsycokfdypliepcxgi --experimental` confirmó el bucket `vera-evidence`. La CLI no demuestra carga, descarga ni persistencia de archivos desde Vercel; esos flujos siguen pendientes de prueba en un entorno configurado.
+Después de integrar los PR [#56](https://github.com/VERA-FEMSA/VERA/pull/56) y [#57](https://github.com/VERA-FEMSA/VERA/pull/57), `supabase db push --dry-run --project-ref rsrsycokfdypliepcxgi --skip-vault` identificó únicamente las migraciones novena y décima. `supabase db push --project-ref rsrsycokfdypliepcxgi --skip-vault --yes` las aplicó sin errores. `supabase migration list` mostró diez versiones locales y remotas coincidentes y `supabase storage ls ss:///vera-evidence --project-ref rsrsycokfdypliepcxgi --experimental` confirmó el bucket `vera-evidence`. La CLI no demuestra carga, descarga ni persistencia de archivos desde Vercel; esos flujos siguen pendientes de prueba en un entorno configurado.
 
 ## Lectura de notificaciones (16 de octubre)
 
-El PR [#58](https://github.com/humbertofigb15/VERA/pull/58) pasó calidad, CodeQL y UI E2E en Chrome, Edge, Firefox, móvil y tableta, y se integró en `main` (`0c121169396268c7cbf6e1f4d1c6a66857dc44c0`). `supabase db push --dry-run` indicó solo `20261016050000_create_notification_reads.sql`; el `db push` posterior la aplicó. `supabase migration list` mostró 11 versiones locales y remotas coincidentes. No se ha activado `VERA_NOTIFICATION_STORE` en Vercel ni comprobado allí el estado de lectura con sesiones reales.
+El PR [#58](https://github.com/VERA-FEMSA/VERA/pull/58) pasó calidad, CodeQL y UI E2E en Chrome, Edge, Firefox, móvil y tableta, y se integró en `main` (`0c121169396268c7cbf6e1f4d1c6a66857dc44c0`). `supabase db push --dry-run` indicó solo `20261016050000_create_notification_reads.sql`; el `db push` posterior la aplicó. `supabase migration list` mostró 11 versiones locales y remotas coincidentes. No se ha activado `VERA_NOTIFICATION_STORE` en Vercel ni comprobado allí el estado de lectura con sesiones reales.
 
 ## Pendiente para cerrar la aceptación
 
