@@ -20,6 +20,9 @@
 
 > **Estado del proyecto.** VERA es un prototipo académico con código funcional y pruebas automatizadas. La aplicación publicada exige una cuenta de VERA; el acceso universitario o a Azure DevOps no inicia sesión automáticamente. Un check verde acredita la verificación indicada, no la aceptación de todas las historias en producción. [Estado y límites por HU](docs/hu-acceptance-audit.md).
 
+<p align="center"><img src="docs/assets/planificacion-demo.png" alt="Vista real del módulo Planificación con indicadores, una propuesta abierta y navegación de VERA; datos de demostración" width="960"></p>
+<p align="center"><sub>Vista real de Planificación compartida por el equipo · datos de demostración</sub></p>
+
 ## VERA en un minuto
 
 | Pregunta | Respuesta de VERA |
