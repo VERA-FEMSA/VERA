@@ -1,6 +1,6 @@
 # Operación y despliegue
 
-Esta página es una ruta de lectura y comprobación. La [guía de Supabase](https://github.com/VERA-FEMSA/VERA/blob/main/docs/supabase-planning.md), el [runbook de IA](https://github.com/VERA-FEMSA/VERA/blob/main/docs/hu34-azure-openai.md) y el [runbook operativo](https://github.com/VERA-FEMSA/VERA/blob/main/docs/testing/operations-runbook.md) contienen pasos específicos de cada subsistema.
+Esta página es una ruta de lectura y comprobación. La [guía de Supabase](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/supabase-planning.md), el [runbook de IA](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/hu34-azure-openai.md) y el [runbook operativo](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/operations-runbook.md) contienen pasos específicos de cada subsistema.
 
 ## Demo local
 
@@ -24,7 +24,7 @@ Vite muestra la URL local. El modo inicial es `memory`; los datos demo se reinic
 
 ## Instancia publicada
 
-La [instancia registrada del equipo](https://vera-figbo.vercel.app) respondió con **Login – Vercel** en la portada y en `/api/assistant/status` el 17 de octubre de 2026. Esa respuesta impide comprobar desde una sesión pública si la aplicación y la API de ese despliegue están disponibles. Hace falta acceso al proyecto Vercel y después una cuenta activa de VERA. La instancia independiente usada en comprobaciones de IA tiene otro proyecto de despliegue y puede tener configuración y datos distintos. Los runbooks documentan configuración y comprobaciones puntuales de Supabase y Azure OpenAI. El [estado de aceptación por HU](https://github.com/VERA-FEMSA/VERA/wiki/Modulos-y-HU) mantiene separadas esas comprobaciones de una prueba funcional exhaustiva con todas las identidades.
+La [instancia registrada del equipo](https://vera-figbo.vercel.app) respondió con **Login – Vercel** en la portada y en `/api/assistant/status` el 17 de octubre de 2026. Esa respuesta impide comprobar desde una sesión pública si la aplicación y la API de ese despliegue están disponibles. Hace falta acceso al proyecto Vercel y después una cuenta activa de VERA. La instancia independiente usada en comprobaciones de IA tiene otro proyecto de despliegue y puede tener configuración y datos distintos. Los runbooks documentan configuración y comprobaciones puntuales de Supabase y Azure OpenAI. El [estado de aceptación por HU](https://github.com/VERA-GRC-IRM/VERA/wiki/Modulos-y-HU) mantiene separadas esas comprobaciones de una prueba funcional exhaustiva con todas las identidades.
 
 Para una comprobación de despliegue, registra **SHA publicado, entorno, fecha, rol, datos sintéticos, pasos y resultado**. No copies JWT, cookies, claves, contraseñas ni respuestas privadas a capturas o reportes. Un HTTP 200 en login o un despliegue `READY` demuestra disponibilidad de esa ruta, no cierre funcional.
 
@@ -36,4 +36,4 @@ Para una comprobación de despliegue, registra **SHA publicado, entorno, fecha, 
 4. Observa 429/5xx, latencia y logs sin contenido sensible.
 5. Si la IA falla, el backend permite desactivarla con `VERA_AI_ENABLED=false` y redesplegar; los módulos de negocio no deben depender de una respuesta generativa para conservar sus registros.
 
-No ejecutes pruebas de carga contra producción sin una ventana coordinada. La [carga preparada](https://github.com/VERA-FEMSA/VERA/actions/workflows/load-test.yml) está destinada a staging autorizado.
+No ejecutes pruebas de carga contra producción sin una ventana coordinada. La [carga preparada](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/load-test.yml) está destinada a staging autorizado.

@@ -1,6 +1,6 @@
 # Portal docente de calidad
 
-El [portal de calidad](https://vera-femsa.github.io/VERA/) ofrece una vista pública y de solo lectura del commit actual de `main`, el estado de las corridas de calidad, navegador, CodeQL, evaluación sintética de IA y el informe integral. Cada resultado abre la ejecución original de GitHub Actions con sus pasos, logs, duración y artefactos disponibles. La misma publicación incluye una [bitácora Markdown](https://vera-femsa.github.io/VERA/status.md) y [datos JSON](https://vera-femsa.github.io/VERA/status.json) con hora, SHA, estados y tiempos observados.
+El [portal de calidad](https://vera-grc-irm.github.io/VERA/) ofrece una vista pública y de solo lectura del commit actual de `main`, el estado de las corridas de calidad, navegador, CodeQL, evaluación sintética de IA y el informe integral. Cada resultado abre la ejecución original de GitHub Actions con sus pasos, logs, duración y artefactos disponibles. La misma publicación incluye una [bitácora Markdown](https://vera-grc-irm.github.io/VERA/status.md) y [datos JSON](https://vera-grc-irm.github.io/VERA/status.json) con hora, SHA, estados y tiempos observados.
 
 ## Actualización
 
@@ -16,7 +16,9 @@ Los tiempos de la tabla son aproximaciones calculadas con `run_started_at` y `up
 2. Abre el **informe integral**. En la pestaña *Summary* encontrarás recuentos, cobertura y duraciones; sus artefactos se conservan por 30 días.
 3. Sigue los enlaces a [plan de pruebas](test-plan.md) y [estado por HU](../hu-acceptance-audit.md) para distinguir casos implementados, simulados y pendientes.
 
-El [workflow integral](https://github.com/VERA-FEMSA/VERA/actions/workflows/classroom-quality.yml) sigue siendo el enlace estable si GitHub Pages no está disponible. La [guía de ejecución](professor-quick-run.md) explica cómo iniciar una corrida; solo usuarios con escritura pueden pulsar **Run workflow**.
+El [workflow integral](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml) sigue siendo el enlace estable si GitHub Pages no está disponible. La [guía de ejecución](professor-quick-run.md) explica cómo iniciar una corrida; solo usuarios con escritura pueden pulsar **Run workflow**.
+
+El enlace de una corrida histórica del antiguo propietario del repositorio puede redirigir a la organización actual. Para compartir una referencia permanente al estado vigente, usa el portal de esta página; GitHub Pages cambió de dirección al transferir el repositorio y la URL antigua de Pages no redirige automáticamente.
 
 ## Límite de la evidencia
 

@@ -3,7 +3,7 @@
 El resultado depende de la petición que recibe el asistente. Copia esta ficha, rellena lo que sabes y deja **“por confirmar”** donde falten datos. No pegues contraseñas, tokens, archivos privados ni datos personales.
 
 ```text
-Repositorio y base: VERA-FEMSA/VERA, rama main actualizada
+Repositorio y base: VERA-GRC-IRM/VERA, rama main actualizada
 Objetivo observable:
 Alcance incluido:
 Fuera de alcance:

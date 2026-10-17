@@ -17,4 +17,4 @@
 | **Aceptación** | Confirmación de que todos los criterios de una HU se cumplieron con la evidencia requerida. |
 | **Cita de IA** | Referencia a un registro que el servidor permitió consultar; no certifica por sí sola la exactitud de toda una respuesta generada. |
 
-Para un término funcional no definido aquí, consulta el [plan de pruebas](https://github.com/VERA-FEMSA/VERA/blob/main/docs/testing/test-plan.md) o el [código vigente](https://github.com/VERA-FEMSA/VERA).
+Para un término funcional no definido aquí, consulta el [plan de pruebas](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/test-plan.md) o el [código vigente](https://github.com/VERA-GRC-IRM/VERA).

@@ -8,12 +8,12 @@ La [matriz de aceptación](hu-acceptance-audit.md) documenta, HU por HU, la evid
 
 | Incremento | Evidencia revisable | Resultado |
 | --- | --- | --- |
-| HU-26: búsqueda y filtros de auditorías | [PR #55](https://github.com/VERA-FEMSA/VERA/pull/55) | Integrado en `main`; búsqueda sobre datos del backend con alcance por rol. |
-| HU-15: hallazgos vinculados a controles y riesgos | [PR #56](https://github.com/VERA-FEMSA/VERA/pull/56) | Integrado; metadatos y vínculo persistente optativo. |
-| HU-16: archivos privados de evidencia | [PR #57](https://github.com/VERA-FEMSA/VERA/pull/57) | Integrado; bucket privado y descarga autorizada. |
-| HU-17: lectura individual de pendientes | [PR #58](https://github.com/VERA-FEMSA/VERA/pull/58) | Integrado; estado de lectura optativo en Supabase. |
-| HU-07/HU-09: hallazgos reales en panel y expediente | [PR #59](https://github.com/VERA-FEMSA/VERA/pull/59) | Integrado; conteo y detalle restringidos por permisos. |
-| HU-15: resultado efectivo o inefectivo | [PR #60](https://github.com/VERA-FEMSA/VERA/pull/60) | Integrado; resultado derivado de evaluación versionada. |
+| HU-26: búsqueda y filtros de auditorías | [PR #55](https://github.com/VERA-GRC-IRM/VERA/pull/55) | Integrado en `main`; búsqueda sobre datos del backend con alcance por rol. |
+| HU-15: hallazgos vinculados a controles y riesgos | [PR #56](https://github.com/VERA-GRC-IRM/VERA/pull/56) | Integrado; metadatos y vínculo persistente optativo. |
+| HU-16: archivos privados de evidencia | [PR #57](https://github.com/VERA-GRC-IRM/VERA/pull/57) | Integrado; bucket privado y descarga autorizada. |
+| HU-17: lectura individual de pendientes | [PR #58](https://github.com/VERA-GRC-IRM/VERA/pull/58) | Integrado; estado de lectura optativo en Supabase. |
+| HU-07/HU-09: hallazgos reales en panel y expediente | [PR #59](https://github.com/VERA-GRC-IRM/VERA/pull/59) | Integrado; conteo y detalle restringidos por permisos. |
+| HU-15: resultado efectivo o inefectivo | [PR #60](https://github.com/VERA-GRC-IRM/VERA/pull/60) | Integrado; resultado derivado de evaluación versionada. |
 
 ## Comprobaciones observadas
 

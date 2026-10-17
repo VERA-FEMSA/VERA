@@ -4,7 +4,7 @@ VERA es un proyecto académico de equipo. Todas las personas con acceso de escri
 
 ## Antes de empezar
 
-1. Revisa [README](README.md), [AGENTS.md](AGENTS.md) y la [Wiki](https://github.com/VERA-FEMSA/VERA/wiki).
+1. Revisa [README](README.md), [AGENTS.md](AGENTS.md) y la [Wiki](https://github.com/VERA-GRC-IRM/VERA/wiki).
 2. Si el cambio corresponde a una historia de usuario, enlaza su identificador de Azure DevOps en el PR. GitHub Issues se usa para defectos o tareas técnicas que no deban duplicar el backlog académico.
 3. Crea una rama desde la versión reciente de `main`. Mantén cada PR enfocado en un resultado que pueda revisarse.
 
@@ -18,7 +18,7 @@ VERA es un proyecto académico de equipo. Todas las personas con acceso de escri
 
 ## Integración
 
-`main` requiere PR, una aprobación de otra persona, conversaciones resueltas y los checks de calidad, navegadores y CodeQL. Cualquier integrante con permisos puede revisar cambios de cualquier área. Los resultados de CI describen ese commit; no sustituyen la revisión funcional con datos y roles reales.
+`main` requiere PR, conversaciones resueltas y cuatro checks: calidad, navegadores, CodeQL y descripción revisable del PR. Cualquier integrante con permisos puede proponer, revisar e integrar cambios de cualquier área, incluso su propio PR cuando pasen los checks. La revisión de otra persona es recomendable cuando el cambio afecta datos, permisos o despliegues, aunque GitHub no la exige. Los resultados de CI describen ese commit; no sustituyen la revisión funcional con datos y roles reales.
 
 Consulta [QUALITY.md](QUALITY.md) para ejecutar las comprobaciones disponibles. No corras pruebas de carga contra producción sin una ventana coordinada.
 
