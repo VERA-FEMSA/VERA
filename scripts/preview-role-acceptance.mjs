@@ -8,7 +8,7 @@ try {
   const url = new URL(candidate);
   if (
     url.protocol !== "https:" ||
-    !/^vera-[a-z0-9]{6,32}-salva-ventures\.vercel\.app$/.test(url.hostname) ||
+    !/^vera-[a-z0-9]{6,32}-(?:salva-ventures|carlos-sanchez-it)\.vercel\.app$/.test(url.hostname) ||
     url.username || url.password || url.port ||
     url.pathname !== "/" || url.search || url.hash
   ) throw new Error("invalid preview origin");

@@ -10,7 +10,7 @@ La vista previa permanece pública por decisión del proyecto. Utiliza únicamen
 
 ## Ejecución reproducible
 
-En GitHub Actions, abrir **Preview role acceptance → Run workflow** e introducir la URL HTTPS generada por Vercel para una vista previa de VERA. El script rechaza la URL de producción, hosts externos, puertos, rutas y parámetros. No pide secretos de GitHub; obtiene las credenciales públicas de demostración del fixture versionado y mantiene los tokens de sesión solo en memoria durante la corrida.
+En GitHub Actions, abrir **Preview role acceptance → Run workflow** e introducir la URL HTTPS generada por Vercel para una vista previa de VERA. El script admite los sufijos verificados `salva-ventures` y `carlos-sanchez-it` del mismo equipo de Vercel (identificador `team_3n1yQmMOuYFhA1ZPrKApnG7w`); rechaza la URL de producción, hosts externos, puertos, rutas y parámetros. No pide secretos de GitHub; obtiene las credenciales públicas de demostración del fixture versionado y mantiene los tokens de sesión solo en memoria durante la corrida.
 
 El workflow escribe un resumen por rol, ruta, código HTTP y duración; conserva el JSON `vera-preview-roles-<run>-<attempt>` durante 14 días. El informe no incluye contraseñas, tokens, cuerpos de respuesta ni listados de usuarios. Si una comprobación falla, el job termina en error.
 
