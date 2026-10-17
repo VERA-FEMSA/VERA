@@ -4,13 +4,13 @@ Esta ficha reúne el texto y la imagen necesarios para completar la tarjeta **Ab
 
 ## Metadatos propuestos
 
-**Descripción** (copiar en About):
+**Descripción** (configurada en About):
 
 > VERA organiza auditorías, riesgos, controles y evidencias para dar seguimiento a decisiones trazables.
 
-**Homepage:** `https://vera-salva-ventures.vercel.app`, si el equipo ratifica que ése es el despliegue principal. Tanto esta URL como `https://vera-figbo.vercel.app` respondieron HTTP 200 al revisar el 16 de octubre de 2026; su disponibilidad no demuestra que compartan datos, configuración o versión. El README enlaza la primera. Conviene mantener una sola URL canónica en About y en la documentación.
+**Homepage del repositorio del equipo:** `https://vera-figbo.vercel.app`. GitHub registró un despliegue de Production del commit `720cef05d2e1c5b16a5552837dbc0c5c3043381e` desde este repositorio y la URL pública respondió HTTP 200 el 17 de octubre de 2026. El README y la Wiki enlazan ese entorno. La instancia `https://vera-salva-ventures.vercel.app` permanece documentada como despliegue independiente; no se presume que comparta datos, configuración o versión con el entorno del equipo.
 
-**Topics:** `grc`, `audit-management`, `risk-management`, `evidence-management`, `react`, `supabase`, `azure-openai`. Son etiquetas descriptivas, no afirmaciones de aceptación funcional.
+**Topics configurados:** `academic-project`, `grc`, `audit-management`, `risk-management`, `evidence-management`, `react`, `supabase`, `azure-openai`. Son etiquetas descriptivas, no afirmaciones de aceptación funcional.
 
 ## Vista previa social
 

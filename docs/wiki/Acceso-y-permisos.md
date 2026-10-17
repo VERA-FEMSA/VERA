@@ -1,6 +1,6 @@
 # Acceso y permisos
 
-La regla vigente se obtiene de [`backend/config/roles.js`](https://github.com/humbertofigb15/VERA/blob/main/backend/config/roles.js), la ruta HTTP y las comprobaciones del recurso en el controlador o servicio. La pantalla puede ocultar una acción, pero eso **no autoriza ni protege** la API. Esta tabla resume conjuntos de roles del código; debe revisarse al cambiar una ruta.
+La regla vigente se obtiene de [`backend/config/roles.js`](https://github.com/VERA-FEMSA/VERA/blob/main/backend/config/roles.js), la ruta HTTP y las comprobaciones del recurso en el controlador o servicio. La pantalla puede ocultar una acción, pero eso **no autoriza ni protege** la API. Esta tabla resume conjuntos de roles del código; debe revisarse al cambiar una ruta.
 
 | Acción del backend | SUPER_ADMIN | DIRECTOR | GERENTE | AUDITOR | JEFATURA |
 | --- | :---: | :---: | :---: | :---: | :---: |
@@ -22,8 +22,8 @@ La regla vigente se obtiene de [`backend/config/roles.js`](https://github.com/hu
 
 ## Cómo revisar un cambio de permisos
 
-1. Lee [roles](https://github.com/humbertofigb15/VERA/blob/main/backend/config/roles.js), [middleware](https://github.com/humbertofigb15/VERA/tree/main/backend/middleware) y la ruta.
+1. Lee [roles](https://github.com/VERA-FEMSA/VERA/blob/main/backend/config/roles.js), [middleware](https://github.com/VERA-FEMSA/VERA/tree/main/backend/middleware) y la ruta.
 2. Revisa la comprobación por ID y asignación en el controlador o servicio; prueba lectura y escritura permitidas y denegadas.
-3. Sincroniza el mensaje y los botones de la interfaz, y documenta la decisión. La [matriz CRUD histórica](https://github.com/humbertofigb15/VERA/blob/main/docs/permissions/hu11-crud-mapping.md) es contexto, no sustituto del código vigente.
+3. Sincroniza el mensaje y los botones de la interfaz, y documenta la decisión. La [matriz CRUD histórica](https://github.com/VERA-FEMSA/VERA/blob/main/docs/permissions/hu11-crud-mapping.md) es contexto, no sustituto del código vigente.
 
 No infieras permiso por el nombre del rol: la configuración actual excluye expresamente a `DIRECTOR` de la aprobación de propuestas y de la escritura de riesgos/controles.

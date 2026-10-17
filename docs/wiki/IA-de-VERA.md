@@ -13,7 +13,7 @@ El asistente de HU-34 ayuda a consultar auditorías, riesgos, controles, hallazg
 | OCR de imagen | Extracción iniciada explícitamente para formatos admitidos cuando hay despliegue Azure compatible con visión. | Un PDF escaneado no se procesa como imagen en el alcance documentado. |
 | Borrador de propuesta | Texto sugerido a partir de un riesgo visible para roles que pueden proponer. | Requiere revisión humana; no crea ni aprueba la propuesta. |
 
-El detalle del flujo y la API está en [Copiloto contextual](https://github.com/humbertofigb15/VERA/blob/main/docs/ai-copilot-evolution.md), [evidencias](https://github.com/humbertofigb15/VERA/blob/main/docs/ai-evidence-content.md) y [borradores confirmados por humanos](https://github.com/humbertofigb15/VERA/blob/main/docs/ai-human-confirmed-drafts.md).
+El detalle del flujo y la API está en [Copiloto contextual](https://github.com/VERA-FEMSA/VERA/blob/main/docs/ai-copilot-evolution.md), [evidencias](https://github.com/VERA-FEMSA/VERA/blob/main/docs/ai-evidence-content.md) y [borradores confirmados por humanos](https://github.com/VERA-FEMSA/VERA/blob/main/docs/ai-human-confirmed-drafts.md).
 
 ## Controles implementados
 
@@ -23,12 +23,12 @@ El detalle del flujo y la API está en [Copiloto contextual](https://github.com/
 4. El historial de conversación es limitado y efímero. Al recargar o cerrar sesión no se conserva.
 5. En producción, la IA requiere almacenes persistentes y `VERA_AI_ENABLED=true`; puede desactivarse por configuración del backend.
 
-Los detalles de configuración, mediciones puntuales y presupuesto de aviso están en el [runbook de Azure OpenAI](https://github.com/humbertofigb15/VERA/blob/main/docs/hu34-azure-openai.md). El presupuesto alerta; no impone un corte automático de consumo.
+Los detalles de configuración, mediciones puntuales y presupuesto de aviso están en el [runbook de Azure OpenAI](https://github.com/VERA-FEMSA/VERA/blob/main/docs/hu34-azure-openai.md). El presupuesto alerta; no impone un corte automático de consumo.
 
 ## Evidencia de calidad de IA
 
-- La [evaluación continua](https://github.com/humbertofigb15/VERA/blob/main/docs/ai-continuous-evaluation.md) ejecuta escenarios sintéticos con respuestas simuladas del proveedor. Es reproducible y no gasta tokens de Azure.
-- Las [corridas manuales](https://github.com/humbertofigb15/VERA/actions/workflows/ai-evaluation.yml) muestran resultado, commit, duración y artefacto JSON/Markdown.
-- La [aceptación en producción](https://github.com/humbertofigb15/VERA/blob/main/docs/ai-production-acceptance.md) es distinta: requiere una cuenta real, entorno identificado, registros autorizados y comparación humana de la respuesta.
+- La [evaluación continua](https://github.com/VERA-FEMSA/VERA/blob/main/docs/ai-continuous-evaluation.md) ejecuta escenarios sintéticos con respuestas simuladas del proveedor. Es reproducible y no gasta tokens de Azure.
+- Las [corridas manuales](https://github.com/VERA-FEMSA/VERA/actions/workflows/ai-evaluation.yml) muestran resultado, commit, duración y artefacto JSON/Markdown.
+- La [aceptación en producción](https://github.com/VERA-FEMSA/VERA/blob/main/docs/ai-production-acceptance.md) es distinta: requiere una cuenta real, entorno identificado, registros autorizados y comparación humana de la respuesta.
 
 **Interpretación correcta:** un check verde detecta regresiones de los contratos ensayados; no certifica exactitud general, ausencia de filtraciones ni que el despliegue actual use la misma configuración.
