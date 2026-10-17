@@ -9,6 +9,7 @@ on:
       - VERA — Calidad y pruebas completas
       - AI continuous evaluation
     types: [completed]
+    branches: [main]
   push:
     branches: [main]
     paths:
