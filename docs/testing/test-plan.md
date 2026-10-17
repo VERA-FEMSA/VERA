@@ -47,6 +47,12 @@ Cada PR debe incluir solo pruebas de comportamiento que correspondan a funciones
 4. Las correcciones tienen re-ejecución de caso y regresión relacionada.
 5. La matriz TC/RF/RNF refleja el estado real, con vínculo a archivos de prueba o evidencia manual.
 
+## Pisos automáticos de regresión
+
+El control obligatorio `Quality gates (Node.js 22)` exige cobertura backend mínima de **90 % de líneas, 75 % de ramas y 90 % de funciones**. Los pisos se fijaron por debajo de la línea base de CI observada el 17 de octubre de 2026 (96.46 %, 82.58 % y 95.77 %, respectivamente) y de una ejecución local con Node 25 (94.41 %, 78.39 % y 94.43 %). La instrumentación produce cifras distintas entre versiones; se comparan tendencias del mismo runtime de CI. Si falta la medición, el control falla. Todo cambio debe conservar pruebas de los caminos afectados aunque supere los pisos globales; el frontend no tiene una métrica de cobertura equivalente en este reporte.
+
+El mismo control ejecuta los 20 escenarios sintéticos de IA sin red ni llamadas a Azure. El workflow manual de evaluación conserva el informe detallado independiente. Ninguna de estas pruebas demuestra la calidad de las respuestas del modelo desplegado, la persistencia ni los permisos de producción.
+
 ## Prioridad y criterios no funcionales
 
 La prioridad inicial respeta la evaluación de riesgo entregada: alta para autenticación/roles/permisos, ciclo de auditoría y estados/riesgos, además de concurrencia; media para evidencia/notificaciones, búsqueda/filtros/exportación y compatibilidad. Seguridad de acceso permanece alta aunque una pantalla particular esté clasificada como funcional.
