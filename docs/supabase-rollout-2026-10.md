@@ -3,7 +3,7 @@
 ## Entorno y alcance
 
 - Proyecto Supabase del equipo: `VERA`, referencia `rsrsycokfdypliepcxgi`.
-- Repositorio: `humbertofigb15/VERA`; código de la octava migración en `5cc0580` (`main`).
+- Repositorio al momento de esta bitácora: `humbertofigb15/VERA` (hoy `VERA-FEMSA/VERA`); código de la octava migración en `5cc0580` (`main`).
 - Ejecución: CLI de Supabase desde una terminal local autenticada, con migraciones versionadas del repositorio. Ninguna clave o contraseña se guarda en este informe.
 - Esta bitácora registra la **preparación de la base y una lectura integrada local**. No representa la activación de los modos persistentes en Vercel.
 

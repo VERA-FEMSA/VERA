@@ -1,6 +1,6 @@
 # VERA · Centro de conocimiento
 
-<img src="https://raw.githubusercontent.com/humbertofigb15/VERA/main/docs/assets/social-preview.png" alt="VERA: decisiones con fundamento. Tres planos en perspectiva representan propuesta, decisión y evidencia." width="960">
+<img src="https://raw.githubusercontent.com/VERA-FEMSA/VERA/main/docs/assets/social-preview.png" alt="VERA: decisiones con fundamento. Tres planos en perspectiva representan propuesta, decisión y evidencia." width="960">
 
 **Una sola vista del recorrido de auditoría.** Explora el producto, la arquitectura, los permisos, la operación y la evidencia de calidad sin perder el contexto de cada decisión. Esta Wiki está organizada para docentes, usuarios de negocio y personas que construyen u operan VERA.
 
