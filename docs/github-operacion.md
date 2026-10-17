@@ -12,6 +12,8 @@ Esta guía complementa las HU de Azure DevOps. GitHub conserva código, cambios 
 
 El [ruleset de main](https://github.com/VERA-FEMSA/VERA/rules/25312937) exige estos pasos, impide force push y protege la rama contra borrado. Ningún archivo está reservado a una persona o equipo.
 
+La plantilla `.github/pull_request_template.md` aparece al abrir un PR en GitHub. El workflow `PR documentation` comprueba sus cuatro secciones y una fila de verificación en PR humanos listos para revisión; omite borradores y PR de bots. Solo lee metadatos del PR y el código de la rama base: no ejecuta archivos propuestos ni llama a un modelo. Al integrarse este workflow se observará en PR futuros; no se añade a los checks obligatorios del ruleset hasta comprobar su operación en `main`.
+
 ## Calidad y seguridad
 
 - [QUALITY.md](../QUALITY.md) explica la ejecución local y el alcance de cada gate. La [matriz de aceptación](hu-acceptance-audit.md) separa implementación, CI y validación remota.
