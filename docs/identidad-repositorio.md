@@ -14,11 +14,11 @@ Esta ficha reúne el texto y la imagen necesarios para completar la tarjeta **Ab
 
 ## Vista previa social
 
-- Archivo listo para subir: [`docs/assets/social-preview.png`](assets/social-preview.png), 1280 × 640 píxeles.
+- Archivo publicado en Social preview: [`docs/assets/social-preview.png`](assets/social-preview.png), 1280 × 640 píxeles.
 - Fuente editable: [`docs/assets/social-preview.svg`](assets/social-preview.svg).
 - Se compone del isotipo oficial, texto editorial y planos vectoriales en perspectiva. Los planos representan etapas del expediente; no simulan una pantalla, no contienen datos reales y no acreditan funcionalidad.
 - El README carga el SVG para mantener la nitidez; la Wiki usa el PNG para una vista consistente. Ambos muestran la misma composición y tienen texto alternativo.
-- Una persona con permiso de administración puede cargar el PNG en **Settings → Social preview**. GitHub recomienda 1280 × 640 píxeles y un archivo menor a 1 MB.
+- El PNG se cargó en **Settings → Social preview** el 17 de octubre de 2026 y se comprobó visualmente en la configuración del repositorio. GitHub recomienda 1280 × 640 píxeles y un archivo menor a 1 MB.
 
 La identidad visual usa volumen y profundidad con la paleta azul y verde de VERA. La portada es una pieza de comunicación, no un sustituto de las pruebas, la aplicación ni el estado de aceptación de las HU.
 
