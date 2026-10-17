@@ -9,7 +9,9 @@ Esta página es la entrada corta para revisar VERA **sin instalar nada**. La evi
 | Informe integral | **PASS**, duración total observada **363 s** | [Corrida #39059538661](https://github.com/VERA-FEMSA/VERA/actions/runs/39059538661) |
 | Backend y calidad | **111/111** pruebas; **0** vulnerabilidades altas o críticas en la auditoría npm de esa corrida | *Summary* y artefacto de la misma corrida |
 | Interfaz y accesibilidad | **186** casos aprobados; 0 fallidos, 0 inestables y 0 omitidos, con navegadores y tamaños configurados | *Summary*, logs y trazas de la misma corrida |
-| CodeQL | El análisis terminó correctamente. **Había 46 ubicaciones abiertas** de `js/missing-rate-limiting` en `main` al corte. | [Security](https://github.com/VERA-FEMSA/VERA/security/code-scanning) y [corrección propuesta en PR #97](https://github.com/VERA-FEMSA/VERA/pull/97) |
+| CodeQL | El análisis terminó correctamente. **Había 46 ubicaciones abiertas** de `js/missing-rate-limiting` en `main` al corte. | [Security](https://github.com/VERA-FEMSA/VERA/security/code-scanning) y [corrección integrada mediante PR #97](https://github.com/VERA-FEMSA/VERA/pull/97) |
+
+**Actualización posterior:** el [PR #97](https://github.com/VERA-FEMSA/VERA/pull/97) se integró en `main`. El [CodeQL de ese commit](https://github.com/VERA-FEMSA/VERA/actions/runs/39061317593) terminó correctamente y la API de alertas mostraba **0 abiertas** tras el análisis. La fila de 46 ubicaciones describe solo el corte histórico de `720cef05d2e1`. La alerta de secreto se revisa por separado.
 
 El artefacto de la corrida conserva JSON, Markdown, logs e informe de navegador durante **30 días**. La cifra de duración individual mostrada para CodeQL en esa ejecución incluía la espera de otras fases; no debe presentarse como latencia del análisis. El [PR #95](https://github.com/VERA-FEMSA/VERA/pull/95) corrige el cronómetro de próximas corridas.
 
