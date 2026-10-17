@@ -12,6 +12,7 @@
 | --- | --- | --- |
 | Entender la solución en 5 minutos | [Producto y flujos](https://github.com/VERA-GRC-IRM/VERA/wiki/Producto-y-flujos) | [Módulos y HU](https://github.com/VERA-GRC-IRM/VERA/wiki/Modulos-y-HU) |
 | Evaluar al equipo sin instalar software | [Portal público de calidad](https://vera-grc-irm.github.io/VERA/) | [Calidad y pruebas](https://github.com/VERA-GRC-IRM/VERA/wiki/Calidad-y-pruebas) |
+| Entender la organización y sus controles | [Gobierno de GitHub](https://github.com/VERA-GRC-IRM/VERA/wiki/Gobierno-de-GitHub) | [Estado de calidad](https://github.com/VERA-GRC-IRM/VERA/wiki/Estado-de-calidad) |
 | Comprender cómo funciona | [Arquitectura](https://github.com/VERA-GRC-IRM/VERA/wiki/Arquitectura) | [Datos y Supabase](https://github.com/VERA-GRC-IRM/VERA/wiki/Datos-y-Supabase) |
 | Revisar quién puede hacer qué | [Acceso y permisos](https://github.com/VERA-GRC-IRM/VERA/wiki/Acceso-y-permisos) | [Política vigente en código](https://github.com/VERA-GRC-IRM/VERA/blob/main/backend/config/roles.js) |
 | Conocer la IA | [IA de VERA](https://github.com/VERA-GRC-IRM/VERA/wiki/IA-de-VERA) | [Evaluación continua](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/ai-continuous-evaluation.md) |
