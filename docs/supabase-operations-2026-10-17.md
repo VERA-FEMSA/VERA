@@ -35,6 +35,8 @@ La exigencia de SSL provoca un reinicio breve de Postgres al aplicarse. No se al
 
 ## Evidencia reproducible sin secretos
 
+La [verificación operativa posterior](testing/production-verification-2026-10-17.md) comprobó 14 migraciones, privilegios SQL, un evento sintético escrito por el backend desplegado y el cierre documentado de la alerta histórica. Las brechas de despliegue, staging y restauración permanecen explícitas allí. Las decisiones y alertas de esta sección reflejan el momento de la revisión inicial.
+
 ```text
 supabase ssl-enforcement get --project-ref rsrsycokfdypliepcxgi --experimental
 {"currentConfig":{"database":true},"appliedSuccessfully":true,"message":""}
