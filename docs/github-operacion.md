@@ -17,7 +17,7 @@ El [ruleset de main](https://github.com/VERA-FEMSA/VERA/rules/25312937) exige es
 - [QUALITY.md](../QUALITY.md) explica la ejecución local y el alcance de cada gate. La [matriz de aceptación](hu-acceptance-audit.md) separa implementación, CI y validación remota.
 - CodeQL puede terminar correctamente y dejar alertas abiertas. Clasifica cada alerta con ruta, regla, exposición y evidencia; corrige o descarta solo con una razón técnica registrada.
 - Secret scanning y push protection están activados. Una alerta de secreto exige revocación o rotación en el proveedor: borrar el archivo actual no invalida el valor del historial.
-- Dependabot abre PR de versiones y de seguridad. Las actualizaciones mayores requieren revisar compatibilidad; no se fusionan solo por mostrar checks verdes.
+- Dependabot abre PR de versiones y de seguridad. Las versiones menores y parches futuros se agrupan por ecosistema para concentrar la revisión; las actualizaciones mayores permanecen individuales. Las actualizaciones mayores requieren revisar compatibilidad; no se fusionan solo por mostrar checks verdes. Los PR ya abiertos pueden conservar su forma anterior hasta la siguiente ejecución de Dependabot.
 - Las acciones usadas en workflows se fijan a SHA. Los permisos predeterminados de los workflows son de lectura; cada workflow declara los permisos adicionales indispensables.
 
 ## Entornos y publicación
