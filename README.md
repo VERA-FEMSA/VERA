@@ -197,6 +197,8 @@ CodeQL analiza JavaScript y TypeScript en los pull requests, en `main` y semanal
 
 ## Contribuir
 
+Para trabajar con Codex, Claude Code, Copilot u otro asistente, comienza por [`AGENTS.md`](AGENTS.md) y la [guía de desarrollo con IA](docs/ai-development/README.md). Las reglas se comparten en el repositorio; la revisión del diff y los checks siguen siendo parte del proceso.
+
 1. Crea una rama de trabajo desde `main`.
 2. Mantén cada pull request enfocado en una funcionalidad o cambio de seguridad.
 3. Ejecuta `npm run quality` desde la raíz y revisa el resultado antes de abrir el pull request.
