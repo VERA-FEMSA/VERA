@@ -2,6 +2,8 @@
 
 Estas reglas aplican al repositorio completo. Son acuerdos del equipo para Codex, Claude, Copilot y cualquier asistente con acceso al checkout. Una instrucción concreta de la persona responsable de la tarea prevalece sobre esta guía. Lee también [la guía de desarrollo con IA](docs/ai-development/README.md) cuando necesites el mapa del proyecto o preparar un PR.
 
+Antes de editar dentro de `backend/`, `frontend/`, `supabase/` o `.github/`, lee el `AGENTS.md` de ese directorio aunque hayas iniciado el asistente desde la raíz. Esas reglas añaden contexto del área y no sustituyen esta guía.
+
 ## Entender antes de editar
 
 1. Lee la petición, `git status`, los archivos afectados, sus pruebas y la documentación relacionada. Delimita qué cambia y qué queda fuera.
@@ -30,7 +32,7 @@ Estas reglas aplican al repositorio completo. Son acuerdos del equipo para Codex
 
 - Para cambios de backend, ejecuta las pruebas pertinentes de `backend/tests/`; para frontend, revisa lint/build y los casos `frontend/e2e/` afectados. Antes de un PR de código, usa `npm run quality` desde la raíz cuando el entorno lo permita. No presentes una prueba no ejecutada como aprobada.
 - Si cambias una API, un rol o persistencia, revisa juntos controlador, repositorio, cliente frontend, pruebas y documentación. Si falta alguno, explica por qué.
-- En el PR indica alcance, archivos principales, reglas de acceso y datos afectadas, comandos ejecutados con resultado y duración, riesgos y verificaciones pendientes. Separa evidencia local, CI y producción.
+- En el PR indica alcance, archivos principales, reglas de acceso y datos afectados, comandos ejecutados con resultado y duración, riesgos y verificaciones pendientes. Separa evidencia local, CI y producción.
 - No declares una HU “100 %”, una integración real o un despliegue correcto basándote solo en mocks, una captura, una etiqueta de Azure DevOps o un check verde.
 
 ## Code Review Rules

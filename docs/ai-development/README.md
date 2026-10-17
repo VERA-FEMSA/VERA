@@ -9,8 +9,12 @@ El repositorio comparte contexto y reglas de trabajo, **no entrena ni modifica e
 | [`AGENTS.md`](../../AGENTS.md) | Reglas compartidas, invariantes y criterios de revisión | Fuente principal; mantener breve y verificable |
 | [`CLAUDE.md`](../../CLAUDE.md) | Importa `AGENTS.md` en Claude Code | No duplicar reglas |
 | [`.github/copilot-instructions.md`](../../.github/copilot-instructions.md) | Entrada breve para Copilot Chat y revisión | Repetir solo las reglas críticas |
+| `backend/AGENTS.md`, `frontend/AGENTS.md`, `supabase/AGENTS.md`, `.github/AGENTS.md` | Reglas específicas del área | Mantenerlas junto al código que describen |
+| [`.github/instructions/`](../../.github/instructions/) | Selección por ruta para Copilot | Remitir a los `AGENTS.md` del área |
 | Esta página | Mapa, flujo y ejemplos para el equipo | Actualizar si cambian arquitectura o comandos |
 | [Plantilla de PR](../../.github/pull_request_template.md) | Evidencia mínima para revisión humana | Ajustar cuando cambie el proceso |
+
+`CLAUDE.md` importa los `AGENTS.md` de las cuatro áreas para que Claude Code los vea aunque se inicie en la raíz. Copilot selecciona sus instrucciones por ruta. En Codex, las instrucciones anidadas dependen del directorio de trabajo inicial; por eso el `AGENTS.md` raíz indica abrir explícitamente el archivo del área antes de editar. La [ficha de tarea](task-brief.md) ayuda a dar una petición completa; la [comprobación de preparación](agent-readiness.md) permite evaluar el comportamiento observable del asistente antes de darle trabajo de escritura.
 
 La estructura sigue las guías oficiales de [Codex sobre `AGENTS.md`](https://learn.chatgpt.com/docs/agent-configuration/agents-md), [Claude Code sobre memoria de proyecto](https://code.claude.com/docs/en/memory) y [GitHub Copilot sobre instrucciones de repositorio](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/add-custom-instructions/add-repository-instructions).
 
