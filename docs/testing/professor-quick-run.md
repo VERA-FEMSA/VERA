@@ -3,7 +3,7 @@
 ## Para revisar resultados sin instalar nada
 
 1. Abre [Ejecución completa de calidad y pruebas en GitHub Actions](https://github.com/humbertofigb15/VERA/actions/workflows/classroom-quality.yml).
-2. Entra a la ejecución más reciente, abre **Summary** y revisa resultado, commit, cantidad de pruebas y tiempos.
+2. Entra a la ejecución más reciente, abre **Summary** y revisa resultado, commit, cantidad de pruebas y tiempos. Si está en rojo, lee el paso fallido; no la presentes como aprobada.
 3. Si necesitas los logs detallados, el HTML de Playwright, las capturas, las trazas o los archivos JSON/Markdown, abre el artefacto de esa misma ejecución. El workflow lo conserva durante 30 días.
 
 No hace falta clonar el repositorio, instalar Node, descargar navegadores ni ejecutar comandos localmente para revisar el resultado.
@@ -12,8 +12,8 @@ No hace falta clonar el repositorio, instalar Node, descargar navegadores ni eje
 
 Pulsa **Run workflow** en esa página. GitHub ejecuta en una sola corrida:
 
-- Calidad backend/frontend, 35 pruebas unitarias/de integración actuales, cobertura, lint, build y auditoría de dependencias.
-- 54 ejecuciones E2E actuales repartidas entre Chromium, Chrome, Edge, Firefox y perfiles emulados de móvil/tablet, incluido axe para login y panel.
+- Calidad backend/frontend, pruebas unitarias y de integración, cobertura, lint, build y auditoría de dependencias. El número ejecutado se lee en la corrida, porque la suite cambia con el código.
+- E2E en Chromium, Chrome, Edge, Firefox y perfiles emulados de móvil/tablet, incluida accesibilidad con axe en flujos seleccionados. El número de casos se lee en la corrida.
 - CodeQL para JavaScript/TypeScript.
 
 La ejecución publica un resumen ejecutivo en la pestaña **Summary** y un solo artefacto con bitácora y evidencia. También se genera automáticamente cada lunes.

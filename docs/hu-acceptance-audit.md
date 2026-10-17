@@ -2,6 +2,8 @@
 
 Revisión del código en `main` y de las capturas de Azure DevOps compartidas por el equipo, actualizada el 16 de octubre de 2026. El estado “Resolved” en Azure DevOps no prueba por sí solo que todos los criterios se cumplan en el despliegue. La base de datos Supabase tiene migraciones, pero los almacenes persistentes son optativos y no se ha verificado la configuración del despliegue de Vercel.
 
+> **Corte histórico:** la frase anterior describe la revisión y el despliegue accesibles en esa fecha, no todos los entornos posteriores. El [runbook de HU-34](hu34-azure-openai.md) documenta una instancia propia con Supabase y Azure configurados y una comprobación remota puntual. Esa comprobación no cierra por sí sola la aceptación funcional de todas las HU con cuentas reales y criterios completos.
+
 | HU | Evidencia implementada en el repositorio | Pendiente para afirmar aceptación completa |
 | --- | --- | --- |
 | 07 Panel principal | `GET /api/dashboard`, métricas y pendientes según rol; KPI de hallazgos abiertos vinculados a auditorías visibles, con alcance del riesgo para Auditoría; pruebas unitarias e integración. | Verificar datos persistentes en el entorno desplegado y contrastar todos los criterios de Azure DevOps. |
