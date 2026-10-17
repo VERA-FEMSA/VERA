@@ -2,6 +2,8 @@
 
 **Corte:** 17 de octubre de 2026, `main` en `ac253fee98417f08a2e0390a38e4f803eafa83c1`. Este documento es un mapa de verificación, no una certificación. Consulta el [portal dinámico](https://vera-grc-irm.github.io/VERA/) y las [alertas de Security](https://github.com/VERA-GRC-IRM/VERA/security) antes de reutilizar una cifra.
 
+**Actualización posterior:** la [verificación operativa del 17 de octubre](production-verification-2026-10-17.md) registra una escritura sintética de auditoría en Supabase desde la aplicación publicada, la alerta histórica cerrada como clave revocada y los límites vigentes de despliegue, carga, recuperación y accesibilidad. La tabla siguiente conserva el estado del corte original.
+
 ## Línea base comprobada
 
 La [corrida integral del corte](https://github.com/VERA-GRC-IRM/VERA/actions/runs/39065155452) terminó PASS en 273 s: 111/111 pruebas backend, 186/186 casos de navegador, CodeQL aprobado y 0 vulnerabilidades altas/críticas en la auditoría npm. La cobertura backend fue 96.46 % de líneas, 82.58 % de ramas y 95.77 % de funciones. La [evaluación sintética de IA](https://github.com/VERA-GRC-IRM/VERA/actions/runs/39065160258) aprobó 20/20 casos sin llamadas al modelo. Estas cifras prueban el alcance de esas suites en ese SHA; los E2E usan respuestas API controladas.
