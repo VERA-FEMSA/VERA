@@ -1,16 +1,12 @@
 # VERA · Centro de conocimiento
 
-<img src="https://raw.githubusercontent.com/humbertofigb15/VERA/main/frontend/public/vera-logo.png" alt="Isotipo VERA" width="112">
+<img src="https://raw.githubusercontent.com/humbertofigb15/VERA/main/docs/assets/social-preview.png" alt="VERA: decisiones con fundamento. Tres planos en perspectiva representan propuesta, decisión y evidencia." width="960">
 
-**Verificación, evidencia, riesgo y auditoría.** Esta Wiki conecta la experiencia del producto con sus decisiones de diseño, controles técnicos y evidencia de calidad. Está escrita para docentes, usuarios de negocio, personas desarrolladoras y responsables de operación.
-
-<img src="https://raw.githubusercontent.com/humbertofigb15/VERA/main/docs/assets/planificacion-demo.png" alt="Vista real del módulo Planificación con indicadores y una propuesta abierta; datos de demostración" width="760">
-
-*Vista real de Planificación compartida por el equipo · datos de demostración.*
+**Una sola vista del recorrido de auditoría.** Explora el producto, la arquitectura, los permisos, la operación y la evidencia de calidad sin perder el contexto de cada decisión. Esta Wiki está organizada para docentes, usuarios de negocio y personas que construyen u operan VERA.
 
 > **Cómo leer el estado:** VERA es un prototipo académico en evolución. «Implementado en código», «aprobado en CI» y «aceptado en producción» son afirmaciones distintas. Consulta [Estado y evidencias](https://github.com/humbertofigb15/VERA/wiki/Modulos-y-HU) antes de cerrar una HU.
 
-## Elige tu recorrido
+## Empieza por lo que necesitas
 
 | Si quieres... | Empieza aquí | Después |
 | --- | --- | --- |
@@ -22,7 +18,7 @@
 | Desarrollar o desplegar | [Contribuir](https://github.com/humbertofigb15/VERA/wiki/Contribuir) | [Operación y despliegue](https://github.com/humbertofigb15/VERA/wiki/Operacion-y-despliegue) |
 | Encontrar un documento técnico | [Biblioteca de runbooks](https://github.com/humbertofigb15/VERA/wiki/Biblioteca-de-runbooks) | [Glosario](https://github.com/humbertofigb15/VERA/wiki/Glosario) |
 
-## La idea en una frase
+## Cómo se conecta todo
 
 VERA reúne propuesta, decisión, auditoría, riesgo, control, evidencia y seguimiento en un mismo recorrido, con datos visibles según los permisos del usuario.
 
@@ -36,7 +32,7 @@ flowchart LR
   E --> S[Seguimiento]
 ```
 
-## Enlaces directos
+## Accesos directos
 
 - [Repositorio y README](https://github.com/humbertofigb15/VERA) · [Aplicación publicada](https://vera-salva-ventures.vercel.app) — requiere cuenta de VERA.
 - [Workflow integral para docentes](https://github.com/humbertofigb15/VERA/actions/workflows/classroom-quality.yml) · [PR fusionados](https://github.com/humbertofigb15/VERA/pulls?q=is%3Apr+is%3Amerged).

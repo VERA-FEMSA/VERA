@@ -1,9 +1,8 @@
-<p align="center"><img src="frontend/public/vera-logo.svg" alt="Isotipo VERA: V azul marino con marca verde" width="132"></p>
+<p align="center"><img src="docs/assets/social-preview.svg" alt="VERA: decisiones con fundamento. Tres planos en perspectiva representan propuesta, decisión y evidencia." width="1080"></p>
 
-<h1 align="center">VERA</h1>
+<h1 align="center">VERA · auditoría, riesgo y evidencia</h1>
 
-<p align="center"><strong>De la propuesta de auditoría a la decisión respaldada por evidencia.</strong></p>
-<p align="center">Portafolio · riesgos · controles · evidencias · seguimiento</p>
+<p align="center">Un recorrido verificable desde la propuesta hasta el seguimiento.</p>
 
 <p align="center">
   <img src="https://github.com/humbertofigb15/VERA/actions/workflows/quality.yml/badge.svg?branch=main" alt="Estado de calidad en main">
@@ -19,9 +18,6 @@
 </p>
 
 > **Estado del proyecto.** VERA es un prototipo académico con código funcional y pruebas automatizadas. La aplicación publicada exige una cuenta de VERA; el acceso universitario o a Azure DevOps no inicia sesión automáticamente. Un check verde acredita la verificación indicada, no la aceptación de todas las historias en producción. [Estado y límites por HU](docs/hu-acceptance-audit.md).
-
-<p align="center"><img src="docs/assets/planificacion-demo.png" alt="Vista real del módulo Planificación con indicadores, una propuesta abierta y navegación de VERA; datos de demostración" width="960"></p>
-<p align="center"><sub>Vista real de Planificación compartida por el equipo · datos de demostración</sub></p>
 
 ## VERA en un minuto
 

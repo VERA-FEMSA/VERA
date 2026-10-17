@@ -1,34 +1,56 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
-  <title id="title">VERA · Auditoría, riesgos y evidencia</title>
-  <desc id="description">Portada de VERA con su isotipo oficial y una descripción breve del producto.</desc>
+  <title id="title">VERA · Decisiones de auditoría respaldadas por evidencia</title>
+  <desc id="description">Portada editorial de VERA: identidad oficial, mensaje del producto y tres planos en perspectiva que representan propuesta, decisión y evidencia.</desc>
   <defs>
-    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#081b36"/>
-      <stop offset="1" stop-color="#0c3151"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#22b758"/>
-      <stop offset="1" stop-color="#2adab8"/>
-    </linearGradient>
+    <linearGradient id="canvas" x2="1" y2="1"><stop stop-color="#071A32"/><stop offset=".58" stop-color="#0B2742"/><stop offset="1" stop-color="#103950"/></linearGradient>
+    <linearGradient id="planeBack" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#234964" stop-opacity=".76"/><stop offset="1" stop-color="#17364F" stop-opacity=".66"/></linearGradient>
+    <linearGradient id="planeMid" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#345E70" stop-opacity=".88"/><stop offset="1" stop-color="#174056" stop-opacity=".75"/></linearGradient>
+    <linearGradient id="planeFront" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E9F4F3" stop-opacity=".94"/><stop offset="1" stop-color="#A6CBCB" stop-opacity=".83"/></linearGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#25BD73"/><stop offset="1" stop-color="#82D8BC"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-40%" width="170%" height="190%"><feGaussianBlur stdDeviation="22"/></filter>
+    <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse"><path d="M44 0H0V44" fill="none" stroke="#8AB7C1" stroke-opacity=".095"/></pattern>
   </defs>
+  <rect width="1280" height="640" fill="url(#canvas)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+  <path d="M0 608C241 556 430 579 633 640H0Z" fill="#08253D" opacity=".62"/>
+  <path d="M0 1H1280M0 639H1280" stroke="#8AB7C1" stroke-opacity=".14"/>
 
-  <rect width="1280" height="640" fill="url(#background)"/>
-  <path d="M0 504 L1280 166" fill="none" stroke="#19476a" stroke-width="1" opacity=".75"/>
-  <path d="M0 566 L1280 228" fill="none" stroke="#19476a" stroke-width="1" opacity=".45"/>
-  <circle cx="1110" cy="100" r="236" fill="#155473" opacity=".16"/>
-
-  <rect x="74" y="118" width="344" height="404" rx="38" fill="#ffffff"/>
-  <rect x="75" y="119" width="342" height="402" rx="37" fill="none" stroke="#dce9ed" stroke-width="2"/>
-  <svg x="112" y="166" width="270" height="270" viewBox="114 54 214 214" aria-hidden="true">
+  <!-- El isotipo conserva los trazos del archivo oficial frontend/public/vera-logo.svg. -->
+  <rect x="72" y="68" width="92" height="92" rx="22" fill="#F6FAFA"/>
+  <svg x="83" y="78" width="72" height="72" viewBox="114 54 214 214" aria-hidden="true">
     <path fill="#0A2247" d="M121 91 L160 91 Q166 91 169 96 L230 191 Q234 197 238 192 L273 150 L278 153 L224 237 Q215 249 206 234 Z"/>
     <path fill="#22B758" d="M211 151 L227 151 Q230 151 232 153 L240 162 L320 79 L235 191 Z"/>
   </svg>
-  <rect x="154" y="468" width="184" height="5" rx="2.5" fill="url(#accent)"/>
+  <text x="190" y="132" fill="#F6FAFA" font-family="Arial, Helvetica, sans-serif" font-size="57" font-weight="700" letter-spacing="3">VERA</text>
+  <text x="72" y="222" fill="#83DAB2" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" letter-spacing="4">GOBIERNO DE AUDITORÍA</text>
+  <text x="68" y="317" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="61" font-weight="700" letter-spacing="-2">Decisiones</text>
+  <text x="68" y="386" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="61" font-weight="700" letter-spacing="-2">con fundamento.</text>
+  <rect x="72" y="418" width="458" height="3" rx="1.5" fill="url(#rule)"/>
+  <text x="72" y="468" fill="#D1E2E7" font-family="Arial, Helvetica, sans-serif" font-size="22">De la propuesta al seguimiento,</text>
+  <text x="72" y="498" fill="#D1E2E7" font-family="Arial, Helvetica, sans-serif" font-size="22">con evidencia en cada paso.</text>
+  <text x="72" y="580" fill="#90B9C1" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="2">PROPUESTA    ·    DECISIÓN    ·    EVIDENCIA    ·    SEGUIMIENTO</text>
 
-  <text x="482" y="160" fill="#71e2aa" font-family="Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="6">PLATAFORMA DE GESTIÓN</text>
-  <text x="474" y="313" fill="#ffffff" font-family="Arial, sans-serif" font-size="142" font-weight="700" letter-spacing="2">VERA</text>
-  <rect x="482" y="341" width="647" height="4" rx="2" fill="url(#accent)"/>
-  <text x="482" y="404" fill="#f6fbff" font-family="Arial, sans-serif" font-size="42" font-weight="600">Auditoría y riesgo,</text>
-  <text x="482" y="457" fill="#f6fbff" font-family="Arial, sans-serif" font-size="42" font-weight="600">con decisiones trazables.</text>
-  <text x="482" y="534" fill="#b7cfd9" font-family="Arial, sans-serif" font-size="21" font-weight="600" letter-spacing="3">PORTAFOLIO  ·  CONTROLES  ·  EVIDENCIAS  ·  IA</text>
+  <!-- Planos en perspectiva: metáfora editorial del expediente, no captura del producto. -->
+  <ellipse cx="979" cy="489" rx="262" ry="65" fill="#00101C" opacity=".58" filter="url(#shadow)"/>
+  <path d="M716 162L1059 77L1242 205L899 290Z" fill="url(#planeBack)" stroke="#6EABB3" stroke-opacity=".55" stroke-width="2"/>
+  <path d="M899 290L1242 205V229L899 314Z" fill="#0A283E" stroke="#6EABB3" stroke-opacity=".3"/>
+  <path d="M716 162L899 290V314L716 185Z" fill="#1E4D5C" opacity=".7"/>
+  <path d="M755 166L1057 92M784 184L1084 110M814 204L1111 128" stroke="#A9D2CF" stroke-opacity=".21" stroke-width="2"/>
+  <circle cx="1062" cy="165" r="15" fill="none" stroke="#A0DAD0" stroke-opacity=".8" stroke-width="3"/>
+  <circle cx="1062" cy="165" r="4" fill="#B4E2D7"/>
+
+  <path d="M683 277L1026 192L1209 320L866 405Z" fill="url(#planeMid)" stroke="#87C4BF" stroke-opacity=".85" stroke-width="2"/>
+  <path d="M866 405L1209 320V347L866 432Z" fill="#0C3448" stroke="#64B3AF" stroke-opacity=".48" stroke-width="2"/>
+  <path d="M683 277L866 405V432L683 302Z" fill="#2C6571" opacity=".75"/>
+  <path d="M725 280L1028 207M754 299L1055 225M784 319L1082 243" stroke="#B2DDD7" stroke-opacity=".31" stroke-width="2"/>
+  <path d="M929 301L1032 275L1087 313L984 340Z" fill="none" stroke="#AFDBD2" stroke-opacity=".75" stroke-width="2"/>
+  <circle cx="984" cy="320" r="8" fill="#6AD3A5"/>
+
+  <path d="M652 402L995 317L1178 445L835 530Z" fill="url(#planeFront)" stroke="#E9FFFF" stroke-opacity=".95" stroke-width="2"/>
+  <path d="M835 530L1178 445V475L835 560Z" fill="#4B878A" stroke="#DCF6F1" stroke-opacity=".65" stroke-width="2"/>
+  <path d="M652 402L835 530V560L652 432Z" fill="#77B5B3"/>
+  <path d="M719 415L841 383M735 437L888 399M753 457L935 412" stroke="#285568" stroke-opacity=".48" stroke-width="4" stroke-linecap="round"/>
+  <path d="M939 423L978 449L1048 376" fill="none" stroke="#1AAB67" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="995" cy="421" r="75" fill="none" stroke="#196A71" stroke-opacity=".27" stroke-width="2"/>
+  <path d="M709 553L784 606H1105L1179 476" fill="none" stroke="#5BB1A2" stroke-opacity=".2" stroke-width="2"/>
 </svg>
