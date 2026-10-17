@@ -9,6 +9,27 @@ const checks = [
   { path: "/api/assistant/status", expectedStatus: 401 },
 ];
 
+function reportableStatus(status) {
+  // Only fixed labels enter the artifact; never persist remote response data.
+  switch (status) {
+    case 200: return "200";
+    case 301: return "301";
+    case 302: return "302";
+    case 307: return "307";
+    case 308: return "308";
+    case 400: return "400";
+    case 401: return "401";
+    case 403: return "403";
+    case 404: return "404";
+    case 429: return "429";
+    case 500: return "500";
+    case 502: return "502";
+    case 503: return "503";
+    case 504: return "504";
+    default: return "other";
+  }
+}
+
 const results = [];
 for (const check of checks) {
   const started = performance.now();
@@ -22,18 +43,18 @@ for (const check of checks) {
     results.push({
       path: check.path,
       expectedStatus: check.expectedStatus,
-      status: response.status,
+      status: reportableStatus(response.status),
       durationMs: Math.round(performance.now() - started),
       passed: response.status === check.expectedStatus,
     });
-  } catch (error) {
+  } catch {
     results.push({
       path: check.path,
       expectedStatus: check.expectedStatus,
       status: null,
       durationMs: Math.round(performance.now() - started),
       passed: false,
-      error: error instanceof Error ? error.name : "UnknownError",
+      error: "RequestError",
     });
   }
 }
