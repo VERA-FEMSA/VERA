@@ -12,6 +12,12 @@ Esta guía complementa las HU de Azure DevOps. GitHub conserva código, cambios 
 
 El [ruleset de main](https://github.com/VERA-GRC-IRM/VERA/rules/25312937) exige estos pasos, impide force push y protege la rama contra borrado. Ningún archivo está reservado a una persona o equipo.
 
+## GitHub y Azure DevOps
+
+El código y sus PR tienen una sola fuente de verdad: [VERA-GRC-IRM/VERA](https://github.com/VERA-GRC-IRM/VERA). Las HU y su estado viven en [Azure Boards del proyecto FEMSA-GRC-IRM](https://dev.azure.com/FEMSA-GRC-IRM/FEMSA-GRC-IRM). La conexión oficial de Azure Boards se limita a este repositorio. En la descripción de un PR o un commit relacionado con una HU, escribe `AB#` seguido del identificador numérico de la historia; comprueba después que el vínculo aparezca en la sección de desarrollo de Azure Boards. La mención enlaza el trabajo, pero no certifica el cumplimiento de los criterios de aceptación. Evita comandos de cierre automático si la HU aún requiere validación.
+
+GitHub Actions sigue ejecutando las verificaciones y publicando la evidencia de calidad. El Azure Repo creado con el proyecto no es una copia sincronizada ni debe recibir cambios paralelos: no tiene ramas. Azure Pipelines puede leer código de GitHub directamente si más adelante existe una necesidad específica de ejecución en Azure. Antes de crear un pipeline, define qué control aporta que no cubran las acciones actuales, quién observará sus resultados y cómo evitar dos señales contradictorias para un mismo PR. Para un despliegue a Azure, prefiere una conexión de servicio con identidad federada y permisos limitados al recurso necesario; no guardes credenciales personales en el repositorio.
+
 La plantilla `.github/pull_request_template.md` aparece al abrir un PR en GitHub. El workflow `PR documentation` comprueba sus cuatro secciones y una fila de verificación en PR humanos listos para revisión; omite borradores y PR de bots. Solo lee metadatos del PR y el código de la rama base: no ejecuta archivos propuestos ni llama a un modelo. Se verificó en PR del equipo y su check `Reviewable PR description` forma parte del ruleset.
 
 ## Calidad y seguridad
