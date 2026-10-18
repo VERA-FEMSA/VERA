@@ -12,6 +12,7 @@ function ThemeControl({ compact = false }) {
       <option value="system">Sistema</option>
       <option value="light">Claro</option>
       <option value="dark">Oscuro</option>
+      <option value="contrast">Contraste</option>
     </select>
   </div>;
 }

@@ -6,7 +6,7 @@ const STORAGE_KEY = "vera:appearance";
 function savedPreference() {
   try {
     const value = localStorage.getItem(STORAGE_KEY);
-    return value === "light" || value === "dark" ? value : "system";
+    return ["light", "dark", "contrast"].includes(value) ? value : "system";
   } catch {
     return "system";
   }
@@ -28,17 +28,19 @@ function ThemeProvider({ children }) {
     return () => media.removeEventListener("change", update);
   }, []);
 
-  const theme = preference === "system" ? (systemDark ? "dark" : "light") : preference;
+  const theme = preference === "system" ? (systemDark ? "dark" : "light") : preference === "contrast" ? "dark" : preference;
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    if (preference === "contrast") document.documentElement.dataset.contrast = "high";
+    else delete document.documentElement.dataset.contrast;
     document.documentElement.style.colorScheme = theme;
     const themeColor = document.querySelector('meta[name="theme-color"]');
     if (themeColor) themeColor.setAttribute("content", theme === "dark" ? "#0d1923" : "#f4f6f7");
-  }, [theme]);
+  }, [preference, theme]);
 
   const changePreference = useCallback((next) => {
-    if (!["system", "light", "dark"].includes(next)) return;
+    if (!["system", "light", "dark", "contrast"].includes(next)) return;
     setPreference(next);
     try {
       if (next === "system") localStorage.removeItem(STORAGE_KEY);

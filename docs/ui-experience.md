@@ -16,13 +16,19 @@ VERA es un entorno de demostración. La interfaz lo indica antes del acceso y ex
 | Contraseña y segundo factor | Los controles para mostrar u ocultar son botones accesibles; el código conserva `autocomplete="one-time-code"` y acepta pegarse. No se cambia el flujo de TOTP. |
 | Respuesta | Los errores se anuncian con `role="alert"`; los botones muestran que una acción está en curso para evitar envíos repetidos. |
 | Navegación | Títulos por ruta, enlace para saltar al contenido público, encabezados semánticos, etiquetas explícitas y enlaces directos entre acceso, registro, producto y privacidad. |
-| Apariencia | Se sigue el sistema por defecto. El usuario puede elegir Claro u Oscuro; su elección se conserva en el navegador y se aplica antes de pintar la página. |
+| Apariencia | Se sigue el sistema por defecto. El usuario puede elegir Claro, Oscuro o Contraste; su elección se conserva en el navegador y se aplica antes de pintar la página. |
 
 ## Sistema visual
 
 La paleta semántica vive en [`frontend/src/theme.css`](../frontend/src/theme.css): lienzo, superficies, texto, bordes, acento, estados y foco. Los estilos existentes conservan sus colores claros mediante `light-dark()` y toman los valores semánticos al seleccionar el tema oscuro. Las tarjetas, formularios, menús, avisos, gráficos y diálogos de los módulos se incluyen en ese mapeo. Los colores de estado de las barras permanecen distinguibles y no dependen solo del color: las vistas conservan etiquetas de texto.
 
-El selector usa tres opciones nativas: **Sistema**, **Claro** y **Oscuro**. La preferencia manual se guarda solo en `localStorage`; no es un dato de perfil ni se envía al backend. Si ese almacenamiento no está disponible, el tema sigue funcionando durante la sesión. El diseño reduce transiciones cuando el sistema solicita menos movimiento.
+El selector usa cuatro opciones nativas: **Sistema**, **Claro**, **Oscuro** y **Contraste**. Esta última usa una paleta oscura de texto y bordes más definidos, sin alterar dimensiones ni navegación. La preferencia manual se guarda solo en `localStorage`; no es un dato de perfil ni se envía al backend. Si ese almacenamiento no está disponible, el tema sigue funcionando durante la sesión. El diseño reduce transiciones cuando el sistema solicita menos movimiento.
+
+## Vistas autenticadas
+
+Los módulos mantienen el mismo orden, contenido, tamaños, acciones y rutas. La tipografía se hereda de la familia de sistema ya usada en la interfaz pública, en vez de cambiar a Arial al iniciar sesión; no se carga una fuente externa. Los textos secundarios que se repetían con grises demasiado tenues usan ahora un azul grisáceo más legible. Los estados intermedios conservan su significado ámbar también en oscuro. Tarjetas, tablas y filtros mantienen su estructura. El foco de teclado vuelve a ser visible en propuestas, filas de auditoría, búsqueda y selección de usuarios.
+
+**Límite de esta entrega:** la preferencia Contraste mejora la paleta, pero no reemplaza zoom, ajustes del sistema, lector de pantalla ni una revisión humana completa. El trabajo no cambia autenticación, permisos, API ni datos.
 
 ## Criterios de revisión
 

@@ -29,7 +29,7 @@
 .audit-table th {
   text-align: left;
   padding: 10px 12px;
-  color: light-dark(#707d8a, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-weight: 600;
   border-bottom: 1px solid light-dark(#edf0f2, var(--vera-border));
 }

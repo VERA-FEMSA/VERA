@@ -3,7 +3,7 @@
 .finding-create { margin: 0 8px 12px 0; }
 .finding-list { display: grid; gap: 12px; margin-top: 18px; }
 .finding-card { background: light-dark(#fff, var(--vera-surface)); border-radius: 12px; padding: 18px; }
-.finding-card span { float: right; color: light-dark(#9a6600, var(--vera-danger)); }
+.finding-card span { float: right; color: light-dark(#9a6600, var(--vera-warning)); }
 .finding-card p { margin: 10px 0; }
 .finding-card small { display: block; color: light-dark(#49606d, var(--vera-text-muted)); margin-top: 5px; }
 .finding-modal { display: grid; gap: 14px; }

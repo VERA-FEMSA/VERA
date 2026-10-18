@@ -6,7 +6,9 @@ Microsoft, Google y contraseña aparecen según la configuración vigente. La in
 
 ## Apariencia
 
-El selector **Apariencia** permite usar el tema del sistema, Claro u Oscuro. Está en las páginas públicas y en el menú lateral de la aplicación. La preferencia se conserva en este navegador; no cambia permisos ni datos. El modo oscuro abarca tarjetas, formularios, navegación, avisos y diálogos de los módulos.
+El selector **Apariencia** permite usar el tema del sistema, Claro, Oscuro o Contraste. Está en las páginas públicas y en el menú lateral de la aplicación. La preferencia se conserva en este navegador; no cambia permisos ni datos. El modo oscuro abarca tarjetas, formularios, navegación, avisos y diálogos de los módulos. Contraste refuerza texto, bordes y foco sobre una base oscura.
+
+En las vistas posteriores al acceso se conserva el orden y el tamaño de secciones, controles y tarjetas. Se unificó la tipografía con el resto de la aplicación, se hicieron más legibles los textos secundarios y se corrigió el color de los estados intermedios en oscuro. Se reforzó el foco visible de las tarjetas de propuestas, filas de auditoría, filtros y controles de usuarios.
 
 ## Diseño y límites
 
