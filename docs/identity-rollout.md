@@ -24,6 +24,12 @@ El correo comprueba la dirección; **no se presenta como segundo factor NIST**. 
 
 Si un proveedor, correo o migración no está listo, mantener su bandera apagada. El cambio de código por sí solo **no acredita** entrega de correo ni funcionamiento de OAuth en producción.
 
+### Correo transaccional de VERA
+
+El remitente previsto es `VERA <no-reply@auth.vera-digital-systems.com>`. Mailjet usa el servidor `in-v3.mailjet.com`, puerto 465 (SSL/TLS), la API Key como usuario y la Secret Key como contraseña SMTP. Los registros de verificación, SPF y DKIM pertenecen únicamente a `auth.vera-digital-systems.com`; el dominio principal y otros proveedores de correo no deben modificarse. La Secret Key se copia directamente de Mailjet a Supabase, sin pasar por Git, terminal, documentación ni chats.
+
+Antes de activar el registro, comprobar que Mailjet marca el dominio, SPF y DKIM como válidos, guardar el SMTP en Supabase, configurar la plantilla con `{{ .Token }}` y confirmar la entrega del correo en el entorno real. Los límites de Mailjet y de Supabase Auth se aplican por separado.
+
 ## Operación y reversión
 
 - El backend valida la sesión de Supabase Auth con `/auth/v1/user` y solo después emite la sesión VERA. También vuelve a leer estado y rol de `vera_users` en cada API protegida. Una cuenta `PENDING` o `DISABLED` nunca recibe sesión VERA.
@@ -36,4 +42,5 @@ Si un proveedor, correo o migración no está listo, mantener su bandera apagada
 
 - [NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b.html): longitud, bloqueo de contraseñas filtradas y prohibición de correo como segundo factor.
 - [Supabase Auth: SMTP propio](https://supabase.com/docs/guides/auth/auth-smtp), [plantillas y código](https://supabase.com/docs/guides/auth/auth-email-templates), [Google](https://supabase.com/docs/guides/auth/social-login/auth-google), [Microsoft](https://supabase.com/docs/guides/auth/social-login/auth-azure) y [MFA](https://supabase.com/docs/guides/auth/auth-mfa).
+- [Mailjet: parámetros SMTP](https://documentation.mailjet.com/hc/en-us/articles/37251169295003--Quick-Start-with-Mailjet) y [credenciales API/SMTP](https://documentation.mailjet.com/hc/en-us/articles/360043229473-How-can-I-configure-my-SMTP-parameters).
 - [Pwned Passwords API](https://haveibeenpwned.com/API/v3): consulta por prefijo SHA-1 de cinco caracteres con padding.
