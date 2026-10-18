@@ -160,7 +160,10 @@ function Sidebar({ active }) {
       >
         {mobileOpen ? <X size={22} /> : <Menu size={22} />}
       </button>
-      {mobileOpen && <div className="sidebar-backdrop" aria-hidden="true" onClick={() => setMobileOpen(false)} />}
+      {mobileOpen && <div className="sidebar-backdrop" aria-hidden="true" onClick={() => {
+        setMobileOpen(false);
+        mobileToggleRef.current?.focus();
+      }} />}
       <aside id="vera-sidebar" ref={sidebarRef} className={`sidebar${mobileOpen ? " sidebar-open" : ""}`}
         role={isMobile && mobileOpen ? "dialog" : undefined} aria-modal={isMobile && mobileOpen ? "true" : undefined}
         aria-label="Navegación de VERA" inert={isMobile && !mobileOpen ? true : undefined}>
