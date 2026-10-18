@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Usuarios from "./pages/Usuarios";
 import Registro from "./pages/Registro";
 import PublicOverview from "./pages/PublicOverview";
+import PrivacyNotice from "./pages/PrivacyNotice";
 import Auditoria from "./pages/Auditoria";
 import Planificacion from "./pages/Planificacion";
 import AuditoriasActivas from "./pages/AuditoriasActivas";
@@ -47,6 +48,7 @@ function App() {
         
         <Route path="/registro" element={<Registro />} />
         <Route path="/acerca" element={<PublicOverview />} />
+        <Route path="/privacidad" element={<PrivacyNotice />} />
 
         <Route
           path="/usuarios"

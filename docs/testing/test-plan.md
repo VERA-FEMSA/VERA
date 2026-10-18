@@ -143,7 +143,7 @@ La disponibilidad de 99.5% requiere una ventana de medición mensual; RTO de 4 h
 | TC-74 | RNF-22: respaldo diario automático | Operativa | Alta | 7 | Bloqueado: requiere servicio de respaldo y evidencia de ejecución diaria |
 | TC-75 | RNF-23: rendimiento con alto volumen de evidencias | Carga | Media | 7 | Bloqueado: falta entorno persistente y conjunto de carga representativo; la carga individual admite hasta 3 MB |
 | TC-76 | RNF-24: integrar una fuente externa nueva | Integración | Media | 7 | Pendiente: definir fuente, contrato y prueba de integración |
-| TC-77 | RNF-25: aviso de privacidad y consentimiento explícito | E2E/revisión | Alta | 7 | Pendiente: definir texto legal, captura y almacenamiento del consentimiento |
+| TC-77 | RNF-25: aviso de privacidad y consentimiento explícito | E2E/revisión | Alta | 7 | Implementación preparada en PR #135; pendiente publicación, revisión jurídica y evidencia de flujo real |
 | TC-78 | RNF-26: alineación con estándares IIA | Revisión/manual | Media | 7 | Pendiente: acordar estándar/versión, alcance y revisor competente |
 
 ## Datos de prueba y privacidad

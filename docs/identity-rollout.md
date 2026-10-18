@@ -15,7 +15,7 @@ El correo comprueba la dirección; **no se presenta como segundo factor NIST**. 
 ## Secuencia de activación
 
 1. Mantener `VERA_MANAGED_AUTH_ENABLED=false` y `VITE_VERA_MANAGED_AUTH_ENABLED=false` durante la preparación; dejar también apagadas las banderas de Google y Microsoft. Desplegar el código así preserva la consulta anterior de `vera_users`.
-2. Revisar la migración `20261018120000_add_managed_auth_identity.sql` frente al proyecto Supabase correcto. Solo añade columnas opcionales e índice único; no actualiza cuentas existentes. Aplicarla antes de activar banderas. Comprobar que el número de cuentas y sus roles/estados no cambió.
+2. Revisar las migraciones `20261018120000_add_managed_auth_identity.sql` y `20261018130000_add_privacy_notice_acknowledgement.sql` frente al proyecto Supabase correcto. Solo añaden columnas opcionales, una restricción de consistencia y un índice único; no actualizan cuentas existentes. Aplicarlas antes de activar banderas. Comprobar que el número de cuentas y sus roles/estados no cambió.
 3. Configurar **SMTP propio** en Supabase Auth. El SMTP gratuito predeterminado de Supabase solo entrega a miembros autorizados del proyecto y no sirve para registrar cualquier dominio. Verificar DNS de un subdominio de envío, SPF/DKIM y entregabilidad. En `Confirm sign up` usar una plantilla con `{{ .Token }}` para que VERA pueda verificar el código en pantalla. Mantener `Confirm email` activado.
 4. Configurar la URL principal `https://www.vera-digital-systems.com` y las redirecciones exactas necesarias en Supabase Auth. No añadir comodines de Preview a producción.
 5. Configurar el proveedor Google con cliente OAuth Web y su callback de Supabase; configurar Microsoft como aplicación multitenant y de cuentas personales si esa es la audiencia deseada. Incluir la reclamación `xms_edov` en Microsoft para tratar correos verificados. Restringir ambos proveedores a datos básicos de perfil/correo.
@@ -24,7 +24,9 @@ El correo comprueba la dirección; **no se presenta como segundo factor NIST**. 
 
 Si un proveedor, correo o migración no está listo, mantener su bandera apagada. El cambio de código por sí solo **no acredita** entrega de correo ni funcionamiento de OAuth en producción.
 
-Google exige una página pública que explique VERA y un aviso de privacidad accesible desde ella, en el mismo dominio, con la misma URL declarada en su pantalla OAuth. La ruta `/acerca` prepara la presentación pública; el [borrador de aviso](privacy-notice-draft.md) **no es publicable todavía** porque faltan domicilio, retención y revisión del consentimiento. No publicar el cliente Google para toda la audiencia ni enlazar el borrador como política vigente hasta cerrar esos puntos.
+Google exige una página pública que explique VERA y un aviso de privacidad accesible desde ella, en el mismo dominio, con la misma URL declarada en su pantalla OAuth. Este PR prepara `/acerca` y `/privacidad`. El registro gestionado exige marcar la aceptación de la versión `2026-10-18`; el backend la registra con fecha en columnas opcionales. Un primer acceso social desde el formulario de inicio de sesión no crea una cuenta VERA sin esa aceptación. Configurar `https://www.vera-digital-systems.com/acerca` como página principal y `https://www.vera-digital-systems.com/privacidad` como aviso en Google únicamente después del despliegue público. Revisar los enlaces y la publicación de la marca antes de activar Google para toda la audiencia.
+
+El [procedimiento de privacidad](privacy-operations.md) describe la atención supervisada de solicitudes y la revisión de bitácoras cada 90 días. La captura de aceptación no sustituye la comprobación de entrega de correo, OAuth real o una revisión jurídica del texto antes de abrir las cuentas públicamente.
 
 ### Correo transaccional de VERA
 

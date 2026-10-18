@@ -103,6 +103,22 @@
 }
 .public-overview__footer p { margin: 0; }
 
+.public-overview__notice {
+  max-width: 800px;
+  margin: 45px auto 90px;
+  padding: clamp(24px, 5vw, 56px);
+  border: 1px solid #e1e9e7;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 12px 35px rgba(16, 45, 67, 0.04);
+  line-height: 1.7;
+}
+.public-overview__notice h1 { font-size: clamp(34px, 5vw, 52px); }
+.public-overview__notice h2 { margin: 36px 0 8px; font-size: 22px; }
+.public-overview__notice p { color: #435b67; }
+.public-overview__notice a { color: #08756b; text-underline-offset: 3px; }
+.public-overview__notice-end { margin-top: 40px; }
+
 @media (max-width: 720px) {
   .public-overview__hero { padding: 58px 0; }
   .public-overview__capabilities { grid-template-columns: 1fr; }

@@ -82,7 +82,7 @@ Para ejecuciones, SHA y tiempos vigentes consulta el [portal de calidad](https:/
 | TC-74 | RNF-22: respaldo diario automático | Alta | Bloqueado | Bloqueado: requiere servicio de respaldo y evidencia de ejecución diaria | [local-supabase-rehearsal.sh](../../scripts/local-supabase-rehearsal.sh) | Sin dictamen individual |
 | TC-75 | RNF-23: rendimiento con alto volumen de evidencias | Media | Bloqueado | Bloqueado: falta entorno persistente y conjunto de carga representativo; la carga individual admite hasta 3 MB | [evidenceFiles.integration.test.js](../../backend/tests/evidenceFiles.integration.test.js) | Sin dictamen individual |
 | TC-76 | RNF-24: integrar una fuente externa nueva | Media | Pendiente | Pendiente: definir fuente, contrato y prueba de integración | Sin prueba vinculada | Sin dictamen individual |
-| TC-77 | RNF-25: aviso de privacidad y consentimiento explícito | Alta | Pendiente | Pendiente: definir texto legal, captura y almacenamiento del consentimiento | Sin prueba vinculada | Sin dictamen individual |
+| TC-77 | RNF-25: aviso de privacidad y consentimiento explícito | Alta | Parcial | PR #135 prepara aviso público, aceptación versionada y fecha en cuentas nuevas; pendiente publicación, revisión jurídica y ejecución real | [Aviso](../../frontend/src/pages/PrivacyNotice.jsx), [migración](../../supabase/migrations/20261018130000_add_privacy_notice_acknowledgement.sql) | Sin dictamen individual |
 | TC-78 | RNF-26: alineación con estándares IIA | Media | Pendiente | Pendiente: acordar estándar/versión, alcance y revisor competente | Sin prueba vinculada | Sin dictamen individual |
 
 ## Para cerrar un caso

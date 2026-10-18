@@ -7,7 +7,7 @@ const PAGE_SIZE = 1000;
 const BASE_COLUMNS = "id,username,email,name,password_hash,role,status,requested_at,two_factor_enabled,two_factor_secret,pending_secret,version";
 // Keep the old query shape until the additive migration has been applied and managed auth is enabled.
 const COLUMNS = process.env.VERA_MANAGED_AUTH_ENABLED === "true"
-  ? `${BASE_COLUMNS},auth_user_id,auth_provider` : BASE_COLUMNS;
+  ? `${BASE_COLUMNS},auth_user_id,auth_provider,privacy_notice_version,privacy_notice_acknowledged_at` : BASE_COLUMNS;
 
 class UserStorageError extends Error {
   constructor(message, status = 503) {
@@ -117,7 +117,7 @@ const findByAuthUserId = async (authUserId) => {
   return unpack(rows[0]);
 };
 
-const createPendingExternal = async ({ name, email, authUserId, authProvider, role }) => {
+const createPendingExternal = async ({ name, email, authUserId, authProvider, role, privacyNoticeVersion }) => {
   const normalizedEmail = email.toLowerCase();
   const rows = await request("POST", { select: COLUMNS }, {
     username: normalizedEmail,
@@ -129,7 +129,9 @@ const createPendingExternal = async ({ name, email, authUserId, authProvider, ro
     status: USER_STATUS.PENDING,
     requested_at: new Date().toISOString(),
     auth_user_id: authUserId,
-    auth_provider: authProvider
+    auth_provider: authProvider,
+    privacy_notice_version: privacyNoticeVersion,
+    privacy_notice_acknowledged_at: new Date().toISOString()
   });
   return toPublic(unpack(rows[0]));
 };

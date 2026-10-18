@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { registerUser } from "../services/authService";
 import { PASSWORD_CHECKS, validateName } from "../constants/accountRules";
 import { managedAuth, managedAuthEnabled, googleAuthEnabled, microsoftAuthEnabled, startSocialSignIn } from "../services/managedAuth";
+import { PRIVACY_NOTICE_VERSION } from "../constants/privacyNotice";
 import "./Login.css";
 import "./Registro.css";
 
@@ -17,6 +18,7 @@ function Registro() {
   const [sent, setSent] = useState(false);
   const [verified, setVerified] = useState(false);
   const [code, setCode] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const passwordOk = PASSWORD_CHECKS.every((check) => check.test(password));
 
@@ -39,11 +41,16 @@ function Registro() {
       setError("Las contraseñas no coinciden.");
       return;
     }
+    if (managedAuthEnabled && !privacyAccepted) {
+      setError("Lee y acepta el aviso de privacidad antes de solicitar acceso.");
+      return;
+    }
 
     setSending(true);
     try {
       const cleanName = name.trim().replace(/\s+/g, " ");
-      await registerUser({ name: cleanName, email, password });
+      await registerUser({ name: cleanName, email, password,
+        privacyAccepted, privacyNoticeVersion: PRIVACY_NOTICE_VERSION });
       setSent(true);
     } catch (err) {
       setError(err.message);
@@ -72,7 +79,11 @@ function Registro() {
 
   const beginSocial = async (provider) => {
     setError("");
-    try { await startSocialSignIn(provider); }
+    if (!privacyAccepted) {
+      setError("Lee y acepta el aviso de privacidad antes de continuar.");
+      return;
+    }
+    try { await startSocialSignIn(provider, true); }
     catch { setError("No se pudo iniciar el acceso con este proveedor. Intenta más tarde."); }
   };
 
@@ -174,6 +185,13 @@ function Registro() {
                 autoComplete="new-password"
                 required
               />
+
+              {managedAuthEnabled && <label className="privacy-ack" htmlFor="reg-privacy">
+                <input id="reg-privacy" type="checkbox" checked={privacyAccepted}
+                  onChange={(event) => setPrivacyAccepted(event.target.checked)} required />
+                <span>Leí y acepto el <Link to="/privacidad" target="_blank" rel="noopener noreferrer">aviso de privacidad</Link> (versión {PRIVACY_NOTICE_VERSION}).</span>
+              </label>}
+              {managedAuthEnabled && <p className="privacy-summary">Responsable: Carlos Sánchez Gutiérrez, Valle Primavera 2994, Monterrey, Nuevo León. Usaremos tu nombre, correo y datos de acceso para verificar tu identidad, aprobar la cuenta y proteger VERA. El contenido de demostración se usa en los módulos y, si consultas al asistente, la pregunta se procesa con Azure OpenAI. Puedes limitar el uso o ejercer tus derechos en <a href="mailto:carlos.sanchez.gtz.it@gmail.com">carlos.sanchez.gtz.it@gmail.com</a>. <Link to="/privacidad" target="_blank" rel="noopener noreferrer">Consulta el aviso integral</Link>.</p>}
 
               {error && <p className="error">{error}</p>}
 

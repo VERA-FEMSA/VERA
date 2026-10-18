@@ -59,6 +59,8 @@ function PublicOverview() {
           <p>
             <a href="https://github.com/VERA-GRC-IRM/VERA">Repositorio</a>
             <span aria-hidden="true"> · </span>
+            <Link to="/privacidad">Aviso de privacidad</Link>
+            <span aria-hidden="true"> · </span>
             <a href="mailto:carlos.sanchez.gtz.it@gmail.com?subject=VERA%20-%20privacidad">Consultas de privacidad</a>
           </p>
         </footer>

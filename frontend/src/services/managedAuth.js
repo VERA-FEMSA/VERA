@@ -11,11 +11,21 @@ export const managedAuth = managedAuthEnabled
   ? createClient(url, key, { auth: { flowType: "pkce", detectSessionInUrl: true, persistSession: true } })
   : null;
 
-export const startSocialSignIn = async (provider) => {
+const PRIVACY_ACK_KEY = "vera:oauth-privacy-ack";
+
+export const takeSocialPrivacyAcknowledgement = () => {
+  const accepted = sessionStorage.getItem(PRIVACY_ACK_KEY) === "true";
+  sessionStorage.removeItem(PRIVACY_ACK_KEY);
+  return accepted;
+};
+
+export const startSocialSignIn = async (provider, privacyAccepted = false) => {
   if (!managedAuth || (provider === "google" && !googleAuthEnabled) ||
       (provider === "azure" && !microsoftAuthEnabled)) {
     throw new Error("Este proveedor aún no está disponible.");
   }
+  if (privacyAccepted) sessionStorage.setItem(PRIVACY_ACK_KEY, "true");
+  else sessionStorage.removeItem(PRIVACY_ACK_KEY);
   const { error } = await managedAuth.auth.signInWithOAuth({
     provider,
     options: {

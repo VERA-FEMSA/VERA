@@ -7,6 +7,7 @@ const { DEFAULT_ROLE } = require("../config/roles");
 const { getJwtSecret } = require("../config/jwtSecret");
 const { verifyTotpCode } = require("../services/totp");
 const managedAuth = require("../services/managedAuth");
+const { PRIVACY_NOTICE_VERSION } = require("../config/privacyNotice");
 const {
   USER_STATUS,
   INSTITUTIONAL_DOMAINS,
@@ -115,6 +116,12 @@ const login = async (req, res) => {
 
   // HU-01: soporta contraseñas cifradas (cuentas nuevas) y en texto plano (cuentas demo)
   const candidate = await userRepository.findByLogin(username);
+  // The frontend tries legacy login first, then Supabase Auth for managed accounts.
+  // A managed account cannot have a valid legacy password; do not count this
+  // handoff as a failed password attempt or lock out legitimate sign-ins.
+  if (managedAuth.enabled() && candidate?.authUserId) {
+    return res.status(401).json({ message: "Usuario o contraseña incorrectos" });
+  }
   const user = await userRepository.checkPassword(candidate, password) ? candidate : null;
 
 
@@ -262,6 +269,9 @@ const register = async (req, res) => {
     return res.status(400).json({ message: "El correo no tiene un formato válido." });
   }
   if (managedAuth.enabled()) {
+    if (req.body.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION || req.body.privacyAccepted !== true) {
+      return res.status(400).json({ message: "Lee y acepta el aviso de privacidad vigente antes de solicitar acceso." });
+    }
     const policy = await managedAuth.validateNewPassword(password, email);
     if (policy.unavailable) {
       return res.status(503).json({ message: "No se pudo verificar la seguridad de la contraseña. Intenta más tarde." });
@@ -284,7 +294,8 @@ const register = async (req, res) => {
       });
     }
     const user = await userRepository.createPendingExternal({
-      name, email, authUserId: identity.id, authProvider: "email", role: DEFAULT_ROLE
+      name, email, authUserId: identity.id, authProvider: "email", role: DEFAULT_ROLE,
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION
     });
     await logAccessChange({
       actor: { id: user.id, username: user.username, role: "PUBLIC" },
@@ -358,10 +369,14 @@ const exchangeManaged = async (req, res) => {
     if (await userRepository.emailExists(email)) {
       return res.status(409).json({ message: "Ese correo ya tiene una cuenta VERA. Solicita vinculación a un administrador." });
     }
+    if (req.body.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION || req.body.privacyAccepted !== true) {
+      return res.status(403).json({ message: "Para solicitar acceso, abre Crear cuenta y acepta el aviso de privacidad." });
+    }
     const name = String(identity.user_metadata?.full_name || identity.user_metadata?.name || email)
       .trim().slice(0, 100);
     const created = await userRepository.createPendingExternal({
-      name, email, authUserId: identity.id, authProvider: provider, role: DEFAULT_ROLE
+      name, email, authUserId: identity.id, authProvider: provider, role: DEFAULT_ROLE,
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION
     });
     await logAccessChange({
       actor: { id: created.id, username: created.username, role: "PUBLIC" },

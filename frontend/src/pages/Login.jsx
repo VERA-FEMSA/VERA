@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { exchangeManagedSession, loginUser, verify2FA } from "../services/authService";
-import { managedAuth, managedAuthEnabled, googleAuthEnabled, microsoftAuthEnabled, startSocialSignIn } from "../services/managedAuth";
+import { managedAuth, managedAuthEnabled, googleAuthEnabled, microsoftAuthEnabled, startSocialSignIn, takeSocialPrivacyAcknowledgement } from "../services/managedAuth";
+import { PRIVACY_NOTICE_VERSION } from "../constants/privacyNotice";
 import "./Login.css";
 
 function Login() {
@@ -37,9 +38,10 @@ function Login() {
     setManagedQr(enrolled.totp.qr_code);
   }, []);
 
-  const completeManaged = useCallback(async (accessToken) => {
+  const completeManaged = useCallback(async (accessToken, fromOAuthRedirect = false) => {
     try {
-      const data = await exchangeManagedSession(accessToken);
+      const privacyAccepted = fromOAuthRedirect ? takeSocialPrivacyAcknowledgement() : false;
+      const data = await exchangeManagedSession(accessToken, privacyAccepted, PRIVACY_NOTICE_VERSION);
       finishLogin(data);
     } catch (verificationError) {
       if (verificationError.code === "MFA_REQUIRED") {
@@ -56,7 +58,7 @@ function Login() {
     let active = true;
     managedAuth.auth.getSession().then(async ({ data }) => {
       if (!active || !data.session) return;
-      try { await completeManaged(data.session.access_token); }
+      try { await completeManaged(data.session.access_token, true); }
       catch (sessionError) { if (active) setError(sessionError.message); }
     }).catch(() => { if (active) setError("No se pudo restaurar el acceso. Intenta de nuevo."); });
     return () => { active = false; };

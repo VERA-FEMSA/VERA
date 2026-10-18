@@ -55,6 +55,6 @@ Campos de análisis para cada corrida:
 | TC-74 backup diario | Retención de 30 días de ejecuciones, resultado/alerta, almacenamiento y dueño de guardia. | Bloqueado: no se encontró configuración de backup |
 | TC-75 volumen alto de evidencia | Cantidad/tamaño de archivos, concurrencia, storage y p95 de carga/descarga. | Parcial: existe carga binaria individual con límite de 3 MB; falta probar volumen y concurrencia en almacenamiento persistente de staging. |
 | TC-76 integración externa | Contrato/fuente, ambiente sandbox, latencia/errores, reintentos y reconciliación. | No ejecutado: fuente externa no definida |
-| TC-77 privacidad/consentimiento | Texto aprobado, versión, evento almacenado, timestamp y prueba de retiro/consulta. | No ejecutado: requisito legal y persistencia por definir |
+| TC-77 privacidad/consentimiento | Aviso público, versión y fecha almacenadas, consulta y solicitud de cancelación. | Implementación preparada en PR #135; no ejecutado en producción ni revisado jurídicamente. |
 
 La evidencia debe adjuntar fecha, región, commit, configuración saneada, método de cálculo y dueño del siguiente paso. Nunca almacenar credenciales, datos personales reales o tokens en la bitácora.

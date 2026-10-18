@@ -35,11 +35,11 @@ export const loginUser = async (username, password) => {
 };
 
 // HU-01: registro propio. La cuenta queda pendiente de aprobación.
-export const registerUser = async ({ name, email, password }) => {
+export const registerUser = async ({ name, email, password, privacyAccepted, privacyNoticeVersion }) => {
   const response = await fetch(`${API_URL}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password })
+    body: JSON.stringify({ name, email, password, privacyAccepted, privacyNoticeVersion })
   });
 
   const data = await response.json();
@@ -51,11 +51,11 @@ export const registerUser = async ({ name, email, password }) => {
   return data;
 };
 
-export const exchangeManagedSession = async (accessToken) => {
+export const exchangeManagedSession = async (accessToken, privacyAccepted = false, privacyNoticeVersion) => {
   const response = await fetch(`${API_URL}/managed/exchange`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ accessToken })
+    body: JSON.stringify({ accessToken, privacyAccepted, privacyNoticeVersion })
   });
   const data = await response.json();
   if (!response.ok) {
