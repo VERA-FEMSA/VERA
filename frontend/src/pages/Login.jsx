@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { exchangeManagedSession, loginUser, verify2FA } from "../services/authService";
-import { managedAuth, googleAuthEnabled, microsoftAuthEnabled, startSocialSignIn } from "../services/managedAuth";
+import { managedAuth, managedAuthEnabled, googleAuthEnabled, microsoftAuthEnabled, startSocialSignIn } from "../services/managedAuth";
 import "./Login.css";
 
 function Login() {
