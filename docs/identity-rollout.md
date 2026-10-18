@@ -24,6 +24,8 @@ El correo comprueba la dirección; **no se presenta como segundo factor NIST**. 
 
 Si un proveedor, correo o migración no está listo, mantener su bandera apagada. El cambio de código por sí solo **no acredita** entrega de correo ni funcionamiento de OAuth en producción.
 
+Google exige una página pública que explique VERA y un aviso de privacidad accesible desde ella, en el mismo dominio, con la misma URL declarada en su pantalla OAuth. La ruta `/acerca` prepara la presentación pública; el [borrador de aviso](privacy-notice-draft.md) **no es publicable todavía** porque faltan domicilio, retención y revisión del consentimiento. No publicar el cliente Google para toda la audiencia ni enlazar el borrador como política vigente hasta cerrar esos puntos.
+
 ### Correo transaccional de VERA
 
 El remitente previsto es `VERA <no-reply@auth.vera-digital-systems.com>`. Mailjet usa el servidor `in-v3.mailjet.com`, puerto 465 (SSL/TLS), la API Key como usuario y la Secret Key como contraseña SMTP. Los registros de verificación, SPF y DKIM pertenecen únicamente a `auth.vera-digital-systems.com`; el dominio principal y otros proveedores de correo no deben modificarse. La Secret Key se copia directamente de Mailjet a Supabase, sin pasar por Git, terminal, documentación ni chats.

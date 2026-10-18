@@ -220,6 +220,9 @@ function Login() {
         <p className="create-account">
           ¿Primera vez en VERA? <Link to="/registro">Crear cuenta</Link>
         </p>
+        <p className="create-account">
+          <Link to="/acerca">Conoce VERA</Link>
+        </p>
       </div>
     </div>
   );
