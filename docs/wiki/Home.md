@@ -35,7 +35,7 @@ flowchart LR
 
 ## Accesos directos
 
-- [Repositorio y README](https://github.com/VERA-GRC-IRM/VERA) · [Despliegue público](https://vera-salva-ventures.vercel.app) — los flujos autenticados requieren una cuenta de VERA.
+- [Repositorio y README](https://github.com/VERA-GRC-IRM/VERA) · [Despliegue público](https://www.vera-digital-systems.com/) — los flujos autenticados requieren una cuenta de VERA.
 - [Plataforma de calidad](https://vera-grc-irm.github.io/VERA/) · [Informe integral](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml) · [Cortes archivados](https://github.com/VERA-GRC-IRM/VERA/releases) · [PR fusionados](https://github.com/VERA-GRC-IRM/VERA/pulls?q=is%3Apr+is%3Amerged).
 - [Plan de pruebas](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/test-plan.md) · [Matriz de aceptación](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/hu-acceptance-audit.md).
 

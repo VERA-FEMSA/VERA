@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
 
-const origin = "https://vera-salva-ventures.vercel.app";
+const origin = "https://www.vera-digital-systems.com";
 const checks = [
   { path: "/", expectedStatus: 200 },
   { path: "/login", expectedStatus: 200 },

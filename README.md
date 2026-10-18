@@ -14,12 +14,12 @@
   <a href="https://github.com/VERA-GRC-IRM/VERA/wiki">Centro de conocimiento</a> ·
   <a href="https://vera-grc-irm.github.io/VERA/">Plataforma de calidad de software</a> ·
   <a href="https://github.com/VERA-GRC-IRM/VERA/releases">Cortes verificables</a> ·
-  <a href="https://vera-salva-ventures.vercel.app">Demo pública</a> ·
+  <a href="https://www.vera-digital-systems.com/">Demo pública</a> ·
   <a href="https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml">Ver calidad completa</a> ·
   <a href="docs/testing/professor-quick-run.md">Guía de revisión de calidad</a>
 </p>
 
-> **Estado del proyecto.** VERA es un prototipo funcional en evolución, con código y pruebas automatizadas. La [demo pública](https://vera-salva-ventures.vercel.app) se despliega desde `main` de esta organización; consulta el [smoke vigente](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/production-smoke.yml) y la [plataforma de calidad](https://vera-grc-irm.github.io/VERA/) para verificar el commit observado. Los resultados de CI y la disponibilidad pública acreditan solamente las comprobaciones ejecutadas; la [aceptación de producción pendiente](https://github.com/VERA-GRC-IRM/VERA/issues/113) y el [estado por HU](docs/hu-acceptance-audit.md) delimitan lo que falta.
+> **Estado del proyecto.** VERA es un prototipo funcional en evolución, con código y pruebas automatizadas. La [demo pública](https://www.vera-digital-systems.com/) se despliega desde `main` de esta organización; consulta el [smoke vigente](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/production-smoke.yml) y la [plataforma de calidad](https://vera-grc-irm.github.io/VERA/) para verificar el commit observado. Los resultados de CI y la disponibilidad pública acreditan solamente las comprobaciones ejecutadas; la [aceptación de producción pendiente](https://github.com/VERA-GRC-IRM/VERA/issues/113) y el [estado por HU](docs/hu-acceptance-audit.md) delimitan lo que falta.
 
 ## VERA en un minuto
 

@@ -10,7 +10,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$baseUrl = 'https://vera-salva-ventures.vercel.app'
+$baseUrl = 'https://www.vera-digital-systems.com'
 if ($ExpectEvidenceDenied -and [string]::IsNullOrWhiteSpace($EvidenceId)) {
   throw '-ExpectEvidenceDenied requiere -EvidenceId.'
 }

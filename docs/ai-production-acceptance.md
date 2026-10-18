@@ -1,10 +1,10 @@
 # Aceptación puntual del copiloto en producción
 
-La instancia propia de VERA es [vera-salva-ventures.vercel.app](https://vera-salva-ventures.vercel.app). El [script de comprobación](../scripts/verify-ai-production.ps1) usa solamente esa URL HTTPS. Está pensado para ejecutarse desde una terminal PowerShell 7, con una cuenta **activa de VERA**. La sesión de Outlook, Azure DevOps o GitHub no inicia sesión en VERA.
+La instancia propia de VERA usa [www.vera-digital-systems.com](https://www.vera-digital-systems.com/). El [script de comprobación](../scripts/verify-ai-production.ps1) usa esa URL HTTPS. Está pensado para ejecutarse desde una terminal PowerShell 7, con una cuenta **activa de VERA**. La sesión de Outlook, Azure DevOps o GitHub no inicia sesión en VERA.
 
 ## Antes de ejecutar
 
-1. Abre [VERA](https://vera-salva-ventures.vercel.app/login) e intenta entrar con tu cuenta de la aplicación. Si no tienes cuenta, usa [Crear cuenta](https://vera-salva-ventures.vercel.app/registro). El registro queda pendiente hasta que una persona administradora de VERA lo apruebe; no se debe crear ni activar una cuenta directamente en Supabase para saltarse ese flujo.
+1. Abre [VERA](https://www.vera-digital-systems.com/login) e intenta entrar con tu cuenta de la aplicación. Si no tienes cuenta, usa [Crear cuenta](https://www.vera-digital-systems.com/registro). El registro queda pendiente hasta que una persona administradora de VERA lo apruebe; no se debe crear ni activar una cuenta directamente en Supabase para saltarse ese flujo.
 2. Ten a mano el nombre de usuario y, si corresponde, tu código de dos factores. **No pegues contraseña, código ni token en este chat, en una captura ni en un issue.** El script los pide de forma oculta en la terminal y no escribe archivos de resultados.
 3. Desde la raíz del repositorio, ejecuta la parte pública sin credenciales:
 
