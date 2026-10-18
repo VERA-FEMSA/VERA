@@ -1,6 +1,6 @@
 ## Alcance
 
-<!-- Resume el cambio observable en 2-4 líneas. Enlaza la HU de Azure DevOps si aplica; indica el módulo afectado. -->
+<!-- Resume el cambio observable en 2-4 líneas. Si aplica una HU, escribe su referencia como AB# seguida del número de Azure Boards para enlazar este PR automáticamente; indica también el módulo afectado. -->
 
 ## Evidencia y decisiones
 

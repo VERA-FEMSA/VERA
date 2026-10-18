@@ -8,10 +8,12 @@ Una contribución útil deja una necesidad clara, un diff acotado y evidencia re
 2. Define objetivo, criterios, roles, entidades y entorno; la [ficha de tarea](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/ai-development/task-brief.md) sirve como formato.
 3. Lee [`AGENTS.md`](https://github.com/VERA-GRC-IRM/VERA/blob/main/AGENTS.md) y la guía del directorio que vas a tocar. Sigue ruta → middleware → servicio → repositorio → interfaz/prueba.
 4. Haz un cambio coherente en una rama. Actualiza los contratos, pruebas y documentación afectados.
-5. Ejecuta las verificaciones pertinentes y anota comandos, resultado, duración y límites. Abre un PR con la [plantilla](https://github.com/VERA-GRC-IRM/VERA/blob/main/.github/pull_request_template.md).
+5. Ejecuta las verificaciones pertinentes y anota comandos, resultado, duración y límites. Abre un PR con la [plantilla](https://github.com/VERA-GRC-IRM/VERA/blob/main/.github/pull_request_template.md). Si corresponde a una HU, incluye `AB#` seguido del número de Azure Boards para que el vínculo aparezca en el proyecto.
 6. Revisa diff, checks y comentarios antes de fusionar. Un check verde no reemplaza una revisión de permisos o de datos.
 
 La [guía de desarrollo con IA](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/ai-development/README.md) explica cómo usar Codex, Claude Code, Copilot y un chat genérico sin presentar las instrucciones como entrenamiento del modelo. La [comprobación de preparación](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/ai-development/agent-readiness.md) ayuda a detectar lecturas erróneas del repositorio antes de pedir una edición.
+
+Las HU se gestionan en [Azure Boards](https://dev.azure.com/FEMSA-GRC-IRM/FEMSA-GRC-IRM), mientras el código, los PR y la CI permanecen en GitHub. La [guía de operación](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/github-operacion.md) explica esta separación. La mención de una HU no equivale a su aceptación funcional.
 
 ## Cómo mantener esta Wiki
 
