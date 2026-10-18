@@ -21,6 +21,8 @@ Los flujos anteriores de código por correo y aprobación de cuentas se retiraro
 
 Las banderas del frontend solo controlan la interfaz. El backend vuelve a comprobar el método, el estado y el rol en cada operación protegida. Nunca se publican `SUPABASE_SECRET_KEY` ni secretos OAuth como variables `VITE_*`.
 
+Cuando una persona enlaza Microsoft y Google a la misma identidad de Supabase, `app_metadata.provider` conserva el **primer** proveedor. VERA determina el método de la entrada actual con la marca de último acceso de cada identidad autenticada que devuelve Supabase, contrasta la marca con la emisión del token y rechaza casos ambiguos. Así, la bandera del proveedor y `public.logins.method` reflejan el acceso utilizado; el proveedor histórico de la cuenta VERA no se reescribe.
+
 ## Orden de activación
 
 1. Confirmar que la producción usa el proyecto Supabase `rsrsycokfdypliepcxgi` y guardar los conteos de cuentas por rol y estado. Aplicar las migraciones aditivas de identidad, consentimiento, `mfa_required` y `vera_role_requests`. Verificar que las cuentas anteriores no cambian.
