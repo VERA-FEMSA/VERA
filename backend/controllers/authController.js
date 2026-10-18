@@ -313,16 +313,21 @@ const exchangeManaged = async (req, res) => {
   const provider = managedAuth.signInProvider(identity, claims);
   const expectedIssuer = `${process.env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1`;
   if (!identity.id || !isValidEmailFormat(email) || !identity.email_confirmed_at ||
-      !["email", "google", "azure"].includes(provider) ||
+      !["email", "google", "azure", "linked"].includes(provider) ||
       !claims || claims.sub !== identity.id || claims.iss !== expectedIssuer) {
     return res.status(401).json({ message: "No se pudo verificar la identidad y el correo." });
   }
   if ((provider === "google" && process.env.VERA_GOOGLE_AUTH_ENABLED !== "true") ||
-      (provider === "azure" && process.env.VERA_AZURE_AUTH_ENABLED !== "true")) {
+      (provider === "azure" && process.env.VERA_AZURE_AUTH_ENABLED !== "true") ||
+      (provider === "linked" && (process.env.VERA_GOOGLE_AUTH_ENABLED !== "true" ||
+        process.env.VERA_AZURE_AUTH_ENABLED !== "true"))) {
     return res.status(403).json({ message: "Este proveedor aún no está disponible en VERA." });
   }
   let user = await userRepository.findByAuthUserId(identity.id);
   if (!user) {
+    if (provider === "linked") {
+      return res.status(403).json({ message: "Esta identidad vinculada necesita revisión de un administrador." });
+    }
     if (provider === "email") {
       return res.status(403).json({ message: "Completa el registro desde VERA antes de iniciar sesión." });
     }
@@ -359,7 +364,8 @@ const exchangeManaged = async (req, res) => {
   if (user.authProvider === "email" && claims.aal !== "aal2") {
     return res.status(428).json({ code: "MFA_REQUIRED", message: "Configura o completa la verificación con tu aplicación de autenticación." });
   }
-  return issueSession(req, res, user, provider === "email" ? "MANAGED_PASSWORD_TOTP" : `OAUTH_${provider.toUpperCase()}`);
+  return issueSession(req, res, user, provider === "email" ? "MANAGED_PASSWORD_TOTP" :
+    provider === "linked" ? "OAUTH_LINKED" : `OAUTH_${provider.toUpperCase()}`);
 };
 
 module.exports = { login, verify2FA, setup2FA, enable2FA, register, exchangeManaged };

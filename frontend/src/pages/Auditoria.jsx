@@ -101,7 +101,8 @@ const describe = ({ action, target, details }) => {
     case "LOGIN_SUCCESS":
       return details.method === "PASSWORD_2FA" ? "Contraseña + 2FA" :
         details.method === "OAUTH_AZURE" ? "Microsoft" :
-        details.method === "OAUTH_GOOGLE" ? "Google" : "Contraseña";
+        details.method === "OAUTH_GOOGLE" ? "Google" :
+        details.method === "OAUTH_LINKED" ? "Microsoft/Google (cuenta vinculada)" : "Contraseña";
     default:
       return "";
   }

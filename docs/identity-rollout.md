@@ -21,7 +21,7 @@ Los flujos anteriores de código por correo y aprobación de cuentas se retiraro
 
 Las banderas del frontend solo controlan la interfaz. El backend vuelve a comprobar el método, el estado y el rol en cada operación protegida. Nunca se publican `SUPABASE_SECRET_KEY` ni secretos OAuth como variables `VITE_*`.
 
-Cuando una persona enlaza Microsoft y Google a la misma identidad de Supabase, `app_metadata.provider` conserva el **primer** proveedor. VERA determina el método de la entrada actual con la marca de último acceso de cada identidad autenticada que devuelve Supabase, contrasta la marca con la emisión del token y rechaza casos ambiguos. Así, la bandera del proveedor y `public.logins.method` reflejan el acceso utilizado; el proveedor histórico de la cuenta VERA no se reescribe.
+Cuando una persona enlaza Microsoft y Google a la misma identidad de Supabase, `app_metadata.provider` conserva el **primer** proveedor. La marca de último acceso por identidad tampoco identifica con fiabilidad la sesión actual: Supabase puede reutilizar una sesión y no adelantar esa marca al repetir OAuth. VERA registra `OAUTH_LINKED` en esa situación, sin atribuir falsamente la entrada a Microsoft o Google; ambos proveedores deben estar habilitados en el backend para admitir la sesión vinculada. El proveedor histórico de la cuenta y el rol no se reescriben. Una nueva cuenta con identidad ya vinculada requiere revisión manual para evitar asociación accidental.
 
 ## Orden de activación
 
@@ -30,6 +30,7 @@ Cuando una persona enlaza Microsoft y Google a la misma identidad de Supabase, `
 3. Activar `VERA_DIRECT_REGISTRATION_ENABLED` y su par `VITE_`. Comprobar con una cuenta nueva de prueba: alta inmediata, rol Auditor, bloqueo de API antes del TOTP, activación TOTP y sesión con el factor.
 4. Confirmar callbacks exactos de Microsoft y Google hacia `https://rsrsycokfdypliepcxgi.supabase.co/auth/v1/callback`, URL de retorno de VERA y secretos vigentes almacenados solo en Supabase. Activar Microsoft primero en Supabase y Vercel. Comprobar alta nueva y sesión con rol Auditor. Activar Google después con el mismo criterio.
    Antes de abrir ambos métodos, la tabla `logins` debe admitir `OAUTH_AZURE`, `OAUTH_GOOGLE` y `MANAGED_PASSWORD_TOTP`, además de los métodos anteriores. Si el registro de acceso devuelve 400, VERA bloquea la sesión; aplicar la migración `20261018203800_allow_oauth_login_methods.sql` y volver a comprobar el flujo completo.
+   Antes de desplegar el manejo de cuentas vinculadas, aplicar `20261018211200_allow_linked_oauth_login_method.sql` para admitir también `OAUTH_LINKED`; la bitácora sigue siendo obligatoria.
 5. Comprobar que una cuenta anterior con contraseña sigue funcionando y que usar en OAuth un correo ya registrado no toma ni eleva su cuenta. Una vinculación de identidad existente necesita un procedimiento separado que valide ambos factores; no se hace por igualdad de correo.
 6. Comprobar desde una cuenta Auditor la solicitud de rol, el rechazo y la autorización con SUPER_ADMIN, la bitácora y la actualización de permisos sin recrear cuentas.
 
