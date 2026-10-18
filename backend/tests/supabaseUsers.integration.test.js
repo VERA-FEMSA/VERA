@@ -1,16 +1,19 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const bcrypt = require("bcryptjs");
+const { generateSync } = require("otplib");
 
 process.env.JWT_SECRET ||= "supabase-users-test-secret-at-least-32-characters";
 process.env.VERA_USER_STORE = "supabase";
 process.env.SUPABASE_URL = "https://supabase.example";
 process.env.SUPABASE_SECRET_KEY = "sb_secret_test";
+process.env.VERA_DIRECT_REGISTRATION_ENABLED = "true";
 
 const app = require("../server");
+const { PRIVACY_NOTICE_VERSION } = require("../config/privacyNotice");
 const { startTestServer } = require("./helpers/testServer");
 
-test("Supabase accounts survive API requests and enforce approval, roles and deactivation", async (context) => {
+test("Supabase accounts register active with minimum role, require MFA and respect deactivation", async (context) => {
   const nativeFetch = global.fetch;
   const rows = new Map([[1, {
     id: 1, username: "admin", email: "admin@vera.local", name: "Administradora",
@@ -21,6 +24,9 @@ test("Supabase accounts survive API requests and enforce approval, roles and dea
   const loginRecords = [];
   let nextId = 2;
   global.fetch = async (input, options) => {
+    if (String(input).startsWith("https://api.pwnedpasswords.com/")) {
+      return new Response("", { status: 200 });
+    }
     if (!String(input).startsWith("https://supabase.example/")) return nativeFetch(input, options);
     const url = new URL(input);
     assert.equal(options.headers.apikey, "sb_secret_test");
@@ -58,17 +64,36 @@ test("Supabase accounts survive API requests and enforce approval, roles and dea
   const base = await startTestServer(context, app);
   const register = await fetch(`${base}/api/auth/register`, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: "Cuenta Prueba", email: "qa@vera.local", password: "VeraTest123" })
+    body: JSON.stringify({ name: "Cuenta Prueba", email: "qa@example.test", password: "VeraTestPassword2026!",
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION, privacyAccepted: true })
   });
   assert.equal(register.status, 201);
-  assert.equal(rows.get(2).status, "PENDING");
+  assert.equal(rows.get(2).status, "ACTIVE");
+  assert.equal(rows.get(2).role, "AUDITOR");
+  assert.equal(rows.get(2).mfa_required, true);
   assert.match(rows.get(2).password_hash, /^\$2/);
 
-  const pendingLogin = await fetch(`${base}/api/auth/login`, {
+  const firstLogin = await fetch(`${base}/api/auth/login`, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: "qa@vera.local", password: "VeraTest123" })
+    body: JSON.stringify({ username: "qa@example.test", password: "VeraTestPassword2026!" })
   });
-  assert.equal(pendingLogin.status, 403);
+  assert.equal(firstLogin.status, 200);
+  const { setupToken } = await firstLogin.json();
+  assert.ok(setupToken);
+  assert.equal((await fetch(`${base}/api/dashboard`, {
+    headers: { Authorization: `Bearer ${setupToken}` }
+  })).status, 401);
+  const setup = await fetch(`${base}/api/auth/2fa/setup`, {
+    method: "POST", headers: { Authorization: `Bearer ${setupToken}` }
+  });
+  assert.equal(setup.status, 200);
+  const { secret } = await setup.json();
+  const enabled = await fetch(`${base}/api/auth/2fa/enable`, {
+    method: "POST", headers: { Authorization: `Bearer ${setupToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ code: generateSync({ secret }) })
+  });
+  assert.equal(enabled.status, 200);
+  const userToken = (await enabled.json()).token;
 
   const adminLogin = await fetch(`${base}/api/auth/login`, {
     method: "POST", headers: { "Content-Type": "application/json" },
@@ -76,22 +101,15 @@ test("Supabase accounts survive API requests and enforce approval, roles and dea
   });
   assert.equal(adminLogin.status, 200);
   const adminToken = (await adminLogin.json()).token;
-  assert.equal(loginRecords.length, 1);
+  assert.equal(loginRecords.length, 2);
 
-  const approved = await fetch(`${base}/api/users/2/approve`, {
+  const obsoleteApproval = await fetch(`${base}/api/users/2/approve`, {
     method: "POST", headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "application/json" },
     body: JSON.stringify({ role: "AUDITOR" })
   });
-  assert.equal(approved.status, 200);
+  assert.equal(obsoleteApproval.status, 404);
   assert.equal(rows.get(2).role, "AUDITOR");
   assert.equal(rows.get(2).status, "ACTIVE");
-
-  const userLogin = await fetch(`${base}/api/auth/login`, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: "qa@vera.local", password: "VeraTest123" })
-  });
-  assert.equal(userLogin.status, 200);
-  const userToken = (await userLogin.json()).token;
   assert.equal((await fetch(`${base}/api/dashboard`, {
     headers: { Authorization: `Bearer ${userToken}` }
   })).status, 200);

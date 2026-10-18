@@ -1,50 +1,43 @@
-# Registro abierto y acceso federado de VERA
+# Acceso e identidad de VERA
 
-## Contrato de acceso
+## Modelo acordado
 
-Esta entrega agrega un camino **optativo y apagado por defecto** para cuentas nuevas. El acceso tradicional, los hashes, los roles, los estados y el 2FA actual de todas las cuentas existentes permanecen intactos. No se enlaza automáticamente una identidad Google o Microsoft a una cuenta VERA anterior que tenga el mismo correo. Las cuentas nuevas, sin importar el proveedor, empiezan en `PENDING` y necesitan aprobación; ningún proveedor otorga `SUPER_ADMIN` por sí mismo.
+El alta de una cuenta nueva no requiere autorización humana. Una cuenta nueva entra como `AUDITOR`, el rol existente con menor alcance sobre el portafolio. El cambio posterior de rol se solicita desde **Mi rol y solicitudes** y solo una cuenta `SUPER_ADMIN` puede autorizarlo o rechazarlo. Nunca se concede `SUPER_ADMIN` mediante el registro o una solicitud.
 
-| Cuenta | Comprobación de correo | Segundo factor | Aprobación VERA |
+Hay tres métodos de alta: contraseña propia, Microsoft y Google. Las cuentas anteriores conservan sus contraseñas, roles, estados y factores configurados. Microsoft y Google utilizan Supabase Auth para comprobar la identidad, pero la sesión y los permisos de VERA se emiten desde el backend. Las cuentas con contraseña nueva se almacenan en `vera_users` con hash bcrypt, exigen un segundo factor TOTP en el primer acceso y no dependen del correo transaccional.
+
+**Limitación consciente:** el alta con contraseña no verifica el control del correo indicado. Esa dirección es un identificador declarado, no una identidad comprobada; no puede servir para vincular automáticamente una cuenta previa a Google o Microsoft ni para recuperar una contraseña. Si un correo ya está ocupado, el registro devuelve conflicto. El equipo debe resolver esa colisión fuera del flujo automático tras comprobar la identidad. Supabase mantiene la confirmación de correo activada para sus propias identidades, porque desactivarla marcaría correos no comprobados como verificados y podría enlazarlos automáticamente con OAuth.
+
+## Banderas de despliegue
+
+| Backend | Frontend | Valor previsto | Función |
 | --- | --- | --- | --- |
-| Existente | Sin cambios | Sin cambios | Sin cambios |
-| Nueva con contraseña | Código de confirmación por correo | TOTP obligatorio antes de emitir sesión VERA | Sí |
-| Nueva con Google o Microsoft | Identidad y correo verificados por el proveedor | Depende del proveedor | Sí |
+| `VERA_DIRECT_REGISTRATION_ENABLED` | `VITE_VERA_DIRECT_REGISTRATION_ENABLED` | `true` | Contraseña propia inmediata; sin correo ni aprobación; TOTP obligatorio al primer acceso. |
+| `VERA_MANAGED_AUTH_ENABLED` | `VITE_VERA_MANAGED_AUTH_ENABLED` | `true` | Puente de identidad Supabase para OAuth. |
+| `VERA_AZURE_AUTH_ENABLED` | `VITE_VERA_AZURE_AUTH_ENABLED` | `true` tras aceptación | Microsoft. |
+| `VERA_GOOGLE_AUTH_ENABLED` | `VITE_VERA_GOOGLE_AUTH_ENABLED` | `true` tras aceptación | Google. |
 
-El correo comprueba la dirección; **no se presenta como segundo factor NIST**. NIST SP 800-63B-4 prohíbe usar correo como autenticador fuera de banda. Por eso la contraseña propia usa TOTP de una app de autenticación. Para contraseñas nuevas se exigen 15–128 caracteres Unicode normalizados a NFC, sin reglas de mayúsculas/símbolos, y se rechazan las encontradas en la lista de Pwned Passwords consultada por rango de hash. Si esa consulta falla, el registro se detiene; ningún secreto completo se envía al servicio. Las contraseñas existentes no se reevalúan ni se alteran.
+Los flujos anteriores de código por correo y aprobación de cuentas se retiraron del registro y de la interfaz; ninguna bandera los reactiva.
 
-## Secuencia de activación
+Las banderas del frontend solo controlan la interfaz. El backend vuelve a comprobar el método, el estado y el rol en cada operación protegida. Nunca se publican `SUPABASE_SECRET_KEY` ni secretos OAuth como variables `VITE_*`.
 
-1. Mantener `VERA_MANAGED_AUTH_ENABLED=false` y `VITE_VERA_MANAGED_AUTH_ENABLED=false` durante la preparación; dejar también apagadas las banderas de Google y Microsoft. Desplegar el código así preserva la consulta anterior de `vera_users`.
-2. Revisar las migraciones `20261018120000_add_managed_auth_identity.sql` y `20261018130000_add_privacy_notice_acknowledgement.sql` frente al proyecto Supabase correcto. Solo añaden columnas opcionales, una restricción de consistencia y un índice único; no actualizan cuentas existentes. Aplicarlas antes de activar banderas. Comprobar que el número de cuentas y sus roles/estados no cambió.
-3. Configurar **SMTP propio** en Supabase Auth. El SMTP gratuito predeterminado de Supabase solo entrega a miembros autorizados del proyecto y no sirve para registrar cualquier dominio. Verificar DNS de un subdominio de envío, SPF/DKIM y entregabilidad. En `Confirm sign up` usar una plantilla con `{{ .Token }}` para que VERA pueda verificar el código en pantalla. Mantener `Confirm email` activado.
-4. Configurar la URL principal `https://www.vera-digital-systems.com` y las redirecciones exactas necesarias en Supabase Auth. No añadir comodines de Preview a producción.
-5. Configurar el proveedor Google con cliente OAuth Web y su callback de Supabase; configurar Microsoft como aplicación multitenant y de cuentas personales si esa es la audiencia deseada. Incluir la reclamación `xms_edov` en Microsoft para tratar correos verificados. Restringir ambos proveedores a datos básicos de perfil/correo.
-6. Configurar solo en **backend** `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `VERA_USER_STORE=supabase` y `VERA_MANAGED_AUTH_ENABLED=true`. El secreto nunca se publica como `VITE_*`. Configurar en **frontend** solo `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_VERA_MANAGED_AUTH_ENABLED=true`; activar las banderas Google/Azure de cada lado únicamente cuando ese proveedor esté preparado.
-7. Validar una cuenta nueva con correo externo: registro → código recibido → aprobación → contraseña → TOTP → sesión. Validar Google y Microsoft con cuentas **nuevas**; confirmar que quedan pendientes y que no heredan una cuenta existente por correo. Validar inicio de sesión de una cuenta anterior sin cambios. No usar cuentas reales del equipo como fixtures.
+## Orden de activación
 
-Si un proveedor, correo o migración no está listo, mantener su bandera apagada. El cambio de código por sí solo **no acredita** entrega de correo ni funcionamiento de OAuth en producción.
+1. Confirmar que la producción usa el proyecto Supabase `rsrsycokfdypliepcxgi` y guardar los conteos de cuentas por rol y estado. Aplicar las migraciones aditivas de identidad, consentimiento, `mfa_required` y `vera_role_requests`. Verificar que las cuentas anteriores no cambian.
+2. Desplegar el código con los proveedores y las altas nuevas todavía apagados. Revisar que inicio de sesión anterior, URL pública y API respondan.
+3. Activar `VERA_DIRECT_REGISTRATION_ENABLED` y su par `VITE_`. Comprobar con una cuenta nueva de prueba: alta inmediata, rol Auditor, bloqueo de API antes del TOTP, activación TOTP y sesión con el factor.
+4. Confirmar callbacks exactos de Microsoft y Google hacia `https://rsrsycokfdypliepcxgi.supabase.co/auth/v1/callback`, URL de retorno de VERA y secretos vigentes almacenados solo en Supabase. Activar Microsoft primero en Supabase y Vercel. Comprobar alta nueva y sesión con rol Auditor. Activar Google después con el mismo criterio.
+5. Comprobar que una cuenta anterior con contraseña sigue funcionando y que usar en OAuth un correo ya registrado no toma ni eleva su cuenta. Una vinculación de identidad existente necesita un procedimiento separado que valide ambos factores; no se hace por igualdad de correo.
+6. Comprobar desde una cuenta Auditor la solicitud de rol, el rechazo y la autorización con SUPER_ADMIN, la bitácora y la actualización de permisos sin recrear cuentas.
 
-Google exige una página pública que explique VERA y un aviso de privacidad accesible desde ella, en el mismo dominio, con la misma URL declarada en su pantalla OAuth. Este PR prepara `/acerca` y `/privacidad`. El registro gestionado exige marcar la aceptación de la versión `2026-10-18`; el backend la registra con fecha en columnas opcionales. Un primer acceso social desde el formulario de inicio de sesión no crea una cuenta VERA sin esa aceptación. Configurar `https://www.vera-digital-systems.com/acerca` como página principal y `https://www.vera-digital-systems.com/privacidad` como aviso en Google únicamente después del despliegue público. Revisar los enlaces y la publicación de la marca antes de activar Google para toda la audiencia.
+Las cuentas `PENDING` creadas por flujos anteriores no se activan automáticamente ni aparecen como nuevas solicitudes de aprobación. Requieren una conciliación individual sin alterar las cuentas activas. La tabla de solicitudes de rol es distinta del estado de cuenta.
 
-El [procedimiento de privacidad](privacy-operations.md) describe la atención supervisada de solicitudes y la revisión de bitácoras cada 90 días. La captura de aceptación no sustituye la comprobación de entrega de correo, OAuth real o una revisión jurídica del texto antes de abrir las cuentas públicamente.
+## Reversión
 
-### Correo transaccional de VERA
+Para detener un método nuevo, apagar sus dos banderas (backend y frontend) y redesplegar. Apagar `VERA_DIRECT_REGISTRATION_ENABLED` detiene nuevas altas con contraseña sin tocar cuentas existentes. Apagar las banderas OAuth detiene nuevas sesiones de esos proveedores; no elimina filas ni cambia roles. Mantener la migración aditiva evita que el código antiguo pierda sus datos.
 
-El remitente previsto es `VERA <no-reply@auth.vera-digital-systems.com>`. Mailjet usa el servidor `in-v3.mailjet.com`, puerto 465 (SSL/TLS), la API Key como usuario y la Secret Key como contraseña SMTP. Los registros de verificación, SPF y DKIM pertenecen únicamente a `auth.vera-digital-systems.com`; el dominio principal y otros proveedores de correo no deben modificarse. La Secret Key se copia directamente de Mailjet a Supabase, sin pasar por Git, terminal, documentación ni chats.
+## Fuentes
 
-Antes de activar el registro, comprobar que Mailjet marca el dominio, SPF y DKIM como válidos, guardar el SMTP en Supabase, configurar la plantilla con `{{ .Token }}` y confirmar la entrega del correo en el entorno real. Los límites de Mailjet y de Supabase Auth se aplican por separado.
-
-## Operación y reversión
-
-- El backend valida la sesión de Supabase Auth con `/auth/v1/user` y solo después emite la sesión VERA. También vuelve a leer estado y rol de `vera_users` en cada API protegida. Una cuenta `PENDING` o `DISABLED` nunca recibe sesión VERA.
-- El registro propio solo crea la fila VERA a través del backend, después de revisar la contraseña. Un registro directo en Supabase Auth no crea acceso VERA. Los identificadores externos se almacenan en columnas opcionales y únicas.
-- Si falla el envío de correo o la comprobación de contraseñas filtradas, no se permite completar un registro nuevo. Revisar logs sin imprimir códigos, contraseñas, tokens ni claves.
-- Para detener registros nuevos, apagar `VERA_MANAGED_AUTH_ENABLED` y `VITE_VERA_MANAGED_AUTH_ENABLED` y redesplegar. Esto conserva las cuentas y la migración; las cuentas antiguas siguen en su camino tradicional. Las cuentas nuevas gestionadas no podrán iniciar sesión mientras la función esté desactivada.
-- No borrar identidades de Supabase Auth ni filas `vera_users` para revertir. Conciliar de forma explícita cualquier alta interrumpida entre GoTrue y `vera_users` antes de reintentar el correo.
-
-## Fuentes de la política
-
-- [NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b.html): longitud, bloqueo de contraseñas filtradas y prohibición de correo como segundo factor.
-- [Supabase Auth: SMTP propio](https://supabase.com/docs/guides/auth/auth-smtp), [plantillas y código](https://supabase.com/docs/guides/auth/auth-email-templates), [Google](https://supabase.com/docs/guides/auth/social-login/auth-google), [Microsoft](https://supabase.com/docs/guides/auth/social-login/auth-azure) y [MFA](https://supabase.com/docs/guides/auth/auth-mfa).
-- [Mailjet: parámetros SMTP](https://documentation.mailjet.com/hc/en-us/articles/37251169295003--Quick-Start-with-Mailjet) y [credenciales API/SMTP](https://documentation.mailjet.com/hc/en-us/articles/360043229473-How-can-I-configure-my-SMTP-parameters).
-- [Pwned Passwords API](https://haveibeenpwned.com/API/v3): consulta por prefijo SHA-1 de cinco caracteres con padding.
+- [Supabase: configuración general](https://supabase.com/docs/guides/auth/general-configuration) y [vinculación de identidades](https://supabase.com/docs/guides/auth/auth-identity-linking).
+- [Supabase: Microsoft](https://supabase.com/docs/guides/auth/social-login/auth-azure) y [Google](https://supabase.com/docs/guides/auth/social-login/auth-google).
+- [NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b.html) para contraseñas y factores.

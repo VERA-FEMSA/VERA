@@ -7,17 +7,10 @@ export const USER_STATUS = {
 };
 
 // New accounts: NIST SP 800-63B-4. The server also checks breached passwords.
-export const PASSWORD_CHECKS = import.meta.env.VITE_VERA_MANAGED_AUTH_ENABLED === "true"
-  ? [{ label: "De 15 a 128 caracteres", test: (p) => {
-      const length = Array.from(p.normalize("NFC")).length;
-      return length >= 15 && length <= 128;
-    } }]
-  : [
-      { label: "Al menos 8 caracteres", test: (p) => p.length >= 8 },
-      { label: "Una mayúscula", test: (p) => /[A-Z]/.test(p) },
-      { label: "Una minúscula", test: (p) => /[a-z]/.test(p) },
-      { label: "Un número", test: (p) => /[0-9]/.test(p) }
-    ];
+export const PASSWORD_CHECKS = [{ label: "De 15 a 128 caracteres", test: (p) => {
+  const length = Array.from(p.normalize("NFC")).length;
+  return length >= 15 && length <= 128;
+} }];
 
 // Validar nombres validos
 export const NAME_REGEX =

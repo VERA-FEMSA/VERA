@@ -1,6 +1,6 @@
 # Historial del aviso de privacidad de VERA
 
-El análisis previo se convirtió en la página pública `/privacidad` (versión `2026-10-18`) incluida en el PR #135. Mientras ese PR no se despliegue, la página aún no es el aviso vigente de producción.
+Este archivo conserva decisiones históricas. El aviso público vigente está en `/privacidad`; el cambio de alta inmediata usa la versión `2026-10-18.2` y se explica en [Acceso e identidad](identity-rollout.md). Las referencias posteriores a códigos por correo o aprobación corresponden al diseño anterior y no son pasos operativos.
 
 ## Decisiones confirmadas
 

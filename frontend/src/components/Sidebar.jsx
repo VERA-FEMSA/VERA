@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   ScrollText,
   UserCog,
+  UserRoundPen,
   X
 } from "lucide-react";
 import { ROLE_LABELS, USER_VIEW_ROLES } from "../constants/roles";
@@ -24,11 +25,19 @@ import "./Sidebar.css";
 
 const ICON_SIZE = 20;
 const ICON_STROKE = 1.75;
+const PREVIEW_ROLES = ["AUDITOR", "JEFATURA", "GERENTE", "DIRECTOR"];
+const PREVIEW_ACTIONS = {
+  AUDITOR: "Consulta sus auditorías asignadas y registra evidencias y hallazgos autorizados.",
+  JEFATURA: "Consulta el portafolio y puede proponer auditorías y registrar evidencias.",
+  GERENTE: "Puede gestionar riesgos y controles y decidir sobre propuestas de auditoría.",
+  DIRECTOR: "Consulta el portafolio y las cuentas; no modifica riesgos ni aprueba propuestas."
+};
 
 function Sidebar({ active }) {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [previewRole, setPreviewRole] = useState(null);
 
   const logout = async () => {
     try { if (managedAuth) await managedAuth.auth.signOut(); }
@@ -39,7 +48,7 @@ function Sidebar({ active }) {
   };
 
   const canSeeUsers = USER_VIEW_ROLES.includes(user?.role);
-  const canSeeAuditLog = USER_VIEW_ROLES.includes(user?.role);
+  const canSeeAuditLog = user?.role === "SUPER_ADMIN";
   const items = [
     { id: "dashboard", label: "Panel de Portafolio", Icon: LayoutDashboard, path: "/dashboard" },
     { id: "planificacion", label: "Planificación", Icon: ClipboardList, path: "/planificacion" },
@@ -52,6 +61,7 @@ function Sidebar({ active }) {
     { id: "actividad", label: "Actividad reciente", Icon: Activity, path: "/actividad" },
     { id: "asistente", label: "Asistente de IA", Icon: Bot, path: "/asistente" },
     { id: "evidencias", label: "Evidencias", Icon: Files, path: "/evidencias" },
+    { id: "mi-rol", label: "Mi rol y solicitudes", Icon: UserRoundPen, path: "/mi-rol" },
     ...(canSeeUsers ? [{ id: "usuarios", label: "Usuarios", Icon: UserCog, path: "/usuarios" }] : []),
     ...(canSeeAuditLog ? [{ id: "auditoria", label: "Registro de actividad", Icon: ScrollText, path: "/auditoria" }] : [])
   ];
@@ -92,6 +102,14 @@ function Sidebar({ active }) {
           </div>
         </div>
 
+        {user?.role === "SUPER_ADMIN" && <div className="role-preview-launcher">
+          <strong>VER VISTA DE OTRO ROL</strong>
+          <div className="role-preview-buttons">
+            {PREVIEW_ROLES.map((role) => <button type="button" key={role}
+              onClick={() => setPreviewRole(role)}>Ver vista de {ROLE_LABELS[role]}</button>)}
+          </div>
+        </div>}
+
         <div className="sidebar-navigation">
           <div className="nav-title">NAVEGACIÓN</div>
           <nav aria-label="Módulos principales">
@@ -129,6 +147,21 @@ function Sidebar({ active }) {
           </button>
         </div>
       </aside>
+      {previewRole && <div className="role-preview-backdrop" role="presentation" onClick={() => setPreviewRole(null)}>
+        <section className="role-preview-dialog" role="dialog" aria-modal="true"
+          aria-label={`Vista previa de ${ROLE_LABELS[previewRole]}`} onClick={(event) => event.stopPropagation()}>
+          <button type="button" className="role-preview-close" onClick={() => setPreviewRole(null)} aria-label="Cerrar vista previa"><X size={20} /></button>
+          <span className="eyebrow">VISTA PREVIA · SIN CAMBIAR PERMISOS</span>
+          <h2>{ROLE_LABELS[previewRole]}</h2>
+          <p>{PREVIEW_ACTIONS[previewRole]}</p>
+          <h3>Navegación de este rol</h3>
+          <ul>{items.filter((item) => item.id !== "usuarios" && item.id !== "auditoria")
+            .map((item) => <li key={item.id}>{item.label}</li>)}
+            {previewRole === "DIRECTOR" && <li>Usuarios (consulta)</li>}
+          </ul>
+          <p className="role-preview-note">Esta vista muestra la navegación y el alcance general. Tu sesión SUPER_ADMIN conserva sus permisos reales; no se ejecutan acciones como otra persona.</p>
+        </section>
+      </div>}
     </>
   );
 }

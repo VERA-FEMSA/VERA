@@ -34,7 +34,7 @@ export const loginUser = async (username, password) => {
   return data;
 };
 
-// HU-01: registro propio. La cuenta queda pendiente de aprobación.
+// HU-01: registro propio.
 export const registerUser = async ({ name, email, password, privacyAccepted, privacyNoticeVersion }) => {
   const response = await fetch(`${API_URL}/register`, {
     method: "POST",
@@ -45,9 +45,30 @@ export const registerUser = async ({ name, email, password, privacyAccepted, pri
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || "No se pudo enviar la solicitud.");
+    throw new Error(data.message || "No se pudo crear la cuenta.");
   }
 
+  return data;
+};
+
+export const startPasswordMfaEnrollment = async (setupToken) => {
+  const response = await fetch(`${API_URL}/2fa/setup`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${setupToken}` }
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "No se pudo preparar el doble factor.");
+  return data;
+};
+
+export const finishPasswordMfaEnrollment = async (setupToken, code) => {
+  const response = await fetch(`${API_URL}/2fa/enable`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${setupToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ code })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "No se pudo activar el doble factor.");
   return data;
 };
 

@@ -63,11 +63,6 @@ const validateNewPassword = async (password, email) => {
     : { valid: true, password: normalized };
 };
 
-const signUp = async ({ email, password, name }) => request("signup", {
-  method: "POST",
-  body: { email, password, data: { full_name: name } }
-});
-
 const getUser = async (token) => request("user", { token });
 
-module.exports = { enabled, config, normalizePassword, validateNewPassword, signUp, getUser };
+module.exports = { enabled, config, normalizePassword, validateNewPassword, getUser };

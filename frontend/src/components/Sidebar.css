@@ -80,3 +80,39 @@
     transition: none;
   }
 }
+
+.role-preview-launcher {
+  margin: 0 12px 10px;
+  padding: 12px;
+  border: 1px solid #c9e8e4;
+  border-radius: 12px;
+  background: #f2faf8;
+}
+
+.role-preview-launcher strong { display: block; margin-bottom: 8px; color: #0e635c; font-size: 10px; letter-spacing: .12em; }
+.role-preview-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.role-preview-buttons button {
+  padding: 7px 5px;
+  border: 1px solid #badbd7;
+  border-radius: 7px;
+  background: white;
+  color: #173d49;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.role-preview-buttons button:hover, .role-preview-buttons button:focus-visible { border-color: #0b8f80; background: #e5f7f3; }
+.role-preview-backdrop {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center;
+  padding: 20px; background: rgba(9, 31, 42, .56);
+}
+.role-preview-dialog {
+  position: relative; width: min(560px, 100%); max-height: 90vh; overflow: auto;
+  padding: 30px; border-radius: 18px; background: white; box-shadow: 0 25px 80px rgba(0, 0, 0, .22);
+  color: #173d49;
+}
+.role-preview-dialog h2 { margin: 8px 0; font-size: 28px; }
+.role-preview-dialog h3 { margin: 22px 0 8px; font-size: 16px; }
+.role-preview-dialog ul { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 20px; padding-left: 20px; }
+.role-preview-close { position: absolute; top: 16px; right: 16px; border: 0; background: transparent; cursor: pointer; }
+.role-preview-note { padding: 12px; border-radius: 8px; background: #f2faf8; font-size: 13px; }

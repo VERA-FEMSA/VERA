@@ -5,10 +5,10 @@ import {
   getUsers,
   updateUserRole,
   updateUserStatus,
-  approveRequest,
-  rejectRequest
+  getPendingRoleRequests,
+  reviewRoleRequest
 } from "../services/userService";
-import { ROLE_LABELS, ASSIGNABLE_ROLES, DEFAULT_ROLE } from "../constants/roles";
+import { ROLE_LABELS, ASSIGNABLE_ROLES } from "../constants/roles";
 import { USER_STATUS } from "../constants/accountRules";
 import "./Dashboard.css";
 import "./Usuarios.css";
@@ -29,6 +29,8 @@ function Usuarios() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [roleRequests, setRoleRequests] = useState([]);
+  const [roleRequestError, setRoleRequestError] = useState("");
 
   // Rol elegido en el selector antes de guardar o aprobar: { [id]: "GERENTE" }
   const [drafts, setDrafts] = useState({});
@@ -43,7 +45,10 @@ function Usuarios() {
       .then((data) => setUsers(data))
       .catch((err) => setLoadError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+    if (isSuperAdmin) getPendingRoleRequests()
+      .then(setRoleRequests)
+      .catch((err) => setRoleRequestError(err.message));
+  }, [isSuperAdmin]);
 
   // Para el botón "Reintentar"
   const loadUsers = async () => {
@@ -59,7 +64,6 @@ function Usuarios() {
     }
   };
 
-  const pendingUsers = users.filter((u) => u.status === USER_STATUS.PENDING);
   const accounts = users.filter((u) => u.status !== USER_STATUS.PENDING);
 
   // ---------- reglas de la interfaz (el backend valida lo mismo) ----------
@@ -132,42 +136,18 @@ function Usuarios() {
     }
   };
 
-  // ---------- acciones sobre solicitudes (solo Super Admin) ----------
-
-  const handleApprove = async (user) => {
-    const role = drafts[user.id] ?? DEFAULT_ROLE;
-    setSavingId(user.id);
-
+  const handleReviewRole = async (request, approve) => {
+    const action = approve ? "autorizar" : "rechazar";
+    if (!window.confirm(`¿${action} el cambio a ${ROLE_LABELS[request.requestedRole]} de ${request.user?.name || "esta persona"}?`)) return;
+    setSavingId(`role-${request.id}`);
     try {
-      const updated = await approveRequest(user.id, role);
-      replaceUser(updated); // pasa de la lista de solicitudes a la de cuentas
-      clearDraft(user.id);
-      showRowMessage(user.id, "success", `Solicitud aprobada como ${ROLE_LABELS[role]}.`);
-      setRequestNotice(null);
+      await reviewRoleRequest(request.id, approve);
+      setRoleRequests((current) => current.filter((item) => item.id !== request.id));
+      setRequestNotice({ type: "success", text: approve ? "Cambio de rol autorizado." : "Cambio de rol rechazado." });
+      if (approve) setUsers(await getUsers());
     } catch (err) {
       setRequestNotice({ type: "error", text: err.message });
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  const handleReject = async (user) => {
-    const ok = window.confirm(
-      `Se eliminará la solicitud de ${user.name} (${user.email}). ¿Rechazarla?`
-    );
-    if (!ok) return;
-
-    setSavingId(user.id);
-
-    try {
-      await rejectRequest(user.id);
-      setUsers((prev) => prev.filter((u) => u.id !== user.id));
-      setRequestNotice({ type: "success", text: `Solicitud de ${user.name} rechazada.` });
-    } catch (err) {
-      setRequestNotice({ type: "error", text: err.message });
-    } finally {
-      setSavingId(null);
-    }
+    } finally { setSavingId(null); }
   };
 
   // ---------- vista ----------
@@ -207,15 +187,16 @@ function Usuarios() {
           {!loading && !loadError && isSuperAdmin && (
             <div className="users-card users-requests">
               <div className="users-requests-head">
-                <h2>Solicitudes pendientes</h2>
-                {pendingUsers.length > 0 && (
-                  <span className="users-count">{pendingUsers.length}</span>
+                <h2>Solicitudes de cambio de rol</h2>
+                {roleRequests.length > 0 && (
+                  <span className="users-count">{roleRequests.length}</span>
                 )}
               </div>
               <p className="users-muted">
-                Personas que crearon su cuenta y esperan acceso. Al aprobar, elige
-                el rol con el que entrarán.
+                Las cuentas nuevas ya pueden entrar como Auditor. Aquí solo se autoriza o rechaza un cambio posterior de rol.
               </p>
+
+              {roleRequestError && <p className="users-msg error">{roleRequestError}</p>}
 
               {requestNotice && (
                 <p className={`users-msg ${requestNotice.type} users-notice`}>
@@ -223,54 +204,41 @@ function Usuarios() {
                 </p>
               )}
 
-              {pendingUsers.length === 0 ? (
+              {roleRequests.length === 0 && !roleRequestError ? (
                 <div className="users-empty">
                   <Inbox size={20} strokeWidth={1.75} aria-hidden="true" />
-                  No hay solicitudes por revisar.
+                  No hay cambios de rol pendientes.
                 </div>
               ) : (
                 <ul className="users-list">
-                  {pendingUsers.map((user) => {
-                    const busy = savingId === user.id;
+                  {roleRequests.map((request) => {
+                    const busy = savingId === `role-${request.id}`;
 
                     return (
-                      <li key={user.id} className="users-row pending">
+                      <li key={request.id} className="users-row pending">
                         <div className="users-identity">
-                          <strong>{user.name}</strong>
-                          <span>{user.email}</span>
-                          <span>Solicitó acceso el {formatDate(user.requestedAt)}</span>
+                          <strong>{request.user?.name || `Cuenta ${request.userId}`}</strong>
+                          <span>{request.user?.email}</span>
+                          <span>{ROLE_LABELS[request.user?.role]} → {ROLE_LABELS[request.requestedRole]}</span>
+                          <span>Motivo: {request.reason}</span>
+                          <span>Solicitado el {formatDate(request.createdAt)}</span>
                         </div>
 
                         <div className="users-controls">
-                          <select
-                            aria-label={`Rol para ${user.name}`}
-                            value={drafts[user.id] ?? DEFAULT_ROLE}
-                            disabled={busy}
-                            onChange={(e) =>
-                              setDrafts((prev) => ({ ...prev, [user.id]: e.target.value }))
-                            }
-                          >
-                            {ASSIGNABLE_ROLES.map((role) => (
-                              <option key={role} value={role}>
-                                {ROLE_LABELS[role]}
-                              </option>
-                            ))}
-                          </select>
-
                           <button
                             className="users-primary"
                             disabled={busy}
-                            onClick={() => handleApprove(user)}
+                            onClick={() => handleReviewRole(request, true)}
                           >
-                            Aprobar
+                            Autorizar cambio
                           </button>
 
                           <button
                             className="users-danger"
                             disabled={busy}
-                            onClick={() => handleReject(user)}
+                            onClick={() => handleReviewRole(request, false)}
                           >
-                            Rechazar
+                            Rechazar cambio
                           </button>
                         </div>
                       </li>

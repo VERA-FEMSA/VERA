@@ -8,7 +8,7 @@ export const ROLE_LABELS = {
 
 export const ASSIGNABLE_ROLES = ["DIRECTOR", "GERENTE", "AUDITOR", "JEFATURA"];
 
-export const DEFAULT_ROLE = "JEFATURA";
+export const DEFAULT_ROLE = "AUDITOR";
 
 export const USER_VIEW_ROLES = ["SUPER_ADMIN", "DIRECTOR"];
 

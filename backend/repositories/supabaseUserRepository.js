@@ -4,7 +4,7 @@ const { USER_STATUS } = require("../config/accountRules");
 
 const TABLE = "vera_users";
 const PAGE_SIZE = 1000;
-const BASE_COLUMNS = "id,username,email,name,password_hash,role,status,requested_at,two_factor_enabled,two_factor_secret,pending_secret,version";
+const BASE_COLUMNS = "id,username,email,name,password_hash,role,status,requested_at,two_factor_enabled,two_factor_secret,pending_secret,mfa_required,version";
 // Keep the old query shape until the additive migration has been applied and managed auth is enabled.
 const COLUMNS = process.env.VERA_MANAGED_AUTH_ENABLED === "true"
   ? `${BASE_COLUMNS},auth_user_id,auth_provider,privacy_notice_version,privacy_notice_acknowledged_at` : BASE_COLUMNS;
@@ -70,6 +70,7 @@ const unpack = (row) => row ? ({
   twoFactorEnabled: row.two_factor_enabled,
   twoFactorSecret: row.two_factor_secret,
   pendingSecret: row.pending_secret,
+  mfaRequired: Boolean(row.mfa_required),
   authUserId: row.auth_user_id,
   authProvider: row.auth_provider,
   storageVersion: Number(row.version)
@@ -117,7 +118,7 @@ const findByAuthUserId = async (authUserId) => {
   return unpack(rows[0]);
 };
 
-const createPendingExternal = async ({ name, email, authUserId, authProvider, role, privacyNoticeVersion }) => {
+const createExternal = async ({ name, email, authUserId, authProvider, role, privacyNoticeVersion, status }) => {
   const normalizedEmail = email.toLowerCase();
   const rows = await request("POST", { select: COLUMNS }, {
     username: normalizedEmail,
@@ -126,7 +127,7 @@ const createPendingExternal = async ({ name, email, authUserId, authProvider, ro
     // Managed identities never authenticate through the legacy password path.
     password_hash: await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10),
     role,
-    status: USER_STATUS.PENDING,
+    status,
     requested_at: new Date().toISOString(),
     auth_user_id: authUserId,
     auth_provider: authProvider,
@@ -135,6 +136,9 @@ const createPendingExternal = async ({ name, email, authUserId, authProvider, ro
   });
   return toPublic(unpack(rows[0]));
 };
+
+const createPendingExternal = (input) => createExternal({ ...input, status: USER_STATUS.PENDING });
+const createActiveExternal = (input) => createExternal({ ...input, status: USER_STATUS.ACTIVE });
 
 const createPending = async ({ name, email, password, role }) => {
   const normalizedEmail = email.toLowerCase();
@@ -146,6 +150,23 @@ const createPending = async ({ name, email, password, role }) => {
     role,
     status: USER_STATUS.PENDING,
     requested_at: new Date().toISOString()
+  });
+  return toPublic(unpack(rows[0]));
+};
+
+const createActivePassword = async ({ name, email, password, role, privacyNoticeVersion }) => {
+  const normalizedEmail = email.toLowerCase();
+  const rows = await request("POST", { select: COLUMNS }, {
+    username: normalizedEmail,
+    email: normalizedEmail,
+    name,
+    password_hash: await bcrypt.hash(password, 12),
+    role,
+    status: USER_STATUS.ACTIVE,
+    mfa_required: true,
+    requested_at: new Date().toISOString(),
+    privacy_notice_version: privacyNoticeVersion,
+    privacy_notice_acknowledged_at: new Date().toISOString()
   });
   return toPublic(unpack(rows[0]));
 };
@@ -234,7 +255,7 @@ const checkPassword = (user, plainPassword) =>
 
 module.exports = {
   getAll, findById, findByLogin, findByAuthUserId, emailExists, createPending,
-  createPendingExternal, createBootstrapAdmin, updateRole, setStatus,
+  createPendingExternal, createActiveExternal, createActivePassword, createBootstrapAdmin, updateRole, setStatus,
   approvePending, remove, removePending, setPendingSecret, enableTwoFactor, checkPassword, toPublic,
   UserStorageError
 };

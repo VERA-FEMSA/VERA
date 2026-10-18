@@ -10,8 +10,10 @@ const {
   listUsers,
   updateUserRole,
   updateUserStatus,
-  approveRequest,
-  rejectRequest
+  listMyRoleRequests,
+  createRoleRequest,
+  listPendingRoleRequests,
+  reviewRoleRequest
 } = require("../controllers/userController");
 
 
@@ -19,9 +21,11 @@ const {
 router.get("/", rateLimit({ windowMs: 15 * 60 * 1000, limit: 120,
   standardHeaders: "draft-8", legacyHeaders: false }), verifyToken, allowRoles(...USER_VIEW_ROLES), listUsers);
 
-// HU-01: solicitudes de registro (solo Super Admin)
-router.post("/:id/approve", verifyToken, allowRoles(ROLES.SUPER_ADMIN), approveRequest);
-router.post("/:id/reject", verifyToken, allowRoles(ROLES.SUPER_ADMIN), rejectRequest);
+router.get("/role-requests/me", verifyToken, listMyRoleRequests);
+router.post("/role-requests", verifyToken, createRoleRequest);
+router.get("/role-requests/pending", verifyToken, allowRoles(ROLES.SUPER_ADMIN), listPendingRoleRequests);
+router.post("/role-requests/:id/review", verifyToken, allowRoles(ROLES.SUPER_ADMIN), reviewRoleRequest);
+
 router.patch("/:id/role", verifyToken, allowRoles(...USER_ADMIN_ROLES), updateUserRole);
 router.patch("/:id/status", verifyToken, allowRoles(...USER_ADMIN_ROLES), updateUserStatus);
 
