@@ -8,7 +8,7 @@ El repositorio comparte contexto y reglas de trabajo, **no entrena ni modifica e
 
 GitHub Actions, CodeQL, Dependabot y el control `PR documentation` son verificaciones deterministas: revisan archivos, dependencias, reglas y evidencia del PR sin enviar el código a un LLM. Usan tiempo de ejecución de GitHub Actions, pero no tokens de Azure OpenAI ni créditos de Copilot. La plantilla de PR guía a cualquier asistente que use un integrante; no asigna autonomía ni privilegios a un bot.
 
-Este cambio no activa revisión automática de código con GitHub Copilot: GitHub la factura mediante créditos de IA y minutos de Actions. Si el equipo decide usarla más adelante, primero debe comprobar presupuesto, alcance y tratamiento del código. Ningún bot sustituye la aprobación de otro integrante exigida para `main`.
+Este cambio no activa revisión automática de código con GitHub Copilot: GitHub la factura mediante créditos de IA y minutos de Actions. Si el equipo decide usarla más adelante, primero debe comprobar presupuesto, alcance y tratamiento del código. Los checks y la revisión del diff siguen siendo necesarios; cualquier integrante con permisos puede integrar su propio PR cuando cumpla las reglas vigentes de `main`.
 
 | Archivo | Propósito | Mantenimiento |
 | --- | --- | --- |
