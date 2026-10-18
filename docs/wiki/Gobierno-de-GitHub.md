@@ -1,6 +1,6 @@
 # Gobierno de GitHub · VERA
 
-Esta página explica la configuración del entorno GitHub, separada del comportamiento de las historias de usuario. **Corte verificado: 17 de octubre de 2026.** Las políticas reales viven en GitHub; vuelve a comprobarlas después de cambiar la organización, el plan o los permisos.
+Esta página explica la configuración del entorno GitHub, separada del comportamiento de las historias de usuario. **Corte inicial: 17 de octubre de 2026; actualización de calidad: 18 de octubre de 2026 UTC.** Las políticas reales viven en GitHub; vuelve a comprobarlas después de cambiar la organización, el plan o los permisos.
 
 ## Dos repositorios, una aplicación
 
@@ -21,6 +21,7 @@ La [regla de `main`](https://github.com/VERA-GRC-IRM/VERA/rules/25312937) exige 
 | UI E2E | Chrome, Edge, Firefox, tamaños móvil/tablet y accesibilidad automatizada | Usa datos controlados; no valida todos los flujos en Vercel. |
 | CodeQL JavaScript/TypeScript | Análisis estático del código | Cero alertas abiertas es un dato de corte, no garantía absoluta. |
 | Descripción revisable | Alcance, evidencia, verificación y riesgos del PR | La evidencia debe seguir siendo verificable por quien revisa. |
+| Supabase local | Migraciones, tablas privadas, persistencia y bitácora sintéticas tras reinicio, restauración lógica | Base desechable; no acredita copia ni persistencia de Production. |
 
 La [plantilla de PR](https://github.com/VERA-GRC-IRM/VERA/blob/main/.github/pull_request_template.md) y el [validador](https://github.com/VERA-GRC-IRM/VERA/blob/main/.github/scripts/check_pr_description.py) dan el mismo formato a cambios humanos y asistidos por IA. El workflow lee el script de `main`, no del código propuesto; los PR cerrados omiten el job al editar su descripción. El PR [#103](https://github.com/VERA-GRC-IRM/VERA/pull/103) registra la corrección y sus tiempos.
 
@@ -32,6 +33,7 @@ La [plantilla de PR](https://github.com/VERA-GRC-IRM/VERA/blob/main/.github/pull
 | [Informe integral docente](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml) | Manual y semanal | Summary, tiempos, logs y artefacto de 30 días. |
 | [Evaluación sintética de IA](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/ai-evaluation.yml) | Manual | Regresiones reproducibles sin llamadas al modelo real. |
 | [Portal público de calidad](https://vera-grc-irm.github.io/VERA/) | Cambios y comprobación programada | Estado por SHA en GitHub Pages, sin instalación local. |
+| [Ensayo local de Supabase](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/local-supabase-rehearsal.yml) | Cada PR, push a `main` y manual | Migraciones, privacidad, persistencia sintética y restauración lógica con tiempos. |
 | [Sincronización de Wiki](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/wiki-sync.yml) | Cambios en `docs/wiki/` y ejecución manual | Publica las páginas revisadas desde `main`. |
 | [Carga en staging](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/load-test.yml) | Manual | Solo se ejecuta con destino y autorización de staging. |
 
@@ -43,10 +45,10 @@ En `VERA`, Actions está limitado a acciones publicadas por GitHub y a `grafana/
 
 CodeQL, Dependabot security updates, secret scanning, push protection y reporte privado de vulnerabilidades están habilitados. El [panel de seguridad](https://github.com/VERA-GRC-IRM/VERA/security) es la fuente para el estado actual. No publiques valores de secretos en issues, PR, logs ni artefactos.
 
-**Pendiente de seguridad observado en este corte:** hay una [alerta abierta de secret scanning](https://github.com/VERA-GRC-IRM/VERA/security/secret-scanning/1) por una clave de Supabase encontrada en un `.env` de un commit antiguo. Su validez figura como desconocida. La respuesta correcta exige revocar o rotar la clave en Supabase, actualizar todos los entornos que la usan, comprobar que la aplicación sigue funcionando y cerrar la alerta con evidencia. Borrar el archivo actual o marcar la alerta como resuelta no revoca una credencial que ya estuvo en el historial público. La rotación necesita coordinarse con el despliegue para evitar una interrupción.
+**Actualización de la alerta histórica:** la [alerta #1 de secret scanning](https://github.com/VERA-GRC-IRM/VERA/security/secret-scanning/1) se cerró como `revoked` después de comprobar que el valor antiguo recibía HTTP 401 en REST y Auth. El panel mostró una clave activa distinta; no se publicó ni rotó a ciegas. La [bitácora](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/production-verification-2026-10-17.md) conserva el alcance exacto. El estado actual de alertas se consulta en Security, porque puede cambiar después de este corte.
 
 ## Interpretar el estado
 
-El [portal](https://vera-grc-irm.github.io/VERA/) muestra la evidencia más reciente de Actions en `main`; compara siempre su SHA con el commit actual. El despliegue registrado como Production en GitHub apuntaba en este corte a `720cef05…`, anterior al `main` observado. Además, la [URL del equipo](https://vera-figbo.vercel.app) mostró **Login – Vercel**. Por eso los checks aprobados acreditan CI, pero no prueban que la versión actual esté publicada ni que todos los flujos funcionen con Supabase y usuarios reales.
+El [portal](https://vera-grc-irm.github.io/VERA/) muestra la evidencia más reciente de Actions en `main`; compara siempre su SHA con el commit actual. El antiguo despliegue registrado en GitHub apuntaba en el corte inicial a `720cef05…` y la URL `vera-figbo.vercel.app` mostraba **Login – Vercel**. Después se conectó la [instancia propia](https://vera-salva-ventures.vercel.app) a `VERA-GRC-IRM/VERA`; [#113](https://github.com/VERA-GRC-IRM/VERA/issues/113) enlaza el despliegue automático y el smoke verificados. Comprueba el SHA efectivo en Vercel para cada entrega. Los checks aprobados y un smoke anónimo no prueban que todos los flujos funcionen con cuentas reales, Supabase y Azure OpenAI.
 
 Para revisar o restaurar el entorno después de una transferencia: confirma el destino de `main`, reglas, checks requeridos, política de Actions, permisos del token, escaneo de seguridad, Pages, Wiki y última ejecución integral. Después comprueba por separado el SHA y las variables del despliegue. No ejecutes la carga de 150/250 usuarios contra producción.
