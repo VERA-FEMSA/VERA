@@ -65,4 +65,29 @@ const validateNewPassword = async (password, email) => {
 
 const getUser = async (token) => request("user", { token });
 
-module.exports = { enabled, config, normalizePassword, validateNewPassword, getUser };
+// Supabase app_metadata.provider is the FIRST linked provider, not the one
+// used for this sign-in. Identity timestamps come from Supabase Auth and are
+// maintained per provider. Fail closed if linked identities are ambiguous.
+const signInProvider = (user, claims) => {
+  const allowed = new Set(["email", "google", "azure"]);
+  const identities = Array.isArray(user?.identities) ? user.identities : [];
+  if (identities.some((entry) => !allowed.has(entry?.provider))) return null;
+  if (identities.length === 1) return identities[0].provider;
+  if (identities.length > 1) {
+    const recent = identities.map((entry) => ({
+      provider: entry.provider,
+      signedInAt: Date.parse(entry.last_sign_in_at || "")
+    })).sort((a, b) => b.signedInAt - a.signedInAt);
+    if (recent.some((entry) => !Number.isFinite(entry.signedInAt)) ||
+        recent[0].signedInAt === recent[1].signedInAt ||
+        !Number.isFinite(claims?.iat) ||
+        recent[0].signedInAt > (claims.iat + 120) * 1000) return null;
+    return recent[0].provider;
+  }
+  const first = user?.app_metadata?.provider;
+  const listed = user?.app_metadata?.providers;
+  return allowed.has(first) && Array.isArray(listed) && listed.length === 1 && listed[0] === first
+    ? first : null;
+};
+
+module.exports = { enabled, config, normalizePassword, validateNewPassword, getUser, signInProvider };

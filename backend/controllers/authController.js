@@ -309,8 +309,8 @@ const exchangeManaged = async (req, res) => {
   if (!result.ok) return res.status(401).json({ message: "Sesión de identidad inválida o expirada." });
   const identity = result.data;
   const email = String(identity.email || "").trim().toLowerCase();
-  const provider = identity.app_metadata?.provider;
   const claims = jwt.decode(accessToken);
+  const provider = managedAuth.signInProvider(identity, claims);
   const expectedIssuer = `${process.env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1`;
   if (!identity.id || !isValidEmailFormat(email) || !identity.email_confirmed_at ||
       !["email", "google", "azure"].includes(provider) ||
