@@ -52,6 +52,19 @@
   text-decoration: none;
 }
 
+.social-registration {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #e4e9ed;
+  text-align: left;
+}
+
+.social-registration > p:first-child {
+  color: #526575;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .login-card .privacy-ack {
   display: flex;
   align-items: flex-start;

@@ -51,6 +51,27 @@ const createPending = async ({ name, email, password, role }) => {
   return toPublic(user);
 };
 
+const createActivePassword = async ({ name, email, password, role }) => {
+  const nextId = users.reduce((max, u) => Math.max(max, u.id), 0) + 1;
+  const normalizedEmail = email.toLowerCase();
+  const user = {
+    id: nextId,
+    username: normalizedEmail,
+    email: normalizedEmail,
+    password: await bcrypt.hash(password, 12),
+    name,
+    role,
+    status: USER_STATUS.ACTIVE,
+    requestedAt: new Date().toISOString(),
+    mfaRequired: true,
+    twoFactorEnabled: false,
+    twoFactorSecret: null,
+    pendingSecret: null
+  };
+  users.push(user);
+  return toPublic(user);
+};
+
 const updateRole = (id, role) => {
   const user = findById(id);
   if (!user) return null;
@@ -118,6 +139,7 @@ const memoryRepository = {
   findByLogin,
   emailExists,
   createPending,
+  createActivePassword,
   updateRole,
   setStatus,
   approvePending,

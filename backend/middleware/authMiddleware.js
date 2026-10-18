@@ -37,6 +37,26 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
+// A short-lived enrollment token can call only the two MFA enrollment routes.
+// It is deliberately rejected by verifyToken on every protected data route.
+const verifyMfaEnrollment = async (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  let decoded;
+  try { decoded = jwt.verify(token, getJwtSecret()); }
+  catch { return res.status(401).json({ message: "Token inválido o expirado" }); }
+  if (!decoded.purpose) return verifyToken(req, res, next);
+  if (decoded.purpose !== "mfa-enroll") return res.status(401).json({ message: "Token inválido" });
+  try {
+    const user = await userRepository.findById(decoded.id);
+    if (!user || user.status !== USER_STATUS.ACTIVE || !user.mfaRequired || user.twoFactorEnabled) {
+      return res.status(401).json({ message: "La configuración de doble factor ya no está disponible." });
+    }
+    req.user = { id: user.id, username: user.username, role: user.role, mfaEnrollment: true };
+    next();
+  } catch (error) { next(error); }
+};
+
 module.exports = {
-  verifyToken
+  verifyToken,
+  verifyMfaEnrollment
 };

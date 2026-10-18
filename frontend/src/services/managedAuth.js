@@ -4,6 +4,7 @@ const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export const managedAuthEnabled = import.meta.env.VITE_VERA_MANAGED_AUTH_ENABLED === "true" && Boolean(url && key);
+export const managedRegistrationEnabled = managedAuthEnabled && import.meta.env.VITE_VERA_MANAGED_REGISTRATION_ENABLED === "true";
 export const googleAuthEnabled = managedAuthEnabled && import.meta.env.VITE_VERA_GOOGLE_AUTH_ENABLED === "true";
 export const microsoftAuthEnabled = managedAuthEnabled && import.meta.env.VITE_VERA_AZURE_AUTH_ENABLED === "true";
 

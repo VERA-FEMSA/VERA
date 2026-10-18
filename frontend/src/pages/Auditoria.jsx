@@ -14,6 +14,7 @@ const ACTION_LABELS = {
   TWO_FACTOR_FAILED: "Código 2FA incorrecto",
   TWO_FACTOR_ENABLED: "2FA activado",
   ACCOUNT_REQUESTED: "Solicitud de cuenta",
+  ACCOUNT_REGISTERED: "Cuenta creada",
   REQUEST_APPROVED: "Solicitud aprobada",
   REQUEST_REJECTED: "Solicitud rechazada",
   ROLE_CHANGED: "Cambio de rol",
@@ -70,6 +71,7 @@ const describe = ({ action, target, details }) => {
     case "USER_ENABLED":
     case "USER_DISABLED":
     case "ACCOUNT_REQUESTED":
+    case "ACCOUNT_REGISTERED":
       return who || "";
     case "LOGIN_FAILED":
     case "TWO_FACTOR_FAILED":
@@ -97,7 +99,9 @@ const describe = ({ action, target, details }) => {
     case "EVIDENCE_REGISTERED":
       return `${details.evidenceId} · ${details.entityType} ${details.entityId} · ${details.title}`;
     case "LOGIN_SUCCESS":
-      return details.method === "PASSWORD_2FA" ? "Contraseña + 2FA" : "Contraseña";
+      return details.method === "PASSWORD_2FA" ? "Contraseña + 2FA" :
+        details.method === "OAUTH_AZURE" ? "Microsoft" :
+        details.method === "OAUTH_GOOGLE" ? "Google" : "Contraseña";
     default:
       return "";
   }

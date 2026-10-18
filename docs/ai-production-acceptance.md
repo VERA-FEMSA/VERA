@@ -4,7 +4,7 @@ La instancia propia de VERA usa [www.vera-digital-systems.com](https://www.vera-
 
 ## Antes de ejecutar
 
-1. Abre [VERA](https://www.vera-digital-systems.com/login) e intenta entrar con tu cuenta de la aplicación. Si no tienes cuenta, usa [Crear cuenta](https://www.vera-digital-systems.com/registro). El registro queda pendiente hasta que una persona administradora de VERA lo apruebe; no se debe crear ni activar una cuenta directamente en Supabase para saltarse ese flujo.
+1. Abre [VERA](https://www.vera-digital-systems.com/) e intenta entrar con tu cuenta de la aplicación. Si no tienes cuenta, usa [Crear cuenta](https://www.vera-digital-systems.com/registro). El registro nuevo entra con rol Auditor sin aprobación; una cuenta creada con contraseña configura TOTP en el primer acceso. Un cambio posterior de rol se solicita dentro de VERA y lo decide SUPER_ADMIN.
 2. Ten a mano el nombre de usuario y, si corresponde, tu código de dos factores. **No pegues contraseña, código ni token en este chat, en una captura ni en un issue.** El script los pide de forma oculta en la terminal y no escribe archivos de resultados.
 3. Desde la raíz del repositorio, ejecuta la parte pública sin credenciales:
 

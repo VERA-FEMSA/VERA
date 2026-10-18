@@ -15,7 +15,7 @@ La regla vigente se obtiene de [`backend/config/roles.js`](https://github.com/VE
 
 ## Flujo de identidad
 
-- El backend verifica el JWT y el estado de la cuenta; el registro de nuevas cuentas requiere aprobación. La opción 2FA usa TOTP.
+- El backend verifica el JWT y el estado de la cuenta; las cuentas nuevas entran como Auditor sin aprobación. El alta con contraseña requiere TOTP al primer acceso. El cambio de rol se solicita en **Mi rol y solicitudes** y lo revisa SUPER_ADMIN.
 - Con usuarios persistentes, la API exige registrar el login en Supabase antes de emitir la sesión. En demo `memory`, las cuentas son de ejemplo.
 - Las claves de Supabase y Azure son de servidor. Ningún valor `VITE_*` debe contener un secreto de servidor.
 - El correo universitario o el acceso a Azure DevOps **no** crea automáticamente una cuenta ni una sesión de VERA.

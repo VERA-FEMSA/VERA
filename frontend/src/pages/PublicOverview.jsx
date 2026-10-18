@@ -40,7 +40,7 @@ function PublicOverview() {
           </p>
           <div className="public-overview__actions">
             <Link className="public-overview__primary" to="/">Entrar a VERA</Link>
-            <Link className="public-overview__secondary" to="/registro">Solicitar acceso</Link>
+            <Link className="public-overview__secondary" to="/registro">Crear cuenta</Link>
           </div>
         </section>
 
@@ -55,7 +55,7 @@ function PublicOverview() {
         </section>
 
         <footer className="public-overview__footer">
-          <p>El entorno público usa datos de demostración y cuentas invitadas. Las solicitudes de acceso requieren aprobación.</p>
+          <p>El entorno público usa datos de demostración. Puedes crear una cuenta con contraseña, Microsoft o Google; el rol inicial es Auditor.</p>
           <p>
             <a href="https://github.com/VERA-GRC-IRM/VERA">Repositorio</a>
             <span aria-hidden="true"> · </span>

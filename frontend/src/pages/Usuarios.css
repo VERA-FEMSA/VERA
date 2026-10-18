@@ -270,3 +270,12 @@
     flex: 1;
   }
 }
+
+.role-request-form { display: grid; gap: 12px; max-width: 520px; margin-top: 16px; }
+.role-request-form label { font-weight: 650; color: #173d49; }
+.role-request-form select, .role-request-form textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid #cad7dd;
+  border-radius: 8px; background: white; color: #173d49; font: inherit;
+}
+.role-request-form textarea { resize: vertical; }
+.role-request-form .users-primary { justify-self: start; }

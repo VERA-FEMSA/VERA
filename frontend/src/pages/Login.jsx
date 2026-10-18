@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { exchangeManagedSession, loginUser, verify2FA } from "../services/authService";
-import { managedAuth, managedAuthEnabled, googleAuthEnabled, microsoftAuthEnabled, startSocialSignIn, takeSocialPrivacyAcknowledgement } from "../services/managedAuth";
+import { exchangeManagedSession, finishPasswordMfaEnrollment, loginUser, startPasswordMfaEnrollment, verify2FA } from "../services/authService";
+import { managedAuth, googleAuthEnabled, microsoftAuthEnabled, startSocialSignIn, takeSocialPrivacyAcknowledgement } from "../services/managedAuth";
 import { PRIVACY_NOTICE_VERSION } from "../constants/privacyNotice";
 import "./Login.css";
 
@@ -12,6 +12,9 @@ function Login() {
   const [tempToken, setTempToken] = useState(null); // set when the server asks for a 2FA code
   const [managedFactorId, setManagedFactorId] = useState(null);
   const [managedQr, setManagedQr] = useState(null);
+  const [setupToken, setSetupToken] = useState(null);
+  const [setupQr, setSetupQr] = useState(null);
+  const [setupSecret, setSetupSecret] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -70,7 +73,10 @@ function Login() {
     setBusy(true);
 
     try {
-      if (managedFactorId) {
+      if (setupToken) {
+        const data = await finishPasswordMfaEnrollment(setupToken, code);
+        finishLogin(data);
+      } else if (managedFactorId) {
         const { error: factorError } = await managedAuth.auth.mfa.challengeAndVerify({
           factorId: managedFactorId, code
         });
@@ -96,7 +102,12 @@ function Login() {
           return;
         }
 
-        if (data.requires2FA) {
+        if (data.requiresMfaSetup) {
+          const enrollment = await startPasswordMfaEnrollment(data.setupToken);
+          setSetupToken(data.setupToken);
+          setSetupQr(enrollment.qr);
+          setSetupSecret(enrollment.secret);
+        } else if (data.requires2FA) {
           setTempToken(data.tempToken);
         } else {
           finishLogin(data);
@@ -114,6 +125,9 @@ function Login() {
     setTempToken(null);
     setManagedFactorId(null);
     setManagedQr(null);
+    setSetupToken(null);
+    setSetupQr(null);
+    setSetupSecret(null);
     setCode("");
     setPassword("");
     setError("");
@@ -143,14 +157,19 @@ function Login() {
         </p>
 
         <p className="login-message">
-          {tempToken || managedFactorId
+          {tempToken || managedFactorId || setupToken
             ? "Ingresa el código de 6 dígitos de tu aplicación de autenticación."
             : "Inicia sesión para acceder al portafolio y a tus auditorías."}
         </p>
 
         <form onSubmit={handleSubmit}>
-          {tempToken || managedFactorId ? (
+          {tempToken || managedFactorId || setupToken ? (
             <>
+              {setupQr && <div className="mfa-enrollment">
+                <p>Para terminar tu primer acceso, escanea este QR con una aplicación de autenticación e introduce su código. El correo no se usa para este paso.</p>
+                <img src={setupQr} alt="Código QR para configurar el doble factor" />
+                <p>Si no puedes escanearlo, usa esta clave: <code>{setupSecret}</code></p>
+              </div>}
               {managedQr && <div className="mfa-enrollment">
                 <p>Escanea este código con tu aplicación de autenticación. Se exigirá en cada acceso con contraseña.</p>
                 <img src={managedQr} alt="Código QR para configurar la aplicación de autenticación" />
@@ -171,14 +190,14 @@ function Login() {
             </>
           ) : (
             <>
-              <label htmlFor="login-username">{managedAuthEnabled ? "Correo electrónico" : "Correo institucional"}</label>
+              <label htmlFor="login-username">Correo electrónico</label>
 
               <input
                 type="text"
                 id="login-username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder={managedAuthEnabled ? "tu@correo.com" : "correo@institucion.mx"}
+                placeholder="tu@correo.com"
                 autoComplete="username"
               />
 
@@ -199,10 +218,10 @@ function Login() {
           {error && <p className="error">{error}</p>}
 
           <button type="submit" disabled={busy}>
-            {tempToken || managedFactorId ? "Verificar" : "Iniciar sesión"}
+            {tempToken || managedFactorId || setupToken ? "Verificar" : "Iniciar sesión"}
           </button>
 
-          {(tempToken || managedFactorId) && (
+          {(tempToken || managedFactorId || setupToken) && (
             <button
               type="button"
               className="back-button"
@@ -213,14 +232,14 @@ function Login() {
           )}
         </form>
 
-        {(googleAuthEnabled || microsoftAuthEnabled) && !tempToken && !managedFactorId &&
+        {(googleAuthEnabled || microsoftAuthEnabled) && !tempToken && !managedFactorId && !setupToken &&
           <div className="social-options" aria-label="Otros métodos de acceso">
-            {googleAuthEnabled && <button type="button" onClick={() => beginSocial("google")}>Continuar con Google</button>}
             {microsoftAuthEnabled && <button type="button" onClick={() => beginSocial("azure")}>Continuar con Microsoft</button>}
+            {googleAuthEnabled && <button type="button" onClick={() => beginSocial("google")}>Continuar con Google</button>}
           </div>}
 
         <p className="create-account">
-          ¿Primera vez en VERA? <Link to="/registro">Crear cuenta</Link>
+          ¿Primera vez en VERA? <Link to="/registro">Crear cuenta</Link>{(googleAuthEnabled || microsoftAuthEnabled) && ". Ahí podrás aceptar el aviso de privacidad."}
         </p>
         <p className="create-account">
           <Link to="/acerca">Conoce VERA</Link>

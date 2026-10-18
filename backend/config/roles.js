@@ -14,7 +14,8 @@ const ASSIGNABLE_ROLES = [
   ROLES.JEFATURA
 ];
 
-const DEFAULT_ROLE = ROLES.JEFATURA;
+// Existing roles are unchanged. AUDITOR has the narrowest existing portfolio view.
+const DEFAULT_ROLE = ROLES.AUDITOR;
 
 // Director y Super Admin pueden consultar usuarios.
 const USER_VIEW_ROLES = [
