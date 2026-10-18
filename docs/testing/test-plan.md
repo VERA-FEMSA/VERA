@@ -47,6 +47,12 @@ Cada PR debe incluir solo pruebas de comportamiento que correspondan a funciones
 4. Las correcciones tienen re-ejecución de caso y regresión relacionada.
 5. La matriz TC/RF/RNF refleja el estado real, con vínculo a archivos de prueba o evidencia manual.
 
+## Pisos automáticos de regresión
+
+El control obligatorio `Quality gates (Node.js 22)` exige cobertura backend mínima de **90 % de líneas, 75 % de ramas y 90 % de funciones**. Los pisos se fijaron por debajo de la línea base de CI observada el 17 de octubre de 2026 (96.46 %, 82.58 % y 95.77 %, respectivamente) y de una ejecución local con Node 25 (94.41 %, 78.39 % y 94.43 %). La instrumentación produce cifras distintas entre versiones; se comparan tendencias del mismo runtime de CI. Si falta la medición, el control falla. Todo cambio debe conservar pruebas de los caminos afectados aunque supere los pisos globales; el frontend no tiene una métrica de cobertura equivalente en este reporte.
+
+El mismo control ejecuta los 20 escenarios sintéticos de IA sin red ni llamadas a Azure. El workflow manual de evaluación conserva el informe detallado independiente. Ninguna de estas pruebas demuestra la calidad de las respuestas del modelo desplegado, la persistencia ni los permisos de producción.
+
 ## Prioridad y criterios no funcionales
 
 La prioridad inicial respeta la evaluación de riesgo entregada: alta para autenticación/roles/permisos, ciclo de auditoría y estados/riesgos, además de concurrencia; media para evidencia/notificaciones, búsqueda/filtros/exportación y compatibilidad. Seguridad de acceso permanece alta aunque una pantalla particular esté clasificada como funcional.
@@ -91,8 +97,8 @@ La disponibilidad de 99.5% requiere una ventana de medición mensual; RTO de 4 h
 | TC-28 | RF-29: exportar filtro vacío | API/UI | Media | 5 | Bloqueado: falta función de exportación |
 | TC-29 | RF-30/RNF-03: funciones distintas por rol | Unit/API/E2E | Alta | 2 | Parcial: listado/edición y denegación por rol cubiertos en API; falta matriz completa de módulos |
 | TC-30 | RF-33: cerrar auditoría y evitar edición posterior | API/UI | Alta | 3 | Parcial: flujo API y rechazo de transiciones/edición posteriores; reflejo visual queda en PR-5 |
-| TC-31 | RNF-01: 150 usuarios concurrentes | Carga | Alta | 7 | Implementación preparada en k6; no ejecutada: requiere staging HTTPS y JWT de cuenta de carga activa; límite global actual de 100 solicitudes/IP/15 min puede rechazar la corrida |
-| TC-32 | RNF-01: 250 o más usuarios y umbral de respuesta | Carga | Alta | 7 | Implementación preparada en k6 con 250 VUs, error <1% y p95 <1500 ms; no ejecutada por ausencia de ambiente/token; revisar el límite global 100/IP antes de interpretar capacidad |
+| TC-31 | RNF-01: 150 usuarios concurrentes | Carga | Alta | 7 | Implementación preparada en k6; no ejecutada: requiere staging HTTPS y JWT de cuenta de carga activa; límite global actual de 600 solicitudes/IP/15 min puede rechazar la corrida |
+| TC-32 | RNF-01: 250 o más usuarios y umbral de respuesta | Carga | Alta | 7 | Implementación preparada en k6 con 250 VUs, error <1% y p95 <1500 ms; no ejecutada por ausencia de ambiente/token; revisar el límite global 600/IP antes de interpretar capacidad |
 | TC-33 | RNF-06: navegadores compatibles | E2E | Media | 6 | Parcial: Playwright cubre Chromium y Firefox; CI añade Chrome y Edge. La ejecución local de Firefox se limita por el runner Windows; validar el check Linux del PR antes de declarar la matriz completa |
 | TC-34 | RNF-06: navegador no compatible | E2E/manual | Media | 6 | Pendiente; acordar comportamiento soportado y mensaje esperado |
 | TC-35 | RNF-07: escritorio, tablet, orientación | UI/E2E/manual | Media | 6 | Parcial: flujo del panel verificado en Chromium escritorio y viewport tablet; orientación y hardware físico quedan manuales |

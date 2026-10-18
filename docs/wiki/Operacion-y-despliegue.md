@@ -1,6 +1,6 @@
 # Operación y despliegue
 
-Esta página es una ruta de lectura y comprobación. La [guía de Supabase](https://github.com/humbertofigb15/VERA/blob/main/docs/supabase-planning.md), el [runbook de IA](https://github.com/humbertofigb15/VERA/blob/main/docs/hu34-azure-openai.md) y el [runbook operativo](https://github.com/humbertofigb15/VERA/blob/main/docs/testing/operations-runbook.md) contienen pasos específicos de cada subsistema.
+Esta página es una ruta de lectura y comprobación. La [guía de Supabase](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/supabase-planning.md), el [runbook de IA](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/hu34-azure-openai.md) y el [runbook operativo](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/operations-runbook.md) contienen pasos específicos de cada subsistema.
 
 ## Demo local
 
@@ -24,7 +24,7 @@ Vite muestra la URL local. El modo inicial es `memory`; los datos demo se reinic
 
 ## Instancia publicada
 
-La [instancia propia de VERA](https://vera-salva-ventures.vercel.app) está accesible por HTTPS, pero las pantallas de trabajo exigen una cuenta activa del sistema. Los runbooks documentan configuración y comprobaciones puntuales de Supabase y Azure OpenAI. El [estado de aceptación por HU](https://github.com/humbertofigb15/VERA/wiki/Modulos-y-HU) mantiene separadas esas comprobaciones de una prueba funcional exhaustiva con todas las identidades.
+La [instancia propia de VERA](https://vera-salva-ventures.vercel.app) está conectada al repositorio de la organización y a la rama `main`. El [smoke público automático](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/production-smoke.yml) comprueba portada, acceso y rechazo de rutas protegidas sin sesión; el [portal de calidad](https://vera-grc-irm.github.io/VERA/) muestra el SHA de cada corrida. Para demostrar una versión publicada, coteja además el SHA del deployment en Vercel. El 17 de octubre de 2026, la antigua URL `vera-figbo.vercel.app` respondió con la barrera **Login – Vercel**; ese hallazgo histórico no describe la instancia propia ni permite equiparar sus datos o configuración. Los runbooks documentan comprobaciones puntuales de Supabase y Azure OpenAI. El [estado de aceptación por HU](https://github.com/VERA-GRC-IRM/VERA/wiki/Modulos-y-HU) separa esas comprobaciones de la prueba funcional exhaustiva con cuentas autorizadas.
 
 Para una comprobación de despliegue, registra **SHA publicado, entorno, fecha, rol, datos sintéticos, pasos y resultado**. No copies JWT, cookies, claves, contraseñas ni respuestas privadas a capturas o reportes. Un HTTP 200 en login o un despliegue `READY` demuestra disponibilidad de esa ruta, no cierre funcional.
 
@@ -36,4 +36,4 @@ Para una comprobación de despliegue, registra **SHA publicado, entorno, fecha, 
 4. Observa 429/5xx, latencia y logs sin contenido sensible.
 5. Si la IA falla, el backend permite desactivarla con `VERA_AI_ENABLED=false` y redesplegar; los módulos de negocio no deben depender de una respuesta generativa para conservar sus registros.
 
-No ejecutes pruebas de carga contra producción sin una ventana coordinada. La [carga preparada](https://github.com/humbertofigb15/VERA/actions/workflows/load-test.yml) está destinada a staging autorizado.
+No ejecutes pruebas de carga contra producción sin una ventana coordinada. La [carga preparada](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/load-test.yml) está destinada a staging autorizado.

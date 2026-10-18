@@ -15,12 +15,14 @@ const stages = [
   { area: "Backend", name: "Sintaxis JavaScript", args: ["run", "lint", "--prefix", "backend"] },
   { area: "Backend", name: "Pruebas y cobertura", args: ["run", "test:coverage", "--prefix", "backend"] },
   { area: "Backend", name: "Auditoría de dependencias", args: ["run", "audit", "--prefix", "backend"] },
+  { area: "IA", name: "Regresión sintética sin red", args: ["run", "ai:eval:offline", "--prefix", "backend"] },
   { area: "Frontend", name: "ESLint", args: ["run", "lint", "--prefix", "frontend"] },
   { area: "Frontend", name: "Build de producción", args: ["run", "build", "--prefix", "frontend"] },
   { area: "Frontend", name: "Auditoría de dependencias", args: ["run", "audit", "--prefix", "frontend"] }
 ];
 
 const results = [];
+const coverageMinimums = { linesPercent: 90, branchesPercent: 75, functionsPercent: 90 };
 
 const runStage = (stage) => new Promise((resolve) => {
   const output = { stdout: "", stderr: "" };
@@ -113,6 +115,8 @@ const makeMarkdown = (report) => {
     "",
     `- **Pruebas backend:** ${report.metrics.tests.passed}/${report.metrics.tests.total} aprobadas; ${report.metrics.tests.failed} fallidas.`,
     `- **Cobertura backend:** ${coverageText}`,
+    "- **Piso de cobertura backend:** 90% líneas, 75% ramas y 90% funciones; si falta la medición o cae por debajo, el control falla.",
+    "- **IA:** evaluación sintética sin llamadas al modelo incluida como etapa obligatoria.",
     `- **Vulnerabilidades altas/críticas bloqueantes:** ${auditText}`,
     `- **Bundle JavaScript frontend:** ${bundleText}`,
     "",
@@ -123,6 +127,17 @@ const makeMarkdown = (report) => {
 const main = async () => {
   const started = performance.now();
   for (const stage of stages) results.push(await runStage(stage));
+
+  const observedCoverage = extractMetrics().backendCoverage;
+  const unmetMinimums = Object.entries(coverageMinimums)
+    .filter(([metric, minimum]) => observedCoverage?.[metric] === undefined || observedCoverage[metric] < minimum)
+    .map(([metric, minimum]) => `${metric}: ${observedCoverage?.[metric] ?? "sin datos"} < ${minimum}`);
+  const coverageMessage = unmetMinimums.length
+    ? `Cobertura mínima incumplida: ${unmetMinimums.join("; ")}`
+    : `Cobertura mínima aprobada: líneas >= 90%, ramas >= 75%, funciones >= 90%`;
+  results.push({ area: "Backend", name: "Umbral de cobertura", status: unmetMinimums.length ? "FAIL" : "PASS",
+    exitCode: unmetMinimums.length ? 1 : 0, durationSeconds: 0, stdout: coverageMessage, stderr: "" });
+  process.stdout.write(`\n${coverageMessage}\n`);
 
   let commit = process.env.QUALITY_COMMIT ?? process.env.GITHUB_SHA ?? null;
   if (!commit) {
@@ -143,7 +158,7 @@ const main = async () => {
     commit,
     testedSha: process.env.GITHUB_SHA ?? null,
     stages: results.map(({ stdout, stderr, ...stage }) => stage),
-    metrics: extractMetrics()
+    metrics: { ...extractMetrics(), coverageMinimums }
   };
   const markdown = makeMarkdown(report);
 
