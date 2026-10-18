@@ -20,6 +20,17 @@ body:
       description: Local, Preview o Production; navegador y dispositivo si aplica.
     validations:
       required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impacto observado
+      description: Describe el efecto del defecto; esta selección no asigna automáticamente una prioridad.
+      options:
+        - Alto — bloquea un flujo principal o afecta la integridad de datos
+        - Medio — limita una función con alternativa disponible
+        - Bajo — afecta un detalle sin bloquear el flujo
+    validations:
+      required: true
   - type: textarea
     id: steps
     attributes:
@@ -38,5 +49,12 @@ body:
     attributes:
       label: Evidencia y alcance
       description: Puedes enlazar logs redactados o un PR; no adjuntes tokens, claves ni datos personales.
+    validations:
+      required: false
+  - type: textarea
+    id: regression
+    attributes:
+      label: Verificación para evitar la regresión
+      description: Enlaza una prueba automatizada o describe los pasos para repetir la comprobación después de corregir el defecto. Si aún no existe, indica «pendiente».
     validations:
       required: false

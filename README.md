@@ -13,12 +13,13 @@
 <p align="center">
   <a href="https://github.com/VERA-GRC-IRM/VERA/wiki">Centro de conocimiento</a> ·
   <a href="https://vera-grc-irm.github.io/VERA/">Portal de calidad</a> ·
+  <a href="https://github.com/VERA-GRC-IRM/VERA/releases">Cortes verificables</a> ·
   <a href="https://vera-salva-ventures.vercel.app">Demo pública</a> ·
   <a href="https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml">Ver calidad completa</a> ·
   <a href="docs/testing/professor-quick-run.md">Guía para docentes</a>
 </p>
 
-> **Estado del proyecto.** VERA es un prototipo académico con código funcional y pruebas automatizadas. La [demo pública](https://vera-salva-ventures.vercel.app) está conectada a `main` de esta organización; el [smoke del 17 de octubre de 2026](https://github.com/VERA-GRC-IRM/VERA/actions/runs/39079557868) verificó el despliegue automático del commit `5b0af933`. Los resultados de CI y la disponibilidad pública acreditan solamente las comprobaciones ejecutadas; la [aceptación de producción pendiente](https://github.com/VERA-GRC-IRM/VERA/issues/113) y el [estado por HU](docs/hu-acceptance-audit.md) delimitan lo que falta.
+> **Estado del proyecto.** VERA es un prototipo académico con código funcional y pruebas automatizadas. La [demo pública](https://vera-salva-ventures.vercel.app) se despliega desde `main` de esta organización; consulta el [smoke vigente](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/production-smoke.yml) y el [portal de calidad](https://vera-grc-irm.github.io/VERA/) para verificar el commit observado. Los resultados de CI y la disponibilidad pública acreditan solamente las comprobaciones ejecutadas; la [aceptación de producción pendiente](https://github.com/VERA-GRC-IRM/VERA/issues/113) y el [estado por HU](docs/hu-acceptance-audit.md) delimitan lo que falta.
 
 ## VERA en un minuto
 
@@ -61,6 +62,8 @@ El asistente combina indicadores calculados por VERA con respuestas de Azure Ope
 3. **Inspeccionar la ingeniería:** revisa [calidad](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/quality.yml), [navegadores](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/e2e.yml), [CodeQL](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/codeql.yml), [plan de pruebas](docs/testing/test-plan.md) y [PR fusionados](https://github.com/VERA-GRC-IRM/VERA/pulls?q=is%3Apr+is%3Amerged). Cada corrida indica el commit y la duración observada.
 
 El workflow completo puede iniciarlo manualmente una persona con permiso de escritura; cualquier visitante puede leer las corridas públicas. La prueba de carga de 150/250 usuarios está **preparada, no acreditada como ejecutada**: requiere un staging autorizado. Los E2E usan fixtures de API y no sustituyen pruebas funcionales con cuentas reales y datos persistentes.
+
+Los [cortes verificables](https://github.com/VERA-GRC-IRM/VERA/releases) fijan una revisión del repositorio con enlaces a la evidencia disponible y a sus límites. Para el estado más reciente de `main`, consulta siempre el portal y la issue de aceptación.
 
 ## Arquitectura y operación
 

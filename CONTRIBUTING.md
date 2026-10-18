@@ -11,6 +11,7 @@ VERA es un proyecto académico de equipo. Todas las personas con acceso de escri
 ## Al proponer un cambio
 
 - Completa la plantilla del PR: alcance, decisiones, evidencia, verificación ejecutada, duración observada y pendientes. Escribe «no ejecutado» cuando corresponda.
+- Guarda los archivos de texto en UTF-8. El archivo [`.editorconfig`](.editorconfig) indica el formato y el final de línea para editores compatibles; no exige reformatear archivos ajenos.
 - Actualiza la documentación afectada. Las páginas de `docs/wiki/` son la versión revisable de la Wiki; evita editar la Wiki pública sin reflejar el mismo cambio en un PR.
 - No subas credenciales, datos personales, tokens, archivos `.env` ni capturas con información privada. Usa datos sintéticos en ejemplos.
 - Si modificas permisos de la aplicación, comprueba el control del servidor y el alcance de los datos, además de la visibilidad en la interfaz.
@@ -26,4 +27,4 @@ Las actualizaciones de Dependabot también se revisan: confirma impacto de cambi
 
 ## Reportar problemas
 
-Usa el formulario de GitHub Issues para defectos reproducibles sin datos sensibles. Para vulnerabilidades o claves expuestas, sigue [SECURITY.md](SECURITY.md) y usa el canal privado de GitHub.
+Usa el formulario de GitHub Issues para defectos reproducibles sin datos sensibles. Indica el impacto observado y, cuando se corrija, enlaza la prueba o los pasos de verificación que evitan la regresión. Para vulnerabilidades o claves expuestas, sigue [SECURITY.md](SECURITY.md) y usa el canal privado de GitHub.
