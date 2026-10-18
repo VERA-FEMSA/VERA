@@ -193,10 +193,10 @@ def latest_run(filename):
 def run_state(run, main_sha):
     if not run:
         return ("Sin corrida", "unknown")
-    if run.get("status") != "completed":
-        return ("En curso", "pending")
     if run.get("head_sha") != main_sha:
         return ("Histórica", "old")
+    if run.get("status") != "completed":
+        return ("En curso", "pending")
     if run.get("conclusion") == "success":
         return ("Aprobada", "success")
     return ("Revisar fallo", "failure")
@@ -234,7 +234,7 @@ def render(output_dir):
             "duration_seconds": duration_seconds(run) if run else None,
         })
         rows.append(
-            f'<tr><td><strong>{escape(title)}</strong><small>{escape(scope)}</small></td>'
+            f'<tr data-workflow="{escape(filename)}"><td><strong>{escape(title)}</strong><small>{escape(scope)}</small></td>'
             f'<td><span class="pill {css_class}">{escape(label)}</span></td>'
             f'<td><code>{revision}</code></td>'
             f'<td>{escape(date_label(run.get("created_at") if run else None))}</td>'
@@ -286,7 +286,7 @@ def render(output_dir):
             f'<a href="{escape(run_url)}">Abrir Summary, logs y artefactos ↗</a>'
         )
         traceability_view = (
-            f'<section class="panel trace" aria-labelledby="trace-title"><div class="section-head">'
+            f'<section class="panel trace" id="traceability-panel" aria-labelledby="trace-title"><div class="section-head">'
             f'<div><div class="eyebrow dark">ALCANCE DEL PLAN</div><h2 id="trace-title">Trazabilidad de casos</h2></div>'
             f'<a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/testing/case-evidence-register.md">Abrir registro por caso ↗</a></div>'
             f'<p><strong>{planned} casos planeados</strong> · {related} con fuentes de prueba relacionadas · {unrelated} sin fuente asociada.</p>'
@@ -304,7 +304,7 @@ def render(output_dir):
             f'<a href="{escape(classroom_url)}">Consultar o iniciar la ejecución ↗</a>'
         )
         traceability_view = (
-            '<section class="panel trace" aria-labelledby="trace-title">'
+            '<section class="panel trace" id="traceability-panel" aria-labelledby="trace-title">'
             '<h2 id="trace-title">Trazabilidad de casos</h2>'
             '<p>Las cifras de trazabilidad del SHA actual estarán disponibles cuando exista su informe integral. '
             f'<a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/testing/case-evidence-register.md">Abrir registro por caso ↗</a></p></section>'
@@ -319,7 +319,7 @@ def render(output_dir):
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; script-src 'self'; connect-src https://api.github.com; base-uri 'none'; form-action 'none'">
   <title>VERA · Aseguramiento de calidad</title>
   <style>
     :root {{ color-scheme: light; --navy:#0b2343; --ink:#17283d; --green:#0b765f; --line:#dce5e8; --muted:#536579; --paper:#f4f7f8; }}
@@ -354,6 +354,8 @@ def render(output_dir):
     .success {{ background:#e3f5ec; color:#086441 }} .failure {{ background:#fbe9e8; color:#a12e27 }} .pending {{ background:#e7f0fb; color:#254e82 }} .old,.unknown {{ background:#f3efe1; color:#70521b }}
     .links {{ display:flex; flex-wrap:wrap; gap:.7rem }} .links a {{ display:inline-block; border:1px solid var(--line); padding:.5rem .8rem; border-radius:9px; text-decoration:none; font-weight:650 }}
     .note {{ border-left:4px solid #c29a3b; padding-left:1rem }} footer {{ max-width:1120px; margin:2rem auto; padding:0 1.2rem; color:var(--muted); font-size:.85rem }}
+    .live-alert {{ margin:0 0 1.2rem; padding:.8rem 1rem; border-radius:12px; font-size:.9rem }}
+    [hidden] {{ display:none!important }}
     @media (max-width:800px) {{ .kpi-grid {{ grid-template-columns:repeat(2,minmax(0,1fr)) }} }}
     @media (max-width:700px) {{ .summary,.kpi-grid {{ grid-template-columns:1fr }} header {{ padding-top:2rem }} }}
   </style>
@@ -364,20 +366,21 @@ def render(output_dir):
   <p>Resultados, cobertura y trazabilidad vinculados al commit que los produjo. Cada cifra lleva a su corrida; las comprobaciones del entorno real se distinguen de las pruebas automatizadas.</p></header>
   <main>
     <section class="panel summary" aria-label="Resumen de calidad">
-      <div class="metric"><span>CI vigente de main</span><b>{escape(status)}</b><span>Calidad, interfaz y CodeQL</span></div>
-      <div class="metric"><span>Commit observado</span><b><a href="{escape(commit_url)}"><code>{escape(main_sha[:12])}</code></a></b><span>Rama main</span></div>
-      <div class="metric"><span>Actualizado</span><b>{escape(generated)}</b><span>Generado automáticamente, sin modelo de IA</span></div>
+      <div class="metric"><span id="ci-label">CI en la publicación</span><b id="ci-status">{escape(status)}</b><span>Calidad, interfaz y CodeQL</span></div>
+      <div class="metric"><span>Commit observado</span><b><a id="main-commit" href="{escape(commit_url)}"><code>{escape(main_sha[:12])}</code></a></b><span>Rama main</span></div>
+      <div class="metric"><span>Consulta en vivo</span><b id="live-checked">Pendiente</b><span id="publication-time">Publicación: {escape(generated)}</span></div>
     </section>
+    <p class="live-alert pending" id="live-alert" role="status" aria-live="polite">Esta es la instantánea publicada. Al abrir la página se consulta GitHub para confirmar el estado actual.</p>
     <section class="panel" aria-labelledby="evidence-title"><div class="section-head">
       <div><div class="eyebrow dark">RESULTADOS DEL COMMIT</div><h2 id="evidence-title">Indicadores del informe integral</h2></div>
-      <a href="{escape(run_url)}">Examinar corrida ↗</a></div>
-      <p class="evidence-note">{evidence_note}</p><div class="kpi-grid">{metric_cards}</div></section>
-    {traceability_view}
+      <a id="integral-run-link" href="{escape(run_url)}">Examinar corrida ↗</a></div>
+      <p class="evidence-note" id="integral-note">{evidence_note}</p><div class="kpi-grid" id="integral-cards" data-report-run-id="{escape(integral_run.get('id')) if report else ''}" hidden>{metric_cards}</div></section>
+    <div id="traceability-wrap" hidden>{traceability_view}</div>
     <section class="panel archive" aria-label="Corte permanente de calidad"><div>
       <div class="eyebrow dark">BITÁCORA PERMANENTE</div><h2>Corte verificable</h2>
       <p>La prerelease conserva el resumen y sus límites después de la caducidad de los artefactos temporales. El corte archivado puede corresponder a un SHA anterior.</p></div>
       <div class="archive-links"><a href="{escape(release_url)}">{escape(release_tag)} ↗</a>{archived_summary_link}</div></section>
-    <section class="panel"><h2>Corridas y tiempos</h2><div class="table-wrap"><table>
+    <section class="panel"><h2 id="table-title">Corridas y tiempos publicados</h2><div class="table-wrap"><table>
       <thead><tr><th>Verificación</th><th>Estado</th><th>SHA del workflow</th><th>Fecha</th><th>Tiempo aprox.</th><th>Detalle</th></tr></thead>
       <tbody>{''.join(rows)}</tbody></table></div></section>
     <section class="panel"><h2>Rutas de evidencia</h2><div class="links">
@@ -394,7 +397,8 @@ def render(output_dir):
       <p>Una corrida aprobada verifica únicamente su alcance. La columna SHA identifica el código del workflow; en los controles contra Vercel no identifica por sí solo el deployment examinado. Los E2E de interfaz utilizan fixtures de API; la aceptación de Preview usa cuentas demo aisladas y el smoke de Production solo rutas públicas y rechazo anónimo. La comprobación Supabase local usa una base desechable y una fila sintética; no acredita un respaldo de Production. Consulta el artifact de cada corrida para ver destino y tiempos. Las pruebas de carga de 150/250 usuarios requieren staging autorizado.</p>
       <p>Los resultados de seguridad requieren revisar también <a href="https://github.com/{escape(REPOSITORY)}/security">Security</a>: un check CodeQL verde no significa cero alertas. Un despliegue exitoso tampoco acredita por sí solo la aceptación de cada HU.</p>
     </section>
-  </main><footer>VERA · Fuente: GitHub Actions y commit de main. La vista se genera sin datos personales, secretos ni servicios de IA.</footer>
+  </main><footer>VERA · Fuente: GitHub Actions y commit de main. La consulta al abrir usa la API pública de GitHub; sus respuestas pueden tener hasta 60 s de caché. La vista no usa datos personales, secretos ni servicios de IA.</footer>
+  <script src="live-status.js" defer></script>
 </body></html>"""
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "index.html").write_text(page, encoding="utf-8", newline="\n")
@@ -467,6 +471,7 @@ def render(output_dir):
     ])
     (output_dir / "status.md").write_text("\n".join(markdown), encoding="utf-8", newline="\n")
     shutil.copyfile(ROOT / "frontend" / "public" / "vera-logo.svg", output_dir / "vera-mark.svg")
+    shutil.copyfile(ROOT / "scripts" / "quality-portal-live.js", output_dir / "live-status.js")
     print(f"Quality portal generated for {main_sha[:12]} with {core_passed}/3 current checks.")
 
 

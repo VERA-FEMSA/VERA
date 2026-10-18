@@ -15,12 +15,10 @@ on:
     branches: [main]
   push:
     branches: [main]
-    paths:
-      - .github/workflows/quality-portal.yml
-      - scripts/build-quality-portal.py
-      - frontend/public/vera-logo.svg
+  release:
+    types: [published]
   schedule:
-    - cron: "15 15 * * 1"
+    - cron: "15 15 * * *"
   workflow_dispatch:
 
 permissions:

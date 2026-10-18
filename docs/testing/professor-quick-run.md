@@ -2,7 +2,7 @@
 
 ## Para revisar resultados sin instalar nada
 
-1. Abre el [portal público de calidad](https://vera-grc-irm.github.io/VERA/) para ver el SHA actual, los estados y los tiempos; desde allí entra a [Ejecución completa de calidad y pruebas en GitHub Actions](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml).
+1. Abre el [portal público de calidad](https://vera-grc-irm.github.io/VERA/) y espera la confirmación de la consulta a GitHub. Ahí verás el SHA actual, los estados y los tiempos; desde allí entra a [Ejecución completa de calidad y pruebas en GitHub Actions](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml). Si aparece **sin confirmar**, consulta Actions directamente: la página publicada por sí sola es una instantánea fechada.
 2. Entra a la ejecución más reciente, abre **Summary** y revisa resultado, commit, cantidad de pruebas, cobertura de líneas/ramas/funciones, evaluación sintética de IA y tiempos. Si está en rojo, lee el paso fallido; no la presentes como aprobada.
 3. Si necesitas los logs detallados, el HTML de Playwright, las capturas, las trazas o los archivos JSON/Markdown, abre el artefacto de esa misma ejecución. El workflow lo conserva durante 30 días.
 
