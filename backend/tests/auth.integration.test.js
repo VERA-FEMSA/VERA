@@ -13,6 +13,7 @@ loginLogger.recordLogin = async (entry) => loginRecords.push(entry);
 const app = require("../server");
 const users = require("../data/users");
 const userRepository = require("../repositories/userRepository");
+const { PRIVACY_NOTICE_VERSION } = require("../config/privacyNotice");
 const { startTestServer } = require("./helpers/testServer");
 
 test.after(() => {
@@ -30,11 +31,22 @@ const request = (baseUrl, path, { method = "GET", token, body, ip } = {}) => fet
   ...(body ? { body: JSON.stringify(body) } : {})
 });
 
-test("RF-01: registration validates institutional email, duplicates and password before creating a pending account", async (context) => {
+test("RF-01: direct registration accepts any email, assigns AUDITOR and requires authenticator setup", async (context) => {
+  const previousFlag = process.env.VERA_DIRECT_REGISTRATION_ENABLED;
+  const nativeFetch = global.fetch;
+  process.env.VERA_DIRECT_REGISTRATION_ENABLED = "true";
+  global.fetch = (url, options) => String(url).startsWith("https://api.pwnedpasswords.com/")
+    ? Promise.resolve(new Response("", { status: 200 })) : nativeFetch(url, options);
+  context.after(() => {
+    if (previousFlag === undefined) delete process.env.VERA_DIRECT_REGISTRATION_ENABLED;
+    else process.env.VERA_DIRECT_REGISTRATION_ENABLED = previousFlag;
+    global.fetch = nativeFetch;
+  });
   const baseUrl = await startTestServer(context, app);
+  const privacy = { privacyNoticeVersion: PRIVACY_NOTICE_VERSION, privacyAccepted: true };
   const duplicate = await request(baseUrl, "/api/auth/register", {
     method: "POST",
-    body: { name: "Cuenta Duplicada", email: "demo@vera.local", password: "Vera1234" }
+    body: { name: "Cuenta Duplicada", email: "demo@vera.local", password: "VeraTestPassword2026!", ...privacy }
   });
   assert.equal(duplicate.status, 409);
 
@@ -44,95 +56,75 @@ test("RF-01: registration validates institutional email, duplicates and password
   context.after(() => { disabledUser.status = originalStatus; });
   const disabledAddress = await request(baseUrl, "/api/auth/register", {
     method: "POST",
-    body: { name: "Cuenta Sintética", email: disabledUser.email, password: "Vera1234" }
+    body: { name: "Cuenta Sintética", email: disabledUser.email, password: "VeraTestPassword2026!", ...privacy }
   });
   assert.equal(disabledAddress.status, 409);
 
+  const externalEmail = `external-${Date.now()}@example.test`;
   const nonInstitutional = await request(baseUrl, "/api/auth/register", {
     method: "POST",
-    body: { name: "Cuenta Sintética", email: "external@example.test", password: "Vera1234" }
+    body: { name: "Cuenta Sintética", email: externalEmail, password: "VeraTestPassword2026!", ...privacy }
   });
-  assert.equal(nonInstitutional.status, 400);
+  assert.equal(nonInstitutional.status, 201);
+  const account = users.find((user) => user.email === externalEmail);
+  assert.ok(account);
+  assert.equal(account.status, "ACTIVE");
+  assert.equal(account.role, "AUDITOR");
+  assert.equal(account.mfaRequired, true);
+  assert.match(account.password, /^\$2/);
+  context.after(() => userRepository.remove(account.id));
 
   const pathologicalEmail = await request(baseUrl, "/api/auth/register", {
     method: "POST",
-    body: { name: "Cuenta Sintética", email: `x@${"!.".repeat(1000)}x`, password: "Vera1234" }
+    body: { name: "Cuenta Sintética", email: `x@${"!.".repeat(1000)}x`, password: "VeraTestPassword2026!", ...privacy }
   });
   assert.equal(pathologicalEmail.status, 400);
 
   const weakPassword = await request(baseUrl, "/api/auth/register", {
     method: "POST",
-    body: { name: "Cuenta Sintética", email: "weak@vera.local", password: "vera123" }
+    body: { name: "Cuenta Sintética", email: "weak@vera.local", password: "vera123", ...privacy }
   });
   assert.equal(weakPassword.status, 400);
 
-  const password = "VeraTest123";
-  const email = `qa-${Date.now()}@vera.local`;
-  const response = await request(baseUrl, "/api/auth/register", {
-    method: "POST",
-    body: { name: "Cuenta de Prueba", email, password }
-  });
-  assert.equal(response.status, 201);
-  assert.ok(!(await response.text()).includes(password));
-
-  const account = users.find((user) => user.email === email);
-  assert.ok(account);
-  assert.equal(account.status, "PENDING");
-  assert.match(account.password, /^\$2/);
-  context.after(() => userRepository.remove(account.id));
-
-  const pendingLogin = await request(baseUrl, "/api/auth/login", {
+  const login = await request(baseUrl, "/api/auth/login", {
     method: "POST",
     ip: "198.51.100.11",
-    body: { username: email, password }
+    body: { username: externalEmail, password: "VeraTestPassword2026!" }
   });
-  assert.equal(pendingLogin.status, 403);
+  assert.equal(login.status, 200);
+  const challenge = await login.json();
+  assert.equal(challenge.requiresMfaSetup, true);
+  assert.equal(challenge.token, undefined);
+  assert.equal((await request(baseUrl, "/api/dashboard", { token: challenge.setupToken })).status, 401);
+  const setup = await request(baseUrl, "/api/auth/2fa/setup", { method: "POST", token: challenge.setupToken });
+  assert.equal(setup.status, 200);
+  const { secret } = await setup.json();
+  const enabled = await request(baseUrl, "/api/auth/2fa/enable", {
+    method: "POST", token: challenge.setupToken, body: { code: generateSync({ secret }) }
+  });
+  assert.equal(enabled.status, 200);
+  assert.ok((await enabled.json()).token);
 });
 
-test("RF-01/RF-02: Super Admin can approve or reject pending registration requests", async (context) => {
+test("RF-02: account approval is removed; only Super Admin can review role requests", async (context) => {
   const baseUrl = await startTestServer(context, app);
-  const createRequest = async (suffix) => {
-    const email = `review-${suffix}-${Date.now()}@vera.local`;
-    const response = await request(baseUrl, "/api/auth/register", {
-      method: "POST",
-      body: { name: "Solicitud de Prueba", email, password: "VeraTest123" }
-    });
-    assert.equal(response.status, 201);
-    const created = users.find((user) => user.email === email);
-    context.after(() => userRepository.remove(created.id));
-    return created;
-  };
-
-  const approvedAccount = await createRequest("approve");
-  const approved = await request(baseUrl, `/api/users/${approvedAccount.id}/approve`, {
-    method: "POST",
-    token: tokenFor(1),
-    body: { role: "AUDITOR" }
+  assert.equal((await request(baseUrl, "/api/users/5/approve", { method: "POST", token: tokenFor(1) })).status, 404);
+  const created = await request(baseUrl, "/api/users/role-requests", {
+    method: "POST", token: tokenFor(5), body: { role: "DIRECTOR", reason: "Necesito consultar reportes de dirección." }
   });
-  assert.equal(approved.status, 200);
-  assert.equal((await approved.json()).user.status, "ACTIVE");
-  assert.equal(approvedAccount.role, "AUDITOR");
-
-  const repeatedApproval = await request(baseUrl, `/api/users/${approvedAccount.id}/approve`, {
-    method: "POST",
-    token: tokenFor(1),
-    body: { role: "AUDITOR" }
-  });
-  assert.equal(repeatedApproval.status, 409);
-
-  const rejectedAccount = await createRequest("reject");
-  const denied = await request(baseUrl, `/api/users/${rejectedAccount.id}/reject`, {
-    method: "POST",
-    token: tokenFor(2)
+  assert.equal(created.status, 201);
+  const { request: roleRequest } = await created.json();
+  assert.equal((await request(baseUrl, "/api/users/role-requests/pending", { token: tokenFor(2) })).status, 403);
+  const denied = await request(baseUrl, `/api/users/role-requests/${roleRequest.id}/review`, {
+    method: "POST", token: tokenFor(2), body: { approve: true }
   });
   assert.equal(denied.status, 403);
-
-  const rejected = await request(baseUrl, `/api/users/${rejectedAccount.id}/reject`, {
-    method: "POST",
-    token: tokenFor(1)
+  const approved = await request(baseUrl, `/api/users/role-requests/${roleRequest.id}/review`, {
+    method: "POST", token: tokenFor(1), body: { approve: true }
   });
-  assert.equal(rejected.status, 200);
-  assert.equal(userRepository.findById(rejectedAccount.id), null);
+  assert.equal(approved.status, 200);
+  assert.equal(userRepository.findById(5).role, "DIRECTOR");
+  context.after(() => userRepository.updateRole(5, "AUDITOR"));
 });
 
 test("RF-03/RNF-04: successful login returns a signed session and records its method", async (context) => {
