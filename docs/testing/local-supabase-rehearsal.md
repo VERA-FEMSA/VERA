@@ -16,7 +16,7 @@ El `Summary` publica conteos y tiempos, incluido el reinicio local. El artifact 
 
 ## Cómo ejecutarlo
 
-La ejecución automática aparece en los checks del PR y en Actions tras cada cambio de `main`. Para repetirla, abre **Actions → Local Supabase migration and restore rehearsal → Run workflow** y selecciona `main`. Solo miembros con permiso de ejecución pueden iniciarla manualmente. El workflow falla si la migración, RLS, permisos, bucket, persistencia tras reinicio o restauración sintética no coinciden con las expectativas. El [portal docente](https://vera-grc-irm.github.io/VERA/) enlaza la última corrida de `main` y marca si corresponde al SHA actual.
+La ejecución automática aparece en los checks del PR y en Actions tras cada cambio de `main`. Para repetirla, abre **Actions → Local Supabase migration and restore rehearsal → Run workflow** y selecciona `main`. Solo miembros con permiso de ejecución pueden iniciarla manualmente. El workflow falla si la migración, RLS, permisos, bucket, persistencia tras reinicio o restauración sintética no coinciden con las expectativas. La [plataforma de calidad](https://vera-grc-irm.github.io/VERA/) enlaza la última corrida de `main` y marca si corresponde al SHA actual.
 
 ## Límite de interpretación
 

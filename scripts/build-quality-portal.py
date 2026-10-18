@@ -2,19 +2,23 @@
 
 import argparse
 import html
+import io
 import json
 import os
 import shutil
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.parse import urlsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = os.environ.get("GITHUB_REPOSITORY", "VERA-GRC-IRM/VERA")
 API = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
+MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
 WORKFLOWS = (
     ("Calidad de software", "quality.yml", "Backend, cobertura, lint, build y dependencias"),
     ("Interfaz y accesibilidad", "e2e.yml", "Chrome, Edge, Firefox y perfiles móvil/tableta"),
@@ -45,6 +49,110 @@ def request_json(path):
     except (HTTPError, URLError, TimeoutError, ValueError) as error:
         print(f"GitHub API unavailable for {path}: {type(error).__name__}")
         return None
+
+
+def request_bytes(path):
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "VERA-quality-portal/1.0",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    if TOKEN:
+        headers["Authorization"] = f"Bearer {TOKEN}"
+    try:
+        with build_opener(SafeArtifactRedirect()).open(
+            Request(f"{API}{path}", headers=headers), timeout=30
+        ) as response:
+            payload = response.read(MAX_ARTIFACT_BYTES + 1)
+            if len(payload) > MAX_ARTIFACT_BYTES:
+                raise ValueError("artifact exceeds portal size limit")
+            return payload
+    except (HTTPError, URLError, TimeoutError, ValueError) as error:
+        code = f" HTTP {error.code} at {urlsplit(error.url).hostname}" if isinstance(error, HTTPError) else ""
+        print(f"GitHub artifact unavailable: {type(error).__name__}{code}")
+        return None
+
+
+class SafeArtifactRedirect(HTTPRedirectHandler):
+    """Follow GitHub's signed artifact URL without forwarding the API token."""
+
+    def redirect_request(self, request, fp, code, msg, headers, newurl):
+        target = urlsplit(newurl)
+        if target.scheme != "https":
+            raise URLError("artifact redirect must use HTTPS")
+        redirected = super().redirect_request(request, fp, code, msg, headers, newurl)
+        if redirected and urlsplit(request.full_url).hostname != target.hostname:
+            redirected.remove_header("Authorization")
+        return redirected
+
+
+def valid_count(value):
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def current_integral_report(run, main_sha):
+    """Read only whitelisted aggregate metrics from the successful run's artifact."""
+    if not run or run.get("status") != "completed" or run.get("conclusion") != "success":
+        return None
+    if run.get("head_sha") != main_sha or not valid_count(run.get("id")):
+        return None
+    run_id = run["id"]
+    attempt = run.get("run_attempt")
+    if not valid_count(attempt):
+        return None
+    expected_name = f"vera-classroom-quality-{run_id}-{attempt}"
+    listing = request_json(f"/repos/{REPOSITORY}/actions/runs/{run_id}/artifacts?per_page=100")
+    artifacts = listing.get("artifacts", []) if isinstance(listing, dict) else []
+    artifact = next((item for item in artifacts
+                     if item.get("name") == expected_name and not item.get("expired")), None)
+    if not artifact or not valid_count(artifact.get("id")):
+        return None
+    payload = request_bytes(f"/repos/{REPOSITORY}/actions/artifacts/{artifact['id']}/zip")
+    if payload is None:
+        return None
+    try:
+        with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+            member = archive.getinfo("quality-report/classroom-summary.json")
+            if member.file_size > 64 * 1024:
+                return None
+            report = json.loads(archive.read(member))
+    except (KeyError, OSError, ValueError, zipfile.BadZipFile, json.JSONDecodeError):
+        return None
+    if not isinstance(report, dict) or report.get("schemaVersion") != 1:
+        return None
+    if report.get("status") != "PASS" or report.get("commit") != main_sha:
+        return None
+    if report.get("runId") != str(run_id):
+        return None
+    backend = report.get("backend") or {}
+    ai = report.get("aiSynthetic") or {}
+    e2e = report.get("e2e") or {}
+    coverage = report.get("coverageBackend") or {}
+    traceability = report.get("traceability") or {}
+    counts = (backend.get("passed"), backend.get("total"), ai.get("passed"), ai.get("total"),
+              ai.get("modelCalls"), e2e.get("passed"), e2e.get("failed"),
+              e2e.get("flaky"), e2e.get("skipped"), report.get("durationSeconds"),
+              report.get("highCriticalVulnerabilities"), traceability.get("plannedCases"),
+              traceability.get("casesWithRelatedSources"))
+    if not all(valid_count(value) for value in counts):
+        return None
+    if any(not isinstance(coverage.get(key), (int, float)) or isinstance(coverage.get(key), bool)
+           or not 0 <= coverage[key] <= 100
+           for key in ("linesPercent", "branchesPercent", "functionsPercent")):
+        return None
+    if backend["passed"] > backend["total"] or ai["passed"] > ai["total"]:
+        return None
+    if traceability["casesWithRelatedSources"] > traceability["plannedCases"]:
+        return None
+    return report
+
+
+def latest_quality_release():
+    data = request_json(f"/repos/{REPOSITORY}/releases?per_page=20")
+    releases = data if isinstance(data, list) else []
+    return next((item for item in releases if not item.get("draft")
+                 and str(item.get("tag_name", "")).startswith("quality-")
+                 and str(item.get("html_url", "")).startswith(f"https://github.com/{REPOSITORY}/releases/tag/")), None)
 
 
 def parse_date(value):
@@ -103,8 +211,11 @@ def render(output_dir):
     rows = []
     records = []
     core_passed = 0
+    integral_run = None
     for title, filename, scope in WORKFLOWS:
         run = latest_run(filename)
+        if filename == "classroom-quality.yml":
+            integral_run = run
         label, css_class = run_state(run, main_sha)
         if filename in ("quality.yml", "e2e.yml", "codeql.yml") and css_class == "success":
             core_passed += 1
@@ -135,6 +246,73 @@ def render(output_dir):
     classroom_url = f"https://github.com/{REPOSITORY}/actions/workflows/classroom-quality.yml"
     commit_url = f"https://github.com/{REPOSITORY}/commit/{main_sha}"
     status = "Tres verificaciones vigentes aprobadas" if core_passed == 3 else f"{core_passed} de 3 verificaciones vigentes aprobadas"
+    report = current_integral_report(integral_run, main_sha)
+    release = latest_quality_release()
+    release_url = release.get("html_url") if release else f"https://github.com/{REPOSITORY}/releases"
+    release_tag = release.get("tag_name") if release else "Releases"
+    release_asset = next((asset.get("browser_download_url") for asset in release.get("assets", [])
+                          if str(asset.get("name", "")).startswith("resumen-calidad-")
+                          and str(asset.get("name", "")).endswith(".md")
+                          and str(asset.get("browser_download_url", "")).startswith(
+                              f"https://github.com/{REPOSITORY}/releases/download/")), None) if release else None
+    run_url = integral_run.get("html_url", classroom_url) if integral_run else classroom_url
+
+    if report:
+        backend = report["backend"]
+        ai = report["aiSynthetic"]
+        e2e = report["e2e"]
+        coverage = report["coverageBackend"]
+        traceability = report["traceability"]
+        planned = traceability["plannedCases"]
+        related = traceability["casesWithRelatedSources"]
+        unrelated = planned - related
+        related_width = related * 100 / planned if planned else 0
+        metrics = (
+            ("Pruebas de backend", f"{backend['passed']}/{backend['total']}", "Pruebas aprobadas del informe integral"),
+            ("Interfaz en navegadores", f"{e2e['passed']}/{e2e['passed'] + e2e['failed'] + e2e['flaky'] + e2e['skipped']}", "Sin fallas, inestables ni omitidas"),
+            ("IA sintética", f"{ai['passed']}/{ai['total']}", "Sin llamadas al modelo"),
+            ("Cobertura backend", f"{coverage['linesPercent']:.2f} %", f"Líneas · {coverage['branchesPercent']:.2f} % ramas · {coverage['functionsPercent']:.2f} % funciones"),
+            ("Duración integral", f"{report['durationSeconds'] // 60} min {report['durationSeconds'] % 60} s", "Tiempo observado en GitHub Actions"),
+            ("Dependencias", str(report["highCriticalVulnerabilities"]), "Vulnerabilidades npm altas o críticas"),
+        )
+        metric_cards = "".join(
+            f'<article class="kpi"><span class="kpi-label">{escape(label)}</span>'
+            f'<strong>{escape(value)}</strong><span>{escape(detail)}</span>'
+            f'<a href="{escape(run_url)}" aria-label="Ver evidencia de {escape(label)}">Ver corrida ↗</a></article>'
+            for label, value, detail in metrics
+        )
+        evidence_note = (
+            f'Informe integral aprobado del commit <code>{escape(main_sha[:12])}</code>. '
+            f'<a href="{escape(run_url)}">Abrir Summary, logs y artefactos ↗</a>'
+        )
+        traceability_view = (
+            f'<section class="panel trace" aria-labelledby="trace-title"><div class="section-head">'
+            f'<div><div class="eyebrow dark">ALCANCE DEL PLAN</div><h2 id="trace-title">Trazabilidad de casos</h2></div>'
+            f'<a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/testing/case-evidence-register.md">Abrir registro por caso ↗</a></div>'
+            f'<p><strong>{planned} casos planeados</strong> · {related} con fuentes de prueba relacionadas · {unrelated} sin fuente asociada.</p>'
+            f'<div class="trace-track" role="img" aria-label="{related} de {planned} casos con fuente relacionada; {unrelated} sin fuente">'
+            f'<span class="trace-related" style="width:{related_width:.2f}%"></span></div>'
+            f'<div class="trace-legend"><span><i class="legend-related"></i>Con fuente relacionada: {related}</span>'
+            f'<span><i class="legend-open"></i>Sin fuente asociada: {unrelated}</span></div>'
+            f'<p class="scope-note">Fuente relacionada significa trazabilidad, no aprobación individual. '
+            f'Esta bitácora declara {traceability.get("individualProductionPassesClaimed", 0)} casos aprobados individualmente en Production.</p></section>'
+        )
+    else:
+        metric_cards = ""
+        evidence_note = (
+            'No hay un informe integral aprobado y descargable del SHA actual. '
+            f'<a href="{escape(classroom_url)}">Consultar o iniciar la ejecución ↗</a>'
+        )
+        traceability_view = (
+            '<section class="panel trace" aria-labelledby="trace-title">'
+            '<h2 id="trace-title">Trazabilidad de casos</h2>'
+            '<p>Las cifras de trazabilidad del SHA actual estarán disponibles cuando exista su informe integral. '
+            f'<a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/testing/case-evidence-register.md">Abrir registro por caso ↗</a></p></section>'
+        )
+
+    archived_summary_link = (
+        f'<a href="{escape(release_asset)}">Resumen permanente en Markdown ↗</a>' if release_asset else ""
+    )
     page = f"""<!doctype html>
 <html lang="es">
 <head>
@@ -142,44 +320,69 @@ def render(output_dir):
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
-  <title>VERA · Evidencia de calidad</title>
+  <title>VERA · Aseguramiento de calidad</title>
   <style>
     :root {{ color-scheme: light; --navy:#0b2343; --ink:#17283d; --green:#0b765f; --line:#dce5e8; --muted:#536579; --paper:#f4f7f8; }}
     * {{ box-sizing:border-box }} body {{ margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif }}
     a {{ color:#075b85; text-underline-offset:3px }} a:focus-visible {{ outline:3px solid #1eb58d; outline-offset:3px }}
-    header {{ background:linear-gradient(125deg,#081a35 0%,#14375b 72%,#0b765f 100%); color:white; padding:3.2rem max(1.2rem,calc((100vw - 1120px)/2)) 3.7rem }}
+    header {{ background:linear-gradient(125deg,#081a35 0%,#14375b 72%,#0b765f 100%); color:white; padding:2.6rem max(1.2rem,calc((100vw - 1120px)/2)) 3.5rem }}
     header img {{ width:56px; height:56px; object-fit:contain; background:white; border-radius:12px; padding:7px }}
     .eyebrow {{ color:#9ee9cc; font-size:.78rem; font-weight:800; letter-spacing:.2em; text-transform:uppercase }}
-    h1 {{ font-size:clamp(2rem,5vw,3.6rem); line-height:1.08; margin:.7rem 0 }} h2 {{ font-size:1.45rem; margin:0 0 1rem }}
+    h1 {{ font-size:clamp(2rem,5vw,3.4rem); line-height:1.08; margin:.7rem 0 }} h2 {{ font-size:1.45rem; margin:0 0 1rem }}
     header p {{ max-width:750px; color:#dbe8ef }} header a {{ color:white }}
     main {{ max-width:1120px; margin:-1.6rem auto 4rem; padding:0 1.2rem }}
     .panel {{ background:white; border:1px solid var(--line); border-radius:20px; padding:1.5rem; box-shadow:0 12px 32px #0b234312; margin-bottom:1.2rem }}
     .summary {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem }} .metric {{ border-left:3px solid var(--green); padding-left:1rem }}
     .metric b {{ display:block; font-size:1.05rem }} .metric span,small {{ display:block; color:var(--muted); font-size:.87rem }}
+    .section-head {{ display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; flex-wrap:wrap }}
+    .section-head h2 {{ margin:.3rem 0 0 }} .dark {{ color:var(--green) }}
+    .evidence-note {{ margin:.5rem 0 1.2rem; color:var(--muted) }}
+    .kpi-grid {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.8rem }}
+    .kpi {{ min-height:148px; border:1px solid var(--line); border-radius:15px; padding:1rem; background:linear-gradient(160deg,#fff,#f8fbfa); display:flex; flex-direction:column }}
+    .kpi-label {{ color:var(--muted); font-size:.78rem; font-weight:750; letter-spacing:.07em; text-transform:uppercase }}
+    .kpi strong {{ font-size:clamp(1.55rem,3vw,2.3rem); line-height:1.12; margin:.35rem 0; color:var(--navy); font-variant-numeric:tabular-nums }}
+    .kpi span:not(.kpi-label) {{ color:var(--muted); font-size:.82rem }} .kpi a {{ font-size:.8rem; font-weight:700; margin-top:auto; padding-top:.5rem }}
+    .trace p {{ margin:.8rem 0 }} .trace-track {{ height:18px; border-radius:999px; background:#e8edf1; overflow:hidden }}
+    .trace-related {{ display:block; height:100%; background:linear-gradient(90deg,#0b765f,#29ad85); border-radius:999px }}
+    .trace-legend {{ display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:.55rem; color:var(--muted); font-size:.85rem }}
+    .trace-legend span {{ display:inline-flex; align-items:center; gap:.4rem }} .trace-legend i {{ display:inline-block; width:10px; height:10px; border-radius:50% }}
+    .legend-related {{ background:#0b765f }} .legend-open {{ background:#d2dbe2 }} .scope-note {{ font-size:.88rem; color:var(--muted) }}
+    .archive {{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; border-left:4px solid var(--green) }}
+    .archive p {{ margin:.3rem 0 0; color:var(--muted) }} .archive-links {{ display:flex; flex-wrap:wrap; gap:1rem }}
     .table-wrap {{ overflow-x:auto }} table {{ width:100%; border-collapse:collapse; min-width:800px }} th,td {{ padding:.9rem .6rem; text-align:left; border-bottom:1px solid var(--line); vertical-align:top }} th {{ color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.08em }} td small {{ margin-top:.2rem }}
     .pill {{ display:inline-block; white-space:nowrap; border-radius:999px; padding:.2rem .6rem; font-size:.84rem; font-weight:700 }}
     .success {{ background:#e3f5ec; color:#086441 }} .failure {{ background:#fbe9e8; color:#a12e27 }} .pending {{ background:#e7f0fb; color:#254e82 }} .old,.unknown {{ background:#f3efe1; color:#70521b }}
     .links {{ display:flex; flex-wrap:wrap; gap:.7rem }} .links a {{ display:inline-block; border:1px solid var(--line); padding:.5rem .8rem; border-radius:9px; text-decoration:none; font-weight:650 }}
     .note {{ border-left:4px solid #c29a3b; padding-left:1rem }} footer {{ max-width:1120px; margin:2rem auto; padding:0 1.2rem; color:var(--muted); font-size:.85rem }}
-    @media (max-width:700px) {{ .summary {{ grid-template-columns:1fr }} header {{ padding-top:2rem }} }}
+    @media (max-width:800px) {{ .kpi-grid {{ grid-template-columns:repeat(2,minmax(0,1fr)) }} }}
+    @media (max-width:700px) {{ .summary,.kpi-grid {{ grid-template-columns:1fr }} header {{ padding-top:2rem }} }}
   </style>
 </head>
 <body>
-  <header><img src="vera-mark.svg" alt="Marca VERA"><div class="eyebrow">Evidencia verificable · proyecto académico</div>
-  <h1>Calidad de VERA, en una sola vista.</h1>
-  <p>Resultados publicados por GitHub Actions. Cada fila abre la corrida, sus logs y sus artefactos; la fecha y el commit evitan confundir una evidencia histórica con el estado actual.</p></header>
+  <header><img src="vera-mark.svg" alt="Marca VERA"><div class="eyebrow">ASEGURAMIENTO DE CALIDAD · EVIDENCIA TRAZABLE</div>
+  <h1>Calidad de software, con evidencia.</h1>
+  <p>Resultados, cobertura y trazabilidad vinculados al commit que los produjo. Cada cifra lleva a su corrida; las comprobaciones del entorno real se distinguen de las pruebas automatizadas.</p></header>
   <main>
     <section class="panel summary" aria-label="Resumen de calidad">
       <div class="metric"><span>CI vigente de main</span><b>{escape(status)}</b><span>Calidad, interfaz y CodeQL</span></div>
       <div class="metric"><span>Commit observado</span><b><a href="{escape(commit_url)}"><code>{escape(main_sha[:12])}</code></a></b><span>Rama main</span></div>
       <div class="metric"><span>Actualizado</span><b>{escape(generated)}</b><span>Generado automáticamente, sin modelo de IA</span></div>
     </section>
+    <section class="panel" aria-labelledby="evidence-title"><div class="section-head">
+      <div><div class="eyebrow dark">RESULTADOS DEL COMMIT</div><h2 id="evidence-title">Indicadores del informe integral</h2></div>
+      <a href="{escape(run_url)}">Examinar corrida ↗</a></div>
+      <p class="evidence-note">{evidence_note}</p><div class="kpi-grid">{metric_cards}</div></section>
+    {traceability_view}
+    <section class="panel archive" aria-label="Corte permanente de calidad"><div>
+      <div class="eyebrow dark">BITÁCORA PERMANENTE</div><h2>Corte verificable</h2>
+      <p>La prerelease conserva el resumen y sus límites después de la caducidad de los artefactos temporales. El corte archivado puede corresponder a un SHA anterior.</p></div>
+      <div class="archive-links"><a href="{escape(release_url)}">{escape(release_tag)} ↗</a>{archived_summary_link}</div></section>
     <section class="panel"><h2>Corridas y tiempos</h2><div class="table-wrap"><table>
       <thead><tr><th>Verificación</th><th>Estado</th><th>SHA del workflow</th><th>Fecha</th><th>Tiempo aprox.</th><th>Detalle</th></tr></thead>
       <tbody>{''.join(rows)}</tbody></table></div></section>
-    <section class="panel"><h2>Para revisar en dos minutos</h2><div class="links">
+    <section class="panel"><h2>Rutas de evidencia</h2><div class="links">
       <a href="{escape(classroom_url)}">Informe integral y Summary ↗</a>
-      <a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/testing/professor-quick-run.md">Guía docente ↗</a>
+      <a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/testing/professor-quick-run.md">Guía de revisión ↗</a>
       <a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/testing/test-plan.md">Plan de 78 casos ↗</a>
       <a href="https://github.com/{escape(REPOSITORY)}/blob/main/docs/hu-acceptance-audit.md">Estado por HU ↗</a>
       <a href="https://github.com/{escape(REPOSITORY)}/issues/113">Puertas de producción pendientes ↗</a>
@@ -191,7 +394,7 @@ def render(output_dir):
       <p>Una corrida aprobada verifica únicamente su alcance. La columna SHA identifica el código del workflow; en los controles contra Vercel no identifica por sí solo el deployment examinado. Los E2E de interfaz utilizan fixtures de API; la aceptación de Preview usa cuentas demo aisladas y el smoke de Production solo rutas públicas y rechazo anónimo. La comprobación Supabase local usa una base desechable y una fila sintética; no acredita un respaldo de Production. Consulta el artifact de cada corrida para ver destino y tiempos. Las pruebas de carga de 150/250 usuarios requieren staging autorizado.</p>
       <p>Los resultados de seguridad requieren revisar también <a href="https://github.com/{escape(REPOSITORY)}/security">Security</a>: un check CodeQL verde no significa cero alertas. Un despliegue exitoso tampoco acredita por sí solo la aceptación de cada HU.</p>
     </section>
-  </main><footer>VERA · Fuente: API de GitHub Actions y commit de main. Este sitio no usa datos personales, secretos ni servicios de IA.</footer>
+  </main><footer>VERA · Fuente: GitHub Actions y commit de main. La vista se genera sin datos personales, secretos ni servicios de IA.</footer>
 </body></html>"""
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "index.html").write_text(page, encoding="utf-8", newline="\n")
@@ -206,6 +409,19 @@ def render(output_dir):
             "core_passed": core_passed,
             "core_total": 3,
             "workflows": records,
+            "integral_evidence": {
+                "run_url": run_url,
+                "status": "PASS" if report else "NO DISPONIBLE PARA MAIN",
+                "backend": report["backend"] if report else None,
+                "ai_synthetic": report["aiSynthetic"] if report else None,
+                "e2e": report["e2e"] if report else None,
+                "coverage_backend": report["coverageBackend"] if report else None,
+                "duration_seconds": report["durationSeconds"] if report else None,
+                "high_critical_vulnerabilities": report["highCriticalVulnerabilities"] if report else None,
+                "traceability": report["traceability"] if report else None,
+            },
+            "archived_quality_cut": {"tag": release_tag, "url": release_url,
+                                     "summary_markdown_url": release_asset},
             "scope": "GitHub Actions and bounded deployed checks; workflow SHA is not necessarily target deployment SHA; not full production acceptance or zero security alerts",
         }, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -218,10 +434,24 @@ def render(output_dir):
         f"- Repositorio: {REPOSITORY}",
         f"- Commit actual de main: `{main_sha}`",
         f"- CI vigente: {core_passed}/3 verificaciones principales aprobadas",
+        f"- Informe integral del SHA actual: {'PASS' if report else 'no disponible'} — {run_url}",
+        f"- Corte archivado: [{release_tag}]({release_url})",
         "",
+    ]
+    if report:
+        markdown.extend([
+            f"- Backend: {report['backend']['passed']}/{report['backend']['total']} pruebas",
+            f"- Interfaz E2E: {report['e2e']['passed']} aprobadas, {report['e2e']['failed']} fallidas",
+            f"- IA sintética: {report['aiSynthetic']['passed']}/{report['aiSynthetic']['total']} escenarios; {report['aiSynthetic']['modelCalls']} llamadas al modelo",
+            f"- Cobertura backend: {report['coverageBackend']['linesPercent']:.2f} % líneas, {report['coverageBackend']['branchesPercent']:.2f} % ramas, {report['coverageBackend']['functionsPercent']:.2f} % funciones",
+            f"- Duración integral: {report['durationSeconds']} s",
+            f"- Trazabilidad: {report['traceability']['casesWithRelatedSources']}/{report['traceability']['plannedCases']} casos con fuente relacionada; no indica aceptación individual en Production",
+            "",
+        ])
+    markdown.extend([
         "| Verificación | Estado | SHA | Tiempo aprox. | Evidencia |",
         "| --- | --- | --- | --- | --- |",
-    ]
+    ])
     for record in records:
         sha_label = f"`{record['sha'][:8]}`" if record["sha"] else "—"
         seconds = record["duration_seconds"]

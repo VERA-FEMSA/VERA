@@ -23,7 +23,7 @@ Esta página evita buscar archivos a ciegas. La Wiki resume y conecta; los docum
 | Documento | Uso |
 | --- | --- |
 | [Plan de pruebas](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/test-plan.md) | Casos, trazabilidad, criterios y escenarios que requieren entorno. |
-| [Guía rápida docente](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/professor-quick-run.md) | Revisar calidad desde GitHub sin instalación local. |
+| [Guía de revisión de calidad](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/professor-quick-run.md) | Revisar calidad desde GitHub sin instalación local. |
 | [Evaluación continua de IA](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/ai-continuous-evaluation.md) | Suite reproducible y sus límites de interpretación. |
 
 ## Asistente de VERA
