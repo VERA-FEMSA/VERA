@@ -2,6 +2,8 @@
 
 El [portal de calidad](https://vera-grc-irm.github.io/VERA/) ofrece una vista pública y de solo lectura del commit actual de `main`, el estado de las corridas de calidad, navegador, CodeQL, evaluación sintética de IA, aceptación de roles en Preview, smoke de Production e informe integral. Cada resultado abre la ejecución original de GitHub Actions con sus pasos, logs, duración y artefactos disponibles. La misma publicación incluye una [bitácora Markdown](https://vera-grc-irm.github.io/VERA/status.md) y [datos JSON](https://vera-grc-irm.github.io/VERA/status.json) con hora, SHA, estados y tiempos observados.
 
+La fila **Supabase local** enlaza un [ensayo de migraciones y restauración sintética](local-supabase-rehearsal.md) en una base desechable. Ese resultado no es un respaldo de producción ni cierra la verificación de persistencia real.
+
 ## Actualización
 
 El workflow [`quality-portal.yml`](../../.github/workflows/quality-portal.yml) publica la página en GitHub Pages después de las verificaciones de `main`, al cambiar el generador, de forma programada y por ejecución manual. El generador [`build-quality-portal.py`](../../scripts/build-quality-portal.py) consulta la API de GitHub con el `GITHUB_TOKEN` temporal de solo lectura. No llama a Azure OpenAI, Copilot ni otros modelos; usa únicamente minutos ordinarios de GitHub Actions.
@@ -22,4 +24,4 @@ El enlace de una corrida histórica del antiguo propietario del repositorio pued
 
 ## Límite de la evidencia
 
-La página no sustituye pruebas con cuentas de producción autorizadas, persistencia Supabase, revisión de alertas, 150/250 usuarios en staging ni aceptación funcional en producción. Preview usa credenciales de demostración y datos en memoria; su workflow no publica tokens ni respuestas privadas. La marca *Aprobada* describe el resultado y alcance de una suite, no el estado global del producto.
+La página no sustituye pruebas con cuentas de producción autorizadas, persistencia Supabase de Production, un respaldo real restaurable, revisión de alertas, 150/250 usuarios en staging ni aceptación funcional en producción. Preview usa credenciales de demostración y datos en memoria; su workflow no publica tokens ni respuestas privadas. La marca *Aprobada* describe el resultado y alcance de una suite, no el estado global del producto.

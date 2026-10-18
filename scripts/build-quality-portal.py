@@ -23,6 +23,7 @@ WORKFLOWS = (
     ("Evaluación de IA", "ai-evaluation.yml", "Casos sintéticos; sin llamadas al modelo"),
     ("Roles en vista previa", "preview-role-acceptance.yml", "Ejecución manual contra datos demo; no prueba producción"),
     ("Smoke de producción", "production-smoke.yml", "Rutas públicas y rechazo anónimo; no prueba sesiones reales"),
+    ("Supabase local", "local-supabase-rehearsal.yml", "Migraciones, RLS y restauración sintética en runner aislado; no prueba producción"),
 )
 
 
@@ -187,7 +188,7 @@ def render(output_dir):
       <a href="status.json">Datos JSON ↗</a>
     </div></section>
     <section class="panel note"><h2>Cómo interpretar el resultado</h2>
-      <p>Una corrida aprobada verifica únicamente su alcance. La columna SHA identifica el código del workflow; en los controles contra Vercel no identifica por sí sola el deployment examinado. Los E2E de interfaz utilizan fixtures de API; la aceptación de Preview usa cuentas demo aisladas y el smoke de Production solo rutas públicas y rechazo anónimo. Consulta el artifact de cada corrida para ver destino y tiempos. Las pruebas de carga de 150/250 usuarios requieren staging autorizado.</p>
+      <p>Una corrida aprobada verifica únicamente su alcance. La columna SHA identifica el código del workflow; en los controles contra Vercel no identifica por sí solo el deployment examinado. Los E2E de interfaz utilizan fixtures de API; la aceptación de Preview usa cuentas demo aisladas y el smoke de Production solo rutas públicas y rechazo anónimo. La comprobación Supabase local usa una base desechable y una fila sintética; no acredita un respaldo de Production. Consulta el artifact de cada corrida para ver destino y tiempos. Las pruebas de carga de 150/250 usuarios requieren staging autorizado.</p>
       <p>Los resultados de seguridad requieren revisar también <a href="https://github.com/{escape(REPOSITORY)}/security">Security</a>: un check CodeQL verde no significa cero alertas. Un despliegue exitoso tampoco acredita por sí solo la aceptación de cada HU.</p>
     </section>
   </main><footer>VERA · Fuente: API de GitHub Actions y commit de main. Este sitio no usa datos personales, secretos ni servicios de IA.</footer>
