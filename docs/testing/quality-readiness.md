@@ -1,5 +1,11 @@
 # Preparación de calidad: criterios de salida y brechas
 
+> **Estado operativo más reciente:** consulta la [issue #113](https://github.com/VERA-GRC-IRM/VERA/issues/113) y el [portal público](https://vera-grc-irm.github.io/VERA/). La tabla inferior es un corte histórico del 17 de octubre; sus celdas no describen el estado actual.
+
+Después de ese corte se revocó la clave histórica y se cerró su alerta, Vercel volvió a publicar `main` automáticamente, el smoke público pasó y se añadieron pruebas de roles en Preview y un ensayo desechable de Supabase. La [corrida integral posterior](https://github.com/VERA-GRC-IRM/VERA/actions/runs/39082004375) documenta 111 pruebas backend, 20 casos de IA sin red, 186 escenarios de navegador, CodeQL y cobertura del mismo corte. Ninguna de estas evidencias acredita aceptación autenticada completa en Production.
+
+Siguen abiertas las sesiones y flujos reales por rol, la consulta de IA desde VERA desplegada, una lectura independiente de un cambio sintético después de redesplegar, la carga 150/250 en staging, una restauración de una copia real y la revisión humana de accesibilidad. El [ensayo local de Supabase](local-supabase-rehearsal.md) usa exclusivamente datos sintéticos; Supabase Free permanece sin plan de pago. El estado de cada puerta se actualiza con evidencia en la issue #113.
+
 **Corte:** 17 de octubre de 2026, `main` en `ac253fee98417f08a2e0390a38e4f803eafa83c1`. Este documento es un mapa de verificación, no una certificación. Consulta el [portal dinámico](https://vera-grc-irm.github.io/VERA/) y las [alertas de Security](https://github.com/VERA-GRC-IRM/VERA/security) antes de reutilizar una cifra.
 
 **Actualización posterior:** la [verificación operativa del 17 de octubre](production-verification-2026-10-17.md) registra una escritura sintética de auditoría en Supabase desde la aplicación publicada, la alerta histórica cerrada como clave revocada y los límites vigentes de despliegue, carga, recuperación y accesibilidad. La tabla siguiente conserva el estado del corte original.

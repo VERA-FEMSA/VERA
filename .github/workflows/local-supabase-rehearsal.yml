@@ -1,14 +1,18 @@
 name: Local Supabase migration and restore rehearsal
 
 on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: local-supabase-rehearsal-${{ github.ref }}
-  cancel-in-progress: false
+  group: local-supabase-rehearsal-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   local-database:
