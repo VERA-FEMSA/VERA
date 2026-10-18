@@ -32,6 +32,10 @@ Las banderas del frontend solo controlan la interfaz. El backend vuelve a compro
 
 Las cuentas `PENDING` creadas por flujos anteriores no se activan automáticamente ni aparecen como nuevas solicitudes de aprobación. Requieren una conciliación individual sin alterar las cuentas activas. La tabla de solicitudes de rol es distinta del estado de cuenta.
 
+## Compatibilidad del autenticador
+
+Vercel ejecuta el backend con Node.js 24. `otplib` v13 debe cargarse mediante su entrada ESM: la entrada CommonJS intenta cargar una dependencia ESM y falla al generar el QR del segundo factor. El workflow de calidad ejecuta los casos de alta y TOTP también con Node.js 24 para detectar esta incompatibilidad antes de integrar cambios. Un error HTTP 500 en `/api/auth/2fa/setup` debe bloquear la activación de nuevas altas; consultar los logs de funciones de Vercel y detener temporalmente `VERA_DIRECT_REGISTRATION_ENABLED` hasta corregirlo.
+
 ## Reversión
 
 Para detener un método nuevo, apagar sus dos banderas (backend y frontend) y redesplegar. Apagar `VERA_DIRECT_REGISTRATION_ENABLED` detiene nuevas altas con contraseña sin tocar cuentas existentes. Apagar las banderas OAuth detiene nuevas sesiones de esos proveedores; no elimina filas ni cambia roles. Mantener la migración aditiva evita que el código antiguo pierda sus datos.
