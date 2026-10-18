@@ -1,7 +1,6 @@
 const crypto = require("node:crypto");
 
 const enabled = () => process.env.VERA_MANAGED_AUTH_ENABLED === "true";
-const passwordSignupEnabled = () => enabled() && process.env.VERA_MANAGED_REGISTRATION_ENABLED === "true";
 
 const config = () => {
   const root = new URL(process.env.SUPABASE_URL || "");
@@ -64,11 +63,6 @@ const validateNewPassword = async (password, email) => {
     : { valid: true, password: normalized };
 };
 
-const signUp = async ({ email, password, name }) => request("signup", {
-  method: "POST",
-  body: { email, password, data: { full_name: name } }
-});
-
 const getUser = async (token) => request("user", { token });
 
-module.exports = { enabled, passwordSignupEnabled, config, normalizePassword, validateNewPassword, signUp, getUser };
+module.exports = { enabled, config, normalizePassword, validateNewPassword, getUser };

@@ -16,8 +16,8 @@ Hay tres métodos de alta: contraseña propia, Microsoft y Google. Las cuentas a
 | `VERA_MANAGED_AUTH_ENABLED` | `VITE_VERA_MANAGED_AUTH_ENABLED` | `true` | Puente de identidad Supabase para OAuth. |
 | `VERA_AZURE_AUTH_ENABLED` | `VITE_VERA_AZURE_AUTH_ENABLED` | `true` tras aceptación | Microsoft. |
 | `VERA_GOOGLE_AUTH_ENABLED` | `VITE_VERA_GOOGLE_AUTH_ENABLED` | `true` tras aceptación | Google. |
-| `VERA_MANAGED_REGISTRATION_ENABLED` | `VITE_VERA_MANAGED_REGISTRATION_ENABLED` | `false` | Flujo antiguo de código por correo, inactivo. |
-| `VERA_LEGACY_REGISTRATION_ENABLED` | `VITE_VERA_LEGACY_REGISTRATION_ENABLED` | `false` | Flujo antiguo que creaba solicitudes pendientes, inactivo. |
+
+Los flujos anteriores de código por correo y aprobación de cuentas se retiraron del registro y de la interfaz; ninguna bandera los reactiva.
 
 Las banderas del frontend solo controlan la interfaz. El backend vuelve a comprobar el método, el estado y el rol en cada operación protegida. Nunca se publican `SUPABASE_SECRET_KEY` ni secretos OAuth como variables `VITE_*`.
 
@@ -25,7 +25,7 @@ Las banderas del frontend solo controlan la interfaz. El backend vuelve a compro
 
 1. Confirmar que la producción usa el proyecto Supabase `rsrsycokfdypliepcxgi` y guardar los conteos de cuentas por rol y estado. Aplicar las migraciones aditivas de identidad, consentimiento, `mfa_required` y `vera_role_requests`. Verificar que las cuentas anteriores no cambian.
 2. Desplegar el código con los proveedores y las altas nuevas todavía apagados. Revisar que inicio de sesión anterior, URL pública y API respondan.
-3. Activar `VERA_DIRECT_REGISTRATION_ENABLED` y su par `VITE_`, manteniendo apagados los dos flujos de registro anteriores. Comprobar con una cuenta nueva de prueba: alta inmediata, rol Auditor, bloqueo de API antes del TOTP, activación TOTP y sesión con el factor.
+3. Activar `VERA_DIRECT_REGISTRATION_ENABLED` y su par `VITE_`. Comprobar con una cuenta nueva de prueba: alta inmediata, rol Auditor, bloqueo de API antes del TOTP, activación TOTP y sesión con el factor.
 4. Confirmar callbacks exactos de Microsoft y Google hacia `https://rsrsycokfdypliepcxgi.supabase.co/auth/v1/callback`, URL de retorno de VERA y secretos vigentes almacenados solo en Supabase. Activar Microsoft primero en Supabase y Vercel. Comprobar alta nueva y sesión con rol Auditor. Activar Google después con el mismo criterio.
 5. Comprobar que una cuenta anterior con contraseña sigue funcionando y que usar en OAuth un correo ya registrado no toma ni eleva su cuenta. Una vinculación de identidad existente necesita un procedimiento separado que valide ambos factores; no se hace por igualdad de correo.
 6. Comprobar desde una cuenta Auditor la solicitud de rol, el rechazo y la autorización con SUPER_ADMIN, la bitácora y la actualización de permisos sin recrear cuentas.

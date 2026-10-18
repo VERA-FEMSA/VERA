@@ -53,17 +53,3 @@ export const updateUserStatus = async (id, active) => {
   });
   return data.user;
 };
-
-// Solicitudes de registro (solo Super Admin)
-export const approveRequest = async (id, role) => {
-  const data = await request(`/${id}/approve`, {
-    method: "POST",
-    body: JSON.stringify({ role })
-  });
-  return data.user;
-};
-
-export const rejectRequest = async (id) => {
-  const data = await request(`/${id}/reject`, { method: "POST" });
-  return data.user;
-};

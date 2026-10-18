@@ -10,8 +10,6 @@ const {
   listUsers,
   updateUserRole,
   updateUserStatus,
-  approveRequest,
-  rejectRequest,
   listMyRoleRequests,
   createRoleRequest,
   listPendingRoleRequests,

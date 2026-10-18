@@ -1,6 +1,6 @@
 const userRepository = require("../repositories/userRepository");
 const { logAccessChange } = require("../services/auditLogger");
-const { ROLES, ASSIGNABLE_ROLES, DEFAULT_ROLE } = require("../config/roles");
+const { ROLES, ASSIGNABLE_ROLES } = require("../config/roles");
 const { USER_STATUS } = require("../config/accountRules");
 const roleRequests = require("../repositories/roleRequestRepository");
 
@@ -104,68 +104,10 @@ const updateUserStatus = async (req, res) => {
   });
 };
 
-// Busca una solicitud pendiente o responde con el error correspondiente.
-const findPendingOrFail = async (req, res) => {
-  const target = await userRepository.findById(req.params.id);
-  if (!target) {
-    res.status(404).json({ message: "Solicitud no encontrada." });
-    return null;
-  }
-  if (target.status !== USER_STATUS.PENDING) {
-    res.status(409).json({ message: "Esta cuenta ya no está pendiente." });
-    return null;
-  }
-  return target;
-};
-
-// POST /api/users/:id/approve   body: { role }   (solo Super Admin)
-const approveRequest = async (req, res) => {
-  const role = req.body.role || DEFAULT_ROLE;
-
-  if (!ASSIGNABLE_ROLES.includes(role)) {
-    return res.status(400).json({ message: "El rol seleccionado no es válido." });
-  }
-
-  const target = await findPendingOrFail(req, res);
-  if (!target) return;
-
-  const user = await userRepository.approvePending(target.id, role, target.storageVersion);
-  if (!user) return res.status(409).json({ message: "Esta cuenta ya no está pendiente." });
-
-  await logAccessChange({
-    actor: req.user,
-    action: "REQUEST_APPROVED",
-    target: user,
-    details: { role }
-  });
-
-  res.json({ message: "Solicitud aprobada.", user });
-};
-
-// POST /api/users/:id/reject   (solo Super Admin). La cuenta se elimina.
-const rejectRequest = async (req, res) => {
-  const target = await findPendingOrFail(req, res);
-  if (!target) return;
-
-  const user = await userRepository.removePending(target.id, target.storageVersion);
-  if (!user) return res.status(409).json({ message: "Esta cuenta cambió. Actualiza y vuelve a intentar." });
-
-  await logAccessChange({
-    actor: req.user,
-    action: "REQUEST_REJECTED",
-    target: user,
-    details: { email: user.email }
-  });
-
-  res.json({ message: "Solicitud rechazada.", user });
-};
-
 module.exports = {
   listUsers,
   updateUserRole,
   updateUserStatus,
-  approveRequest,
-  rejectRequest,
   listMyRoleRequests: async (req, res) => {
     const current = await userRepository.findById(req.user.id);
     res.json({ currentRole: current.role, requests: await roleRequests.listMine(req.user.id) });

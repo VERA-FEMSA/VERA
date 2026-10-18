@@ -108,6 +108,14 @@ test("RF-01: direct registration accepts any email, assigns AUDITOR and requires
 
 test("RF-02: account approval is removed; only Super Admin can review role requests", async (context) => {
   const baseUrl = await startTestServer(context, app);
+  const previousFlag = process.env.VERA_DIRECT_REGISTRATION_ENABLED;
+  process.env.VERA_DIRECT_REGISTRATION_ENABLED = "false";
+  const disabledRegistration = await request(baseUrl, "/api/auth/register", {
+    method: "POST", body: { name: "Legacy Signup", email: "legacy@example.test", password: "VeraTestPassword2026!" }
+  });
+  if (previousFlag === undefined) delete process.env.VERA_DIRECT_REGISTRATION_ENABLED;
+  else process.env.VERA_DIRECT_REGISTRATION_ENABLED = previousFlag;
+  assert.equal(disabledRegistration.status, 404);
   assert.equal((await request(baseUrl, "/api/users/5/approve", { method: "POST", token: tokenFor(1) })).status, 404);
   const created = await request(baseUrl, "/api/users/role-requests", {
     method: "POST", token: tokenFor(5), body: { role: "DIRECTOR", reason: "Necesito consultar reportes de dirección." }

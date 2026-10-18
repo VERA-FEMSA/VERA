@@ -10,10 +10,6 @@ const managedAuth = require("../services/managedAuth");
 const { PRIVACY_NOTICE_VERSION } = require("../config/privacyNotice");
 const {
   USER_STATUS,
-  INSTITUTIONAL_DOMAINS,
-  isInstitutionalEmail,
-  PASSWORD_RULE_MESSAGE,
-  isValidPassword,
   NAME_RULE_MESSAGE,
   isValidName
 } = require("../config/accountRules");
@@ -247,8 +243,7 @@ const enable2FA = async (req, res) => {
   if (req.user.mfaEnrollment) return issueSession(req, res, enabledUser, "PASSWORD_2FA");
   res.json({ message: "2FA activado" });
 };
-// HU-01 (RF-01): registro propio; el modo gestionado verifica cualquier correo.
-// La cuenta queda pendiente hasta que un Super Admin la apruebe.
+// HU-01 (RF-01): alta inmediata con contraseña y rol inicial mínimo.
 // Validación lineal: evita retroceso costoso con correos controlados por el cliente.
 const isValidEmailFormat = (email) => {
   if (!email || email.length > 254 || /\s/.test(email)) return false;
@@ -259,8 +254,7 @@ const isValidEmailFormat = (email) => {
 };
 
 const register = async (req, res) => {
-  if (process.env.VERA_DIRECT_REGISTRATION_ENABLED !== "true" &&
-      !managedAuth.passwordSignupEnabled() && process.env.VERA_LEGACY_REGISTRATION_ENABLED === "false") {
+  if (process.env.VERA_DIRECT_REGISTRATION_ENABLED !== "true") {
     return res.status(404).json({ message: "El registro con contraseña no está disponible. Usa Microsoft o Google." });
   }
   const name = String(req.body.name || "").trim().replace(/\s+/g, " ");
@@ -280,94 +274,26 @@ const register = async (req, res) => {
   if (!isValidEmailFormat(email)) {
     return res.status(400).json({ message: "El correo no tiene un formato válido." });
   }
-  if (process.env.VERA_DIRECT_REGISTRATION_ENABLED === "true") {
-    if (req.body.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION || req.body.privacyAccepted !== true) {
-      return res.status(400).json({ message: "Lee y acepta el aviso de privacidad vigente antes de crear tu cuenta." });
-    }
-    const policy = await managedAuth.validateNewPassword(password, email);
-    if (policy.unavailable) return res.status(503).json({ message: "No se pudo verificar la seguridad de la contraseña. Intenta más tarde." });
-    if (!policy.valid) return res.status(400).json({ message: policy.message });
-    if (await userRepository.emailExists(email)) {
-      return res.status(409).json({ message: "Ya existe una cuenta con ese correo." });
-    }
-    const user = await userRepository.createActivePassword({
-      name, email, password: policy.password, role: DEFAULT_ROLE,
-      privacyNoticeVersion: PRIVACY_NOTICE_VERSION
-    });
-    await logAccessChange({
-      actor: { id: user.id, username: user.username, role: "PUBLIC" },
-      action: "ACCOUNT_REGISTERED",
-      target: user,
-      details: { method: "PASSWORD", emailVerified: false }
-    });
-    return res.status(201).json({ message: "Cuenta creada. Inicia sesión y configura la verificación con tu aplicación de autenticación." });
+  if (req.body.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION || req.body.privacyAccepted !== true) {
+    return res.status(400).json({ message: "Lee y acepta el aviso de privacidad vigente antes de crear tu cuenta." });
   }
-  if (managedAuth.passwordSignupEnabled()) {
-    if (req.body.privacyNoticeVersion !== PRIVACY_NOTICE_VERSION || req.body.privacyAccepted !== true) {
-      return res.status(400).json({ message: "Lee y acepta el aviso de privacidad vigente antes de solicitar acceso." });
-    }
-    const policy = await managedAuth.validateNewPassword(password, email);
-    if (policy.unavailable) {
-      return res.status(503).json({ message: "No se pudo verificar la seguridad de la contraseña. Intenta más tarde." });
-    }
-    if (!policy.valid) return res.status(400).json({ message: policy.message });
-    if (await userRepository.emailExists(email)) {
-      return res.status(409).json({ message: "Ya existe una cuenta o solicitud con ese correo." });
-    }
-    let signup;
-    try {
-      signup = await managedAuth.signUp({ email, password: policy.password, name });
-    } catch {
-      return res.status(503).json({ message: "No se pudo enviar el correo de verificación. Intenta más tarde." });
-    }
-    // GoTrue's REST /signup returns the user object itself when email confirmation is required.
-    const identity = signup.data;
-    if (!signup.ok || !identity?.id || !identity.identities?.length) {
-      return res.status(signup.status === 429 ? 429 : 503).json({
-        message: "No se pudo enviar el correo de verificación. Intenta más tarde."
-      });
-    }
-    const user = await userRepository.createPendingExternal({
-      name, email, authUserId: identity.id, authProvider: "email", role: DEFAULT_ROLE,
-      privacyNoticeVersion: PRIVACY_NOTICE_VERSION
-    });
-    await logAccessChange({
-      actor: { id: user.id, username: user.username, role: "PUBLIC" },
-      action: "ACCOUNT_REQUESTED",
-      target: user,
-      details: { method: "EMAIL_VERIFICATION" }
-    });
-    return res.status(202).json({ message: "Solicitud recibida. Revisa tu correo para verificar la dirección." });
-  }
-  if (!isInstitutionalEmail(email)) {
-    const domains = INSTITUTIONAL_DOMAINS.map((d) => "@" + d).join(", ");
-    return res.status(400).json({
-      message: `Usa tu correo institucional (${domains}).`
-    });
-  }
-  if (!isValidPassword(password)) {
-    return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
-  }
+  const policy = await managedAuth.validateNewPassword(password, email);
+  if (policy.unavailable) return res.status(503).json({ message: "No se pudo verificar la seguridad de la contraseña. Intenta más tarde." });
+  if (!policy.valid) return res.status(400).json({ message: policy.message });
   if (await userRepository.emailExists(email)) {
-    return res.status(409).json({ message: "Ya existe una cuenta o solicitud con ese correo." });
+    return res.status(409).json({ message: "Ya existe una cuenta con ese correo." });
   }
-
-  const user = await userRepository.createPending({
-    name,
-    email,
-    password,
-    role: DEFAULT_ROLE
+  const user = await userRepository.createActivePassword({
+    name, email, password: policy.password, role: DEFAULT_ROLE,
+    privacyNoticeVersion: PRIVACY_NOTICE_VERSION
   });
-
   await logAccessChange({
     actor: { id: user.id, username: user.username, role: "PUBLIC" },
-    action: "ACCOUNT_REQUESTED",
-    target: user
+    action: "ACCOUNT_REGISTERED",
+    target: user,
+    details: { method: "PASSWORD", emailVerified: false }
   });
-
-  res.status(201).json({
-    message: "Solicitud enviada. Un administrador revisará tu cuenta."
-  });
+  return res.status(201).json({ message: "Cuenta creada. Inicia sesión y configura la verificación con tu aplicación de autenticación." });
 };
 
 const exchangeManaged = async (req, res) => {
