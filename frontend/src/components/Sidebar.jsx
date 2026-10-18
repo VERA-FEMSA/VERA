@@ -18,6 +18,7 @@ import {
   X
 } from "lucide-react";
 import { ROLE_LABELS, USER_VIEW_ROLES } from "../constants/roles";
+import { managedAuth } from "../services/managedAuth";
 import "../pages/Dashboard.css";
 import "./Sidebar.css";
 
@@ -29,7 +30,9 @@ function Sidebar({ active }) {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const logout = () => {
+  const logout = async () => {
+    try { if (managedAuth) await managedAuth.auth.signOut(); }
+    catch { /* Local VERA logout still proceeds if the identity provider is unavailable. */ }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/");

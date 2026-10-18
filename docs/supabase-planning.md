@@ -30,6 +30,8 @@ Antes de activar cuentas persistentes junto con planificación persistente, ejec
 
 Luego configura `VERA_USER_STORE=supabase` y `VERA_INSTITUTIONAL_DOMAINS` con los dominios reales permitidos en el backend y redespliega. El registro, inicio de sesión, 2FA, roles y cambios de estado consultan la base en cada solicitud. El modo `memory` mantiene las cuentas de ejemplo únicamente para el demo y las pruebas locales. Comprueba en un entorno de prueba que una cuenta pendiente continúa pendiente tras reiniciar, que aprobarla permite entrar, y que deshabilitarla invalida de inmediato una sesión anterior. La suite automatizada usa respuestas simuladas; la persistencia remota debe verificarse aparte con el proyecto del equipo.
 
+`VERA_INSTITUTIONAL_DOMAINS` solo restringe el registro heredado. El [registro abierto gestionado](identity-rollout.md) acepta cualquier dominio tras verificar el correo y usa una activación independiente; las cuentas existentes mantienen su acceso anterior.
+
 ## Riesgos y controles persistentes
 
 La cuarta migración crea `vera_risks` y `vera_controls`. Los riesgos conservan sus evaluaciones y los controles sus vínculos a riesgos y evaluaciones de efectividad. Ambos usan versiones para rechazar escrituras concurrentes; un índice único impide repetir un riesgo con el mismo título y área. Las tablas tienen RLS habilitado y solo la API con clave de servidor puede leerlas o modificarlas.

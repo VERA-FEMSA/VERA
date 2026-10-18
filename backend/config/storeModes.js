@@ -1,4 +1,9 @@
 const validateStoreModes = (environment = process.env) => {
+  if (environment.VERA_MANAGED_AUTH_ENABLED === "true" &&
+      (environment.VERA_USER_STORE !== "supabase" || !environment.SUPABASE_URL ||
+        !environment.SUPABASE_PUBLISHABLE_KEY)) {
+    throw new Error("Managed Auth requiere usuarios en Supabase y la clave pública de Auth.");
+  }
   for (const name of [
     "VERA_PLANNING_STORE", "VERA_USER_STORE", "VERA_RISK_CONTROL_STORE",
     "VERA_EVIDENCE_COMMENT_STORE", "VERA_AUDIT_STORE", "VERA_NOTIFICATION_STORE"

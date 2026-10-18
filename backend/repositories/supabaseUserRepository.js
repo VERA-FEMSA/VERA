@@ -1,9 +1,13 @@
 const bcrypt = require("bcryptjs");
+const crypto = require("node:crypto");
 const { USER_STATUS } = require("../config/accountRules");
 
 const TABLE = "vera_users";
 const PAGE_SIZE = 1000;
-const COLUMNS = "id,username,email,name,password_hash,role,status,requested_at,two_factor_enabled,two_factor_secret,pending_secret,version";
+const BASE_COLUMNS = "id,username,email,name,password_hash,role,status,requested_at,two_factor_enabled,two_factor_secret,pending_secret,version";
+// Keep the old query shape until the additive migration has been applied and managed auth is enabled.
+const COLUMNS = process.env.VERA_MANAGED_AUTH_ENABLED === "true"
+  ? `${BASE_COLUMNS},auth_user_id,auth_provider,privacy_notice_version,privacy_notice_acknowledged_at` : BASE_COLUMNS;
 
 class UserStorageError extends Error {
   constructor(message, status = 503) {
@@ -66,6 +70,8 @@ const unpack = (row) => row ? ({
   twoFactorEnabled: row.two_factor_enabled,
   twoFactorSecret: row.two_factor_secret,
   pendingSecret: row.pending_secret,
+  authUserId: row.auth_user_id,
+  authProvider: row.auth_provider,
   storageVersion: Number(row.version)
 }) : null;
 
@@ -103,6 +109,31 @@ const emailExists = async (email) => {
   const value = String(email || "").trim().toLowerCase();
   const rows = await request("GET", { select: "id", email: `eq.${value}`, limit: "1" });
   return rows.length > 0;
+};
+
+const findByAuthUserId = async (authUserId) => {
+  if (!/^[0-9a-f-]{36}$/i.test(String(authUserId || ""))) return null;
+  const rows = await request("GET", { select: COLUMNS, auth_user_id: `eq.${authUserId}`, limit: "1" });
+  return unpack(rows[0]);
+};
+
+const createPendingExternal = async ({ name, email, authUserId, authProvider, role, privacyNoticeVersion }) => {
+  const normalizedEmail = email.toLowerCase();
+  const rows = await request("POST", { select: COLUMNS }, {
+    username: normalizedEmail,
+    email: normalizedEmail,
+    name,
+    // Managed identities never authenticate through the legacy password path.
+    password_hash: await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10),
+    role,
+    status: USER_STATUS.PENDING,
+    requested_at: new Date().toISOString(),
+    auth_user_id: authUserId,
+    auth_provider: authProvider,
+    privacy_notice_version: privacyNoticeVersion,
+    privacy_notice_acknowledged_at: new Date().toISOString()
+  });
+  return toPublic(unpack(rows[0]));
 };
 
 const createPending = async ({ name, email, password, role }) => {
@@ -198,11 +229,12 @@ const enableTwoFactor = (id, expectedSecret) => {
 };
 
 const checkPassword = (user, plainPassword) =>
-  Boolean(user && typeof plainPassword === "string" &&
+  Boolean(user && !user.authUserId && typeof plainPassword === "string" &&
     user.password.startsWith("$2") && bcrypt.compareSync(plainPassword, user.password));
 
 module.exports = {
-  getAll, findById, findByLogin, emailExists, createPending, createBootstrapAdmin, updateRole, setStatus,
+  getAll, findById, findByLogin, findByAuthUserId, emailExists, createPending,
+  createPendingExternal, createBootstrapAdmin, updateRole, setStatus,
   approvePending, remove, removePending, setPendingSecret, enableTwoFactor, checkPassword, toPublic,
   UserStorageError
 };
