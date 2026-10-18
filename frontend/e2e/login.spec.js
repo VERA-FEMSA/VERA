@@ -48,11 +48,12 @@ test("login remains within mobile and tablet viewport widths", async ({ page }) 
   }
 });
 
-test("registration link opens the account request page", async ({ page }) => {
+test("registration link opens direct signup for any email", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("textbox", { name: "Correo institucional" })).toHaveAttribute("placeholder", "correo@institucion.mx");
+  await expect(page.getByRole("textbox", { name: "Correo electrónico" })).toHaveAttribute("placeholder", "tu@correo.com");
   await page.getByRole("link", { name: "Crear cuenta" }).click();
   await expect(page).toHaveURL(/\/registro$/);
-  await expect(page.getByRole("textbox", { name: "Correo institucional" })).toHaveAttribute("placeholder", "correo@institucion.mx");
-  await expect(page.getByRole("button", { name: "Enviar solicitud" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Correo electrónico" })).toHaveAttribute("placeholder", "tu@correo.com");
+  await expect(page.getByRole("button", { name: "Crear cuenta" })).toBeVisible();
+  await expect(page.getByText(/El correo no se verifica/)).toBeVisible();
 });
