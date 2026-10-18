@@ -1,17 +1,19 @@
 import { SunMoon } from "lucide-react";
+import { useId } from "react";
 import { useTheme } from "../contexts/useTheme";
 
 function ThemeControl({ compact = false }) {
   const { preference, changePreference } = useTheme();
+  const id = useId();
 
-  return <label className={`theme-control${compact ? " theme-control--compact" : ""}`}>
-    <span><SunMoon size={17} strokeWidth={1.8} aria-hidden="true" /> Apariencia</span>
-    <select value={preference} onChange={(event) => changePreference(event.target.value)}>
+  return <div className={`theme-control${compact ? " theme-control--compact" : ""}`}>
+    <label htmlFor={id}><SunMoon size={17} strokeWidth={1.8} aria-hidden="true" /> Apariencia</label>
+    <select id={id} aria-label="Apariencia" value={preference} onChange={(event) => changePreference(event.target.value)}>
       <option value="system">Sistema</option>
       <option value="light">Claro</option>
       <option value="dark">Oscuro</option>
     </select>
-  </label>;
+  </div>;
 }
 
 export default ThemeControl;

@@ -69,7 +69,7 @@
   .public-overview__header { gap: 10px; padding-block: 18px; }
   .public-overview__nav { flex-wrap: wrap; justify-content: flex-end; gap: 8px 13px; }
   .public-overview__nav > a:first-child { display: none; }
-  .public-overview__nav .theme-control > span { display: none; }
+  .public-overview__nav .theme-control > label { display: none; }
   .public-overview__nav .public-overview__login { padding: 9px 11px; }
   .public-overview__hero { padding-block: 50px 66px; }
   .public-overview__capabilities, .public-overview__before { grid-template-columns: 1fr; }

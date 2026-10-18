@@ -87,7 +87,7 @@ button, input, select, textarea { font: inherit; }
   font-size: 13px;
   font-weight: 600;
 }
-.theme-control > span { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.theme-control > label { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
 .theme-control select {
   min-height: 38px;
   padding: 5px 27px 5px 10px;

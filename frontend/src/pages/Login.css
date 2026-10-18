@@ -278,7 +278,7 @@
   .access-header__links { flex-wrap: wrap; justify-content: flex-end; gap: 7px 13px; }
   .access-header__links a { font-size: 12px; }
   .access-header__links a[href="/privacidad"] { display: none; }
-  .access-header .theme-control > span { display: none; }
+  .access-header .theme-control > label { display: none; }
   .access-card { padding: 25px 20px; border-radius: 16px; }
   .access-main { padding-block: 8px 30px; }
   .access-footer { flex-wrap: wrap; }
