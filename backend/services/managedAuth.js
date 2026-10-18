@@ -39,6 +39,9 @@ const validateNewPassword = async (password, email) => {
   if ([email.toLowerCase(), "vera-digital-systems.com"].includes(normalized.toLowerCase())) {
     return { valid: false, message: "Elige una contraseña distinta de tu correo o del nombre del servicio." };
   }
+  // HIBP's range protocol requires SHA-1 solely to query a five-character prefix.
+  // This digest is never stored or used for authentication; Supabase Auth stores bcrypt hashes.
+  // codeql[js/insufficient-password-hash]
   const hash = crypto.createHash("sha1").update(normalized, "utf8").digest("hex").toUpperCase();
   let response;
   try {
