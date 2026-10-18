@@ -4,7 +4,7 @@ Para una lectura ejecutiva con el SHA actual, estados y tiempos abre el [portal 
 
 VERA deja resultados accesibles desde GitHub Actions. Una persona sin entorno local puede ver el commit, el estado, los pasos, los logs y, cuando existen, los artefactos de cada corrida. **Lee siempre la corrida concreta**: un enlace a un workflow no garantiza que su última ejecución haya pasado.
 
-## Acceso rápido para docentes
+## Ruta de verificación
 
 1. Abre el [portal de calidad](https://vera-grc-irm.github.io/VERA/) y sigue el enlace del informe integral a [VERA — Calidad y pruebas completas](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml).
 2. Elige una corrida, revisa `Summary`, su SHA y el resultado de cada fase.
@@ -19,7 +19,7 @@ El workflow integral es manual y semanal. Solo quien tiene escritura puede pulsa
 | Backend, lint, build y dependencias | [Quality gates](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/quality.yml) | Pruebas de Node con cobertura, sintaxis, ESLint, compilación y `npm audit`. |
 | Navegadores y accesibilidad | [UI E2E](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/e2e.yml) | Chrome, Edge, Firefox y perfiles móvil/tablet; usa fixtures de API. |
 | Análisis estático | [CodeQL](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/codeql.yml) | JavaScript/TypeScript; no sustituye una revisión completa de seguridad. |
-| Vista unificada | [Classroom quality](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml) | Reúne fases, tiempos y evidencia en una ejecución para inspección. |
+| Vista unificada | [Informe integral de calidad](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml) | Reúne fases, tiempos y evidencia en una ejecución para inspección. |
 | IA sintética | [AI continuous evaluation](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/ai-evaluation.yml) | Casos reproducibles, sin Azure real y sin costo por llamada. |
 | Carga | [Load test](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/load-test.yml) | Ejecución manual condicionada a staging aprobado y cuenta dedicada. |
 

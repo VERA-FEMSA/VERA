@@ -1,6 +1,7 @@
 import json
 import os
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -9,6 +10,7 @@ QUALITY_REPORT = ROOT / "quality-report" / "quality-report.json"
 E2E_REPORT = ROOT / "frontend" / "playwright-report" / "results.json"
 PLAN = ROOT / "docs" / "testing" / "test-plan.md"
 SUMMARY_FILE = ROOT / "quality-report" / "classroom-summary.md"
+SUMMARY_JSON = ROOT / "quality-report" / "classroom-summary.json"
 REPO_URL = f"https://github.com/{os.getenv('GITHUB_REPOSITORY', 'VERA-GRC-IRM/VERA')}"
 
 
@@ -110,11 +112,54 @@ rows = [
 report = "\n".join(rows)
 SUMMARY_FILE.parent.mkdir(parents=True, exist_ok=True)
 SUMMARY_FILE.write_text(report, encoding="utf-8", newline="\n")
+SUMMARY_JSON.write_text(
+    json.dumps({
+        "schemaVersion": 1,
+        "status": overall_status,
+        "commit": os.getenv("GITHUB_COMMIT"),
+        "runId": os.getenv("GITHUB_RUN_ID"),
+        "runUrl": os.getenv("GITHUB_RUN_URL"),
+        "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "durationSeconds": overall_seconds,
+        "backend": {
+            "status": result_label(os.getenv("QUALITY_RESULT")),
+            "passed": quality_tests.get("passed"),
+            "total": quality_tests.get("total"),
+        },
+        "aiSynthetic": {
+            "status": ai_stage.get("status"),
+            "passed": ai_evaluation.get("passed"),
+            "total": ai_evaluation.get("total"),
+            "modelCalls": ai_evaluation.get("modelCalls"),
+        },
+        "e2e": {
+            "status": result_label(os.getenv("E2E_RESULT")),
+            "passed": e2e_stats.get("expected"),
+            "failed": e2e_stats.get("unexpected"),
+            "flaky": e2e_stats.get("flaky"),
+            "skipped": e2e_stats.get("skipped"),
+        },
+        "codeql": {
+            "status": codeql_status,
+            "durationSeconds": os.getenv("CODEQL_DURATION_SECONDS"),
+        },
+        "coverageBackend": coverage,
+        "coverageMinimums": coverage_minimums,
+        "highCriticalVulnerabilities": vulnerabilities,
+        "traceability": {
+            "plannedCases": planned_cases,
+            "casesWithRelatedSources": (quality or {}).get("metrics", {}).get("traceability", {}).get("casesWithRelatedSources"),
+            "individualProductionPassesClaimed": (quality or {}).get("metrics", {}).get("traceability", {}).get("caseLevelProductionPassesClaimed"),
+        },
+    }, ensure_ascii=False, indent=2) + "\n",
+    encoding="utf-8",
+    newline="\n",
+)
 summary_path = os.getenv("GITHUB_STEP_SUMMARY")
 if summary_path:
     with open(summary_path, "a", encoding="utf-8", newline="\n") as summary:
         summary.write(report)
 
-print("Executive report written to quality-report/classroom-summary.md and the GitHub Actions Summary.")
+print("Executive report written to Markdown, JSON and the GitHub Actions Summary.")
 if not reports_complete:
     raise SystemExit("Required quality evidence is incomplete.")

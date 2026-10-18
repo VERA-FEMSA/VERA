@@ -19,7 +19,7 @@ Pulsa **Run workflow** en esa página. GitHub ejecuta en una sola corrida:
 
 La ejecución publica un resumen ejecutivo en la pestaña **Summary** y un solo artefacto con bitácora y evidencia. También se genera automáticamente cada lunes.
 
-GitHub solo permite iniciar manualmente workflows a usuarios con permiso de escritura en el repositorio. El enlace público sí permite a un usuario de solo lectura inspeccionar una ejecución ya iniciada. Para una presentación, comparte directamente la URL de la corrida reciente; el profesor no necesita permisos de escritura.
+GitHub solo permite iniciar manualmente workflows a usuarios con permiso de escritura en el repositorio. El enlace público sí permite a un usuario de solo lectura inspeccionar una ejecución ya iniciada. Para compartir evidencia, usa directamente la URL de la corrida reciente; la lectura no requiere permisos de escritura.
 
 ## Lo que no puede marcarse aprobado desde esta corrida
 

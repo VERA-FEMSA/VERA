@@ -30,7 +30,7 @@ La [plantilla de PR](https://github.com/VERA-GRC-IRM/VERA/blob/main/.github/pull
 | Automatización | Activación | Evidencia principal |
 | --- | --- | --- |
 | [Calidad, navegadores y CodeQL](https://github.com/VERA-GRC-IRM/VERA/actions) | Cada PR y push a `main` | Checks del commit. |
-| [Informe integral docente](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml) | Manual y semanal | Summary, tiempos, logs y artefacto de 30 días. |
+| [Informe integral de calidad](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml) | Manual y semanal | Summary, tiempos, logs y artefacto de 30 días. |
 | [Evaluación sintética de IA](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/ai-evaluation.yml) | Manual | Regresiones reproducibles sin llamadas al modelo real. |
 | [Portal público de calidad](https://vera-grc-irm.github.io/VERA/) | Cambios y comprobación programada | Estado por SHA en GitHub Pages, sin instalación local. |
 | [Ensayo local de Supabase](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/local-supabase-rehearsal.yml) | Cada PR, push a `main` y manual | Migraciones, privacidad, persistencia sintética y restauración lógica con tiempos. |
