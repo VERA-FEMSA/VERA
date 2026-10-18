@@ -10,6 +10,7 @@ on:
       - AI continuous evaluation
       - Preview role acceptance
       - Production smoke
+      - Local Supabase migration and restore rehearsal
     types: [completed]
     branches: [main]
   push:
