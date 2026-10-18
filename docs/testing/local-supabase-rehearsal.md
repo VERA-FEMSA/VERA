@@ -1,6 +1,6 @@
 # Ensayo local de migraciones y restauración
 
-El workflow manual [Local Supabase migration and restore rehearsal](../../.github/workflows/local-supabase-rehearsal.yml) levanta una instancia **desechable** de Supabase en un runner Ubuntu de GitHub Actions. No usa `supabase link`, credenciales del proyecto VERA, Vercel ni datos de producción.
+El workflow [Local Supabase migration and restore rehearsal](../../.github/workflows/local-supabase-rehearsal.yml) levanta una instancia **desechable** de Supabase en un runner Ubuntu de GitHub Actions. Se ejecuta en cada PR hacia `main`, cada push a `main` y también manualmente. No usa `supabase link`, credenciales del proyecto VERA, Vercel ni datos de producción.
 
 ## Qué comprueba
 
@@ -16,7 +16,7 @@ El `Summary` publica conteos y tiempos, incluido el reinicio local. El artifact 
 
 ## Cómo ejecutarlo
 
-En **Actions → Local Supabase migration and restore rehearsal → Run workflow**, selecciona `main`. Solo miembros con permiso de ejecución pueden iniciarlo. El workflow falla si la migración, RLS, permisos, bucket o restauración sintética no coinciden con las expectativas. El [portal docente](https://vera-grc-irm.github.io/VERA/) enlaza la última corrida y marca si corresponde al SHA actual.
+La ejecución automática aparece en los checks del PR y en Actions tras cada cambio de `main`. Para repetirla, abre **Actions → Local Supabase migration and restore rehearsal → Run workflow** y selecciona `main`. Solo miembros con permiso de ejecución pueden iniciarla manualmente. El workflow falla si la migración, RLS, permisos, bucket, persistencia tras reinicio o restauración sintética no coinciden con las expectativas. El [portal docente](https://vera-grc-irm.github.io/VERA/) enlaza la última corrida de `main` y marca si corresponde al SHA actual.
 
 ## Límite de interpretación
 
