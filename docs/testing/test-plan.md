@@ -74,8 +74,8 @@ La disponibilidad de 99.5% requiere una ventana de medición mensual; RTO de 4 h
 | TC-05 | RF-03: cuenta deshabilitada | API | Alta | 2 | Cubierto por API: respuesta 403 |
 | TC-06 | RF-04: cinco intentos fallidos y bloqueo | Unit/API | Alta | 2 | Cubierto por API: quinto fallo bloquea, emite Retry-After y el bloqueo continúa |
 | TC-07 | RF-09: actividad reciente tras crear auditoría | API/UI | Media | 5 | Bloqueado parcialmente: existen eventos en bitácora, pero no una sección de actividad reciente en el panel |
-| TC-08 | RF-10: navegación del menú | E2E | Media | 6 | Pendiente |
-| TC-09 | RF-11: cerrar sesión y proteger rutas | API/E2E | Alta | 2 | Pendiente |
+| TC-08 | RF-10: navegación del menú | E2E | Media | 6 | Parcial: navegación a Planificación comprobada con sesión sintética en navegador; faltan los demás destinos y roles. |
+| TC-09 | RF-11: cerrar sesión y proteger rutas | API/E2E | Alta | 2 | Parcial: cierre de sesión y redirección de ruta directa comprobados en navegador con sesión sintética; falta verificar invalidación de token en backend. |
 | TC-10 | RF-12: crear auditoría con datos completos | API/E2E | Alta | 3 | Parcial: se prueba propuesta/aprobación, no el flujo completo de captura de auditoría |
 | TC-11 | RF-12: creación con campos vacíos | Unit/API | Alta | 3 | Parcial: validación de propuestas existe; validar contrato de auditoría |
 | TC-12 | RF-12: creación con datos inválidos | Unit/API | Alta | 3 | Parcial: validación de propuestas existe; validar contrato de auditoría |
