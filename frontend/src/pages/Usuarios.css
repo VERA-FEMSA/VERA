@@ -1,7 +1,7 @@
 /* HU-01 Administración de usuarios. Reutiliza el layout de Dashboard.css */
 
 .users-card {
-  background: #ffffff;
+  background: light-dark(#ffffff, var(--vera-surface));
   border-radius: 16px;
   padding: 28px;
   margin-bottom: 24px;
@@ -13,12 +13,12 @@
 .users-card h2 {
   margin: 0 0 6px;
   font-size: 22px;
-  color: #123f4d;
+  color: light-dark(#123f4d, var(--vera-accent));
 }
 
 .users-muted {
   margin: 0 0 22px;
-  color: #707d8a;
+  color: light-dark(#707d8a, var(--vera-text-muted));
   font-size: 15px;
 }
 
@@ -40,16 +40,16 @@
   gap: 20px;
   flex-wrap: wrap;
   padding: 18px 20px;
-  border: 1px solid #edf0f2;
+  border: 1px solid light-dark(#edf0f2, var(--vera-border));
   border-radius: 12px;
 }
 
 .users-row.inactive {
-  background: #f8f9fa;
+  background: light-dark(#f8f9fa, var(--vera-surface-soft));
 }
 
 .users-row.inactive .users-identity strong {
-  color: #8a96a2;
+  color: light-dark(#8a96a2, var(--vera-text-muted));
 }
 
 .users-identity {
@@ -62,14 +62,14 @@
 .users-identity strong {
   font-size: 17px;
   font-weight: 600;
-  color: #202b35;
+  color: light-dark(#202b35, var(--vera-text-strong));
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .users-identity > span {
-  color: #748190;
+  color: light-dark(#748190, var(--vera-text-muted));
   font-size: 13px;
 }
 
@@ -78,13 +78,13 @@
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #e9f8f5;
-  color: #0b8f80;
+  background: light-dark(#e9f8f5, var(--vera-success-soft));
+  color: light-dark(#0b8f80, var(--vera-success));
 }
 
 .users-tag.off {
-  background: #fdecec;
-  color: #b42318;
+  background: light-dark(#fdecec, var(--vera-danger-soft));
+  color: light-dark(#b42318, var(--vera-danger));
 }
 
 .users-controls {
@@ -99,8 +99,8 @@
 .users-controls select {
   font: inherit;
   font-size: 15px;
-  color: #202b35;
-  background: #f3f6f7;
+  color: light-dark(#202b35, var(--vera-text-strong));
+  background: light-dark(#f3f6f7, var(--vera-surface-soft));
   border: 1px solid transparent;
   border-radius: 9px;
   padding: 10px 14px;
@@ -111,14 +111,14 @@
 }
 
 .users-controls select:disabled {
-  color: #7a8793;
+  color: light-dark(#7a8793, var(--vera-text-muted));
   cursor: not-allowed;
 }
 
 .users-controls select:focus {
   outline: none;
   border-color: #10b7a7;
-  background: #ffffff;
+  background: light-dark(#ffffff, var(--vera-surface));
 }
 
 .users-badge {
@@ -128,13 +128,13 @@
   font-weight: 700;
   padding: 6px 12px;
   border-radius: 999px;
-  background: #edf2f4;
-  color: #123f4d;
+  background: light-dark(#edf2f4, var(--vera-accent-soft));
+  color: light-dark(#123f4d, var(--vera-accent));
 }
 
 .users-badge.strong {
-  background: #123f4d;
-  color: #ffffff;
+  background: light-dark(#123f4d, var(--vera-accent-strong));
+  color: light-dark(#ffffff, var(--vera-on-accent));
 }
 
 .users-primary,
@@ -149,22 +149,22 @@
 
 .users-primary {
   border: none;
-  background: #123f4d;
-  color: #ffffff;
+  background: light-dark(#123f4d, var(--vera-accent-strong));
+  color: light-dark(#ffffff, var(--vera-on-accent));
 }
 
 .users-primary:hover:not(:disabled) {
-  background: #0d2f3a;
+  background: light-dark(#0d2f3a, var(--vera-accent-strong));
 }
 
 .users-secondary {
-  border: 1px solid #d5dde2;
-  background: #ffffff;
-  color: #3c4a57;
+  border: 1px solid light-dark(#d5dde2, var(--vera-border));
+  background: light-dark(#ffffff, var(--vera-surface));
+  color: light-dark(#3c4a57, var(--vera-text-strong));
 }
 
 .users-secondary:hover:not(:disabled) {
-  background: #f3f6f7;
+  background: light-dark(#f3f6f7, var(--vera-surface-soft));
 }
 
 .users-primary:disabled,
@@ -187,19 +187,19 @@
   background: none;
   padding: 0;
   font: inherit;
-  color: #123f4d;
+  color: light-dark(#123f4d, var(--vera-accent));
   text-decoration: underline;
   cursor: pointer;
 }
 
 .users-danger {
-  border: 1px solid #f1c6c2;
-  background: #ffffff;
-  color: #b42318;
+  border: 1px solid light-dark(#f1c6c2, var(--vera-danger));
+  background: light-dark(#ffffff, var(--vera-surface));
+  color: light-dark(#b42318, var(--vera-danger));
 }
 
 .users-danger:hover:not(:disabled) {
-  background: #fdecec;
+  background: light-dark(#fdecec, var(--vera-danger-soft));
 }
 
 /* ---------- solicitudes pendientes ---------- */
@@ -223,15 +223,15 @@
   padding: 2px 9px;
   border-radius: 999px;
   background: #10b7a7;
-  color: #ffffff;
+  color: light-dark(#ffffff, var(--vera-on-accent));
   font-size: 13px;
   font-weight: 700;
   text-align: center;
 }
 
 .users-row.pending {
-  background: #f6fbfa;
-  border-color: #d5efeb;
+  background: light-dark(#f6fbfa, var(--vera-accent-soft));
+  border-color: light-dark(#d5efeb, var(--vera-accent));
 }
 
 .users-empty {
@@ -239,9 +239,9 @@
   align-items: center;
   gap: 10px;
   padding: 16px 20px;
-  border: 1px dashed #d5dde2;
+  border: 1px dashed light-dark(#d5dde2, var(--vera-border));
   border-radius: 12px;
-  color: #7a8793;
+  color: light-dark(#7a8793, var(--vera-text-muted));
   font-size: 15px;
 }
 
@@ -257,11 +257,11 @@
 }
 
 .users-msg.success {
-  color: #0b8f80;
+  color: light-dark(#0b8f80, var(--vera-success));
 }
 
 .users-msg.error {
-  color: #b42318;
+  color: light-dark(#b42318, var(--vera-danger));
 }
 
 @media (max-width: 750px) {
@@ -272,10 +272,10 @@
 }
 
 .role-request-form { display: grid; gap: 12px; max-width: 520px; margin-top: 16px; }
-.role-request-form label { font-weight: 650; color: #173d49; }
+.role-request-form label { font-weight: 650; color: light-dark(#173d49, var(--vera-accent)); }
 .role-request-form select, .role-request-form textarea {
-  width: 100%; padding: 10px 12px; border: 1px solid #cad7dd;
-  border-radius: 8px; background: white; color: #173d49; font: inherit;
+  width: 100%; padding: 10px 12px; border: 1px solid light-dark(#cad7dd, var(--vera-border));
+  border-radius: 8px; background: light-dark(white, var(--vera-surface)); color: light-dark(#173d49, var(--vera-accent)); font: inherit;
 }
 .role-request-form textarea { resize: vertical; }
 .role-request-form .users-primary { justify-self: start; }

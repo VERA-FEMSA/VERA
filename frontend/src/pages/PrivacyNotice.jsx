@@ -1,15 +1,19 @@
 import { Link } from "react-router-dom";
 import { PRIVACY_NOTICE_VERSION } from "../constants/privacyNotice";
+import ThemeControl from "../components/ThemeControl";
+import { useDocumentTitle } from "../contexts/useDocumentTitle";
 import "./PublicOverview.css";
 
 function PrivacyNotice() {
-  return <main className="public-overview">
+  useDocumentTitle("Aviso de privacidad");
+  return <div className="public-overview">
+    <a className="skip-link" href="#privacy-main">Saltar al contenido</a>
     <div className="public-overview__shell">
       <header className="public-overview__header">
-        <Link className="public-overview__brand" to="/acerca"><img src="/vera-logo.svg" alt="" width="42" height="42" /><span>VERA</span></Link>
-        <Link className="public-overview__login" to="/">Iniciar sesión</Link>
+        <Link className="public-overview__brand" to="/acerca"><img src="/vera-logo.svg" alt="" width="42" height="42" /><span>VERA<small>Digital Systems</small></span></Link>
+        <nav className="public-overview__nav" aria-label="Navegación pública"><Link to="/acerca">Acerca de VERA</Link><ThemeControl compact /><Link className="public-overview__login" to="/">Iniciar sesión</Link></nav>
       </header>
-      <article className="public-overview__notice">
+      <main id="privacy-main" className="public-overview__notice">
         <p className="public-overview__eyebrow">PRIVACIDAD · VERSIÓN {PRIVACY_NOTICE_VERSION}</p>
         <h1>Aviso de privacidad</h1>
         <p>Este aviso explica el uso de datos personales en el entorno de demostración de VERA. Las cuentas nuevas pueden registrarse con contraseña o con Microsoft o Google y reciben inicialmente el rol Auditor. No se requiere aprobación de la cuenta. Las cuentas existentes conservan sus métodos de acceso. No ingreses datos reales o confidenciales de FEMSA ni datos personales sensibles en expedientes de prueba.</p>
@@ -33,9 +37,9 @@ function PrivacyNotice() {
         <h2>Cambios</h2>
         <p>Las modificaciones de este aviso se publicarán en esta misma dirección con una nueva versión y fecha. Si un cambio exige una decisión adicional de tu parte, la solicitaremos antes de aplicar la nueva finalidad.</p>
         <p className="public-overview__notice-end"><Link to="/acerca">Conoce VERA</Link> · <Link to="/registro">Crear cuenta</Link></p>
-      </article>
+      </main>
     </div>
-  </main>;
+  </div>;
 }
 
 export default PrivacyNotice;

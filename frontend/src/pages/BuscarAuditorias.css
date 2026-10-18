@@ -1,9 +1,9 @@
-.audit-search-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; padding: 20px; background: white; border-radius: 14px; margin-bottom: 24px; }
-.audit-search-form label { display: grid; gap: 6px; color: #34505b; font-weight: 600; font-size: 13px; }
-.audit-search-form input, .audit-search-form select { width: 100%; padding: 10px; border: 1px solid #cad8dd; border-radius: 8px; font: inherit; }
+.audit-search-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; padding: 20px; background: light-dark(white, var(--vera-surface)); border-radius: 14px; margin-bottom: 24px; }
+.audit-search-form label { display: grid; gap: 6px; color: light-dark(#34505b, var(--vera-text-strong)); font-weight: 600; font-size: 13px; }
+.audit-search-form input, .audit-search-form select { width: 100%; padding: 10px; border: 1px solid light-dark(#cad8dd, var(--vera-border)); border-radius: 8px; font: inherit; }
 .audit-search-actions { display: flex; align-items: end; gap: 8px; }
 .audit-search-results { display: grid; gap: 12px; }
-.audit-search-card, .audit-search-detail { background: white; padding: 18px; border-radius: 12px; margin-bottom: 12px; }
+.audit-search-card, .audit-search-detail { background: light-dark(white, var(--vera-surface)); padding: 18px; border-radius: 12px; margin-bottom: 12px; }
 .audit-search-card > div:first-child { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .audit-search-card p { margin: 8px 0; }
 .audit-search-card button + button { margin-left: 8px; }

@@ -1,79 +1,55 @@
-/* HU-01 Registro. Reutiliza el diseño de Login.css */
-
-.password-rules {
-  list-style: none;
-  margin: 10px 0 2px;
-  padding: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 12px;
+.registration-note {
+  padding: 13px 15px;
+  border-left: 3px solid var(--vera-accent);
+  border-radius: 0 9px 9px 0;
+  background: var(--vera-accent-soft);
+  color: var(--vera-text-muted);
   font-size: 13px;
-  color: #8a96a2;
-  text-align: left;
+  line-height: 1.55;
 }
-
-.password-rules li {
-  display: flex;
-  gap: 6px;
-}
-
-.password-rules li.ok {
-  color: #0b8f80;
-}
-
-.login-card button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.register-done {
-  margin-top: 28px;
-  text-align: center;
-}
-
-.register-done h2 {
-  margin: 0 0 10px;
-  font-size: 20px;
-  color: #123f4d;
-}
-
-.register-done p {
-  margin: 0 0 24px;
-  color: #6b7784;
-  line-height: 1.5;
-}
-
-.register-back {
-  display: inline-block;
-  padding: 12px 18px;
-  border-radius: 9px;
-  background: #123f4d;
-  color: #ffffff;
-  text-decoration: none;
-}
-
-.social-registration {
-  margin-top: 22px;
-  padding-top: 18px;
-  border-top: 1px solid #e4e9ed;
-  text-align: left;
-}
-
-.social-registration > p:first-child {
-  color: #526575;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.login-card .privacy-ack {
+.access-card .privacy-ack {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  margin: 18px 0;
-  text-align: left;
-  line-height: 1.45;
+  gap: 11px;
+  margin: 20px 0 8px;
+  color: var(--vera-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
 }
-
-.privacy-ack input { width: auto; margin-top: 4px; flex: none; }
-
-.privacy-summary { color: #526575; font-size: 12px; line-height: 1.5; text-align: left; }
+.privacy-ack input {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: var(--vera-accent-strong);
+}
+.privacy-details {
+  padding: 0 0 16px 28px;
+  border-bottom: 1px solid var(--vera-border-soft);
+  color: var(--vera-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.privacy-details summary { width: fit-content; color: var(--vera-accent); font-weight: 700; cursor: pointer; }
+.privacy-details p { margin: 10px 0 0; }
+.registration-social { margin-top: 23px; }
+.auth-method-label { margin: 0 0 12px; color: var(--vera-text-strong); font-size: 13px; font-weight: 750; }
+.access-page--register .auth-divider { margin-block: 29px 14px; }
+.password-rules { display: grid; gap: 6px; margin: 9px 0 0; padding: 0; list-style: none; }
+.password-rules li { display: flex; align-items: center; gap: 8px; color: var(--vera-text-muted); font-size: 12px; }
+.password-rules li.ok { color: var(--vera-success); }
+.register-done { padding-top: 6px; }
+.register-done p { color: var(--vera-text-muted); line-height: 1.6; }
+.register-done .register-back { max-width: 260px; }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

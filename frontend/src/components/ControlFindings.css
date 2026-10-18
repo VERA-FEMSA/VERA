@@ -1,11 +1,11 @@
 .control-findings { margin-top: 36px; }
-.control-findings > p { color: #49606d; }
+.control-findings > p { color: light-dark(#49606d, var(--vera-text-muted)); }
 .finding-create { margin: 0 8px 12px 0; }
 .finding-list { display: grid; gap: 12px; margin-top: 18px; }
-.finding-card { background: #fff; border-radius: 12px; padding: 18px; }
-.finding-card span { float: right; color: #9a6600; }
+.finding-card { background: light-dark(#fff, var(--vera-surface)); border-radius: 12px; padding: 18px; }
+.finding-card span { float: right; color: light-dark(#9a6600, var(--vera-danger)); }
 .finding-card p { margin: 10px 0; }
-.finding-card small { display: block; color: #49606d; margin-top: 5px; }
+.finding-card small { display: block; color: light-dark(#49606d, var(--vera-text-muted)); margin-top: 5px; }
 .finding-modal { display: grid; gap: 14px; }
 .finding-modal label { display: grid; gap: 6px; }
 .finding-modal input, .finding-modal textarea, .finding-modal select { width: 100%; }
