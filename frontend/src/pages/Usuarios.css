@@ -18,7 +18,7 @@
 
 .users-muted {
   margin: 0 0 22px;
-  color: light-dark(#707d8a, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 15px;
 }
 
@@ -49,7 +49,7 @@
 }
 
 .users-row.inactive .users-identity strong {
-  color: light-dark(#8a96a2, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
 }
 
 .users-identity {
@@ -69,7 +69,7 @@
 }
 
 .users-identity > span {
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 13px;
 }
 
@@ -116,7 +116,6 @@
 }
 
 .users-controls select:focus {
-  outline: none;
   border-color: #10b7a7;
   background: light-dark(#ffffff, var(--vera-surface));
 }
@@ -222,7 +221,7 @@
   min-width: 26px;
   padding: 2px 9px;
   border-radius: 999px;
-  background: #10b7a7;
+  background: light-dark(#08756b, var(--vera-accent-strong));
   color: light-dark(#ffffff, var(--vera-on-accent));
   font-size: 13px;
   font-weight: 700;
@@ -241,7 +240,7 @@
   padding: 16px 20px;
   border: 1px dashed light-dark(#d5dde2, var(--vera-border));
   border-radius: 12px;
-  color: light-dark(#7a8793, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 15px;
 }
 

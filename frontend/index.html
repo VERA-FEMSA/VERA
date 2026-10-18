@@ -32,8 +32,9 @@
     <script>
       try {
         const saved = localStorage.getItem('vera:appearance');
-        const dark = saved === 'dark' || (saved !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        const dark = saved === 'dark' || saved === 'contrast' || (saved !== 'light' && saved !== 'contrast' && matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        if (saved === 'contrast') document.documentElement.dataset.contrast = 'high';
         document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
         document.querySelector('meta[name="theme-color"]').content = dark ? '#0d1923' : '#f4f6f7';
       } catch {

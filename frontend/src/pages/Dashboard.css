@@ -2,7 +2,7 @@
   min-height: 100vh;
   background: light-dark(#f4f6f7, var(--vera-canvas));
   display: flex;
-  font-family: Arial, sans-serif;
+  font-family: inherit;
   color: light-dark(#202b35, var(--vera-text-strong));
 }
 
@@ -264,12 +264,12 @@
 
 .kpi-icon.green {
   background: light-dark(#e9f8f5, var(--vera-success-soft));
-  color: light-dark(#0bb8a3, var(--vera-success));
+  color: light-dark(#08785f, var(--vera-success));
 }
 
 .kpi-icon.warning {
   background: light-dark(#fff3c8, var(--vera-warning-soft));
-  color: light-dark(#d27300, var(--vera-danger));
+  color: light-dark(#805600, var(--vera-warning));
 }
 
 /* LOWER SECTION */
@@ -512,7 +512,7 @@
 }
 
 .cell-bajo { background: light-dark(#e8f8f2, var(--vera-success-soft)); color: light-dark(#08785f, var(--vera-success)); }
-.cell-medio { background: light-dark(#fff4d6, var(--vera-warning-soft)); color: light-dark(#815600, var(--vera-danger)); }
+.cell-medio { background: light-dark(#fff4d6, var(--vera-warning-soft)); color: light-dark(#815600, var(--vera-warning)); }
 .cell-alto { background: light-dark(#ffe8e8, var(--vera-danger-soft)); color: light-dark(#b62e2e, var(--vera-danger)); }
 
 .risk-column-labels {

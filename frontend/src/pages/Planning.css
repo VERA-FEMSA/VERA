@@ -57,7 +57,7 @@
 }
 
 .planning-summary span {
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 13px;
   margin-top: 4px;
 }
@@ -75,7 +75,7 @@
 }
 
 .planning-section-heading > span {
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 13px;
 }
 
@@ -96,7 +96,7 @@
 }
 
 .risk-bajo { background: light-dark(#e8f8f2, var(--vera-success-soft)); color: light-dark(#08785f, var(--vera-success)); }
-.risk-medio { background: light-dark(#fff4d6, var(--vera-warning-soft)); color: light-dark(#9a6600, var(--vera-danger)); }
+.risk-medio { background: light-dark(#fff4d6, var(--vera-warning-soft)); color: light-dark(#9a6600, var(--vera-warning)); }
 .risk-alto { background: light-dark(#ffe8e8, var(--vera-danger-soft)); color: light-dark(#b62e2e, var(--vera-danger)); }
 
 .planning-message {
@@ -142,9 +142,10 @@
 .planning-card:hover,
 .planning-card:focus-visible {
   transform: translateY(-2px);
-  outline: none;
   box-shadow: 0 5px 10px rgba(0, 0, 0, .07), 0 12px 24px rgba(0, 0, 0, .06);
 }
+
+.planning-card:focus-visible { outline: 3px solid var(--vera-focus); outline-offset: 3px; }
 
 .planning-card-icon,
 .quarter-icon {
@@ -167,7 +168,7 @@
 }
 
 .planning-id {
-  color: light-dark(#0a9d91, var(--vera-success));
+  color: light-dark(#08756b, var(--vera-success));
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .4px;
@@ -187,7 +188,7 @@
 .planning-card p,
 .quarter-card header p,
 .quarter-empty {
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
 }
 
 .planning-card p {
@@ -207,7 +208,7 @@
 .proposal-meta {
   justify-content: flex-start;
   flex-wrap: wrap;
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 12px;
   margin-top: 14px;
 }
@@ -222,7 +223,7 @@
 }
 
 .approval-progress > div:first-child {
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 12px;
   margin-bottom: 6px;
 }
@@ -355,7 +356,7 @@
 .details-field > span {
   display: block;
   margin-bottom: 5px;
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 12px;
   font-weight: 700;
 }
@@ -383,7 +384,7 @@
 
 .details-status {
   margin: 14px 0 16px;
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 14px;
 }
 
@@ -626,7 +627,7 @@
 
 .risk-matrix caption {
   text-align: left;
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 12px;
   padding-bottom: 8px;
 }
@@ -680,12 +681,12 @@
 }
 
 .matrix-bajo { background: light-dark(#e8f8f2, var(--vera-success-soft)); color: light-dark(#08785f, var(--vera-success)); }
-.matrix-medio { background: light-dark(#fff4d6, var(--vera-warning-soft)); color: light-dark(#9a6600, var(--vera-danger)); }
+.matrix-medio { background: light-dark(#fff4d6, var(--vera-warning-soft)); color: light-dark(#9a6600, var(--vera-warning)); }
 .matrix-alto { background: light-dark(#ffe8e8, var(--vera-danger-soft)); color: light-dark(#b62e2e, var(--vera-danger)); }
 
 .risk-matrix-legend {
   margin: 12px 0 0;
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 12px;
   line-height: 1.5;
 }
@@ -808,7 +809,7 @@
 
 .governance-progress {
   min-width: 190px;
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   text-align: right;
   font-size: 11px;
   font-weight: 700;
@@ -896,7 +897,7 @@
 .governance-stage p,
 .governance-panel > p {
   margin: 0;
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   line-height: 1.55;
 }
 
@@ -969,7 +970,7 @@
 .governance-info-grid span,
 .governance-record span {
   display: block;
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 12px;
 }
 
@@ -1158,7 +1159,7 @@
 }
 
 .modal-header p {
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   margin: 0;
   font-size: 14px;
 }
@@ -1276,7 +1277,7 @@
 
 .quarter-progress small {
   display: block;
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 11px;
   margin-top: 7px;
 }
@@ -1315,7 +1316,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: light-dark(#10b7a7, var(--vera-success));
+  color: light-dark(#08756b, var(--vera-success));
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 2.5px;
@@ -1328,7 +1329,7 @@
 
 .workspace-header p {
   margin: 0;
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 17px;
 }
 
@@ -1363,7 +1364,7 @@
 
 .workspace-stats span {
   margin-top: 4px;
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 13px;
 }
 
@@ -1378,7 +1379,7 @@
 }
 
 .filter-panel p {
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   font-size: 13px;
   margin: 0 0 18px;
 }
@@ -1416,6 +1417,8 @@
   font: inherit;
 }
 
+.search-input:focus-within { outline: 3px solid var(--vera-focus); outline-offset: 3px; }
+
 .audit-table-heading,
 .audit-table-row {
   display: grid;
@@ -1426,7 +1429,7 @@
 }
 
 .audit-table-heading {
-  color: light-dark(#697986, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   border-bottom: 1px solid light-dark(#edf0f2, var(--vera-border));
   font-size: 11px;
   font-weight: 700;
@@ -1447,8 +1450,9 @@
 .audit-table-row-clickable:hover,
 .audit-table-row-clickable:focus-visible {
   background: light-dark(#f7fafb, var(--vera-surface-soft));
-  outline: none;
 }
+
+.audit-table-row-clickable:focus-visible { outline: 3px solid var(--vera-focus); outline-offset: 2px; }
 
 .audit-table-row:last-child {
   border-bottom: none;
@@ -1463,7 +1467,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: light-dark(#0a9d91, var(--vera-success));
+  color: light-dark(#08756b, var(--vera-success));
   cursor: pointer;
   font: inherit;
   text-align: left;
@@ -1543,7 +1547,7 @@
 }
 
 .workspace-empty {
-  color: light-dark(#748190, var(--vera-text-muted));
+  color: light-dark(#586b77, var(--vera-text-muted));
   display: flex;
   align-items: center;
   gap: 9px;

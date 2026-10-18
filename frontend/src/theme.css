@@ -55,6 +55,31 @@
   --vera-shadow: 0 20px 55px rgba(0, 0, 0, .24);
 }
 
+/* An optional, restrained high-contrast palette. It uses the dark token branch
+   so existing module layouts and component styles keep their dimensions. */
+:root[data-contrast="high"] {
+  color-scheme: dark;
+  --vera-canvas: #070e14;
+  --vera-surface: #101e28;
+  --vera-surface-raised: #172a35;
+  --vera-surface-soft: #1c303c;
+  --vera-surface-tint: #21424c;
+  --vera-text: #ffffff;
+  --vera-text-strong: #ffffff;
+  --vera-text-muted: #eef6f8;
+  --vera-text-subtle: #d9e8ed;
+  --vera-border: #8397a5;
+  --vera-border-soft: #718794;
+  --vera-accent: #a4f1e1;
+  --vera-accent-strong: #277b82;
+  --vera-accent-hover: #246c77;
+  --vera-accent-soft: #1c4445;
+  --vera-success: #a9f0cb;
+  --vera-danger: #ffc4c0;
+  --vera-warning: #f8d881;
+  --vera-focus: #ffdc73;
+}
+
 html { background: var(--vera-canvas); }
 body { color: var(--vera-text); background: var(--vera-canvas); }
 button, input, select, textarea { font: inherit; }
