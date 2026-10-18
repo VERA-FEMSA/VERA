@@ -1,5 +1,4 @@
 const jwt = require("jsonwebtoken");
-const { generateSecret, generateURI } = require("otplib");
 const QRCode = require("qrcode");
 const userRepository = require("../repositories/userRepository");
 const { logAccessChange, logActivity } = require("../services/auditLogger");
@@ -204,6 +203,7 @@ const setup2FA = async (req, res) => {
   const user = await userRepository.findById(req.user.id);
   if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
+  const { generateSecret, generateURI } = require("otplib");
   const secret = generateSecret();
   await userRepository.setPendingSecret(user.id, secret);
 
