@@ -14,7 +14,7 @@ El [ruleset de main](https://github.com/VERA-GRC-IRM/VERA/rules/25312937) exige 
 
 ## Hitos y seguimiento visible
 
-Los [hitos](https://github.com/VERA-GRC-IRM/VERA/milestones) agrupan PR fusionados en tres cortes históricos: IA contextual, documentación y gobierno, y aseguramiento continuo. El [hito abierto de aceptación](https://github.com/VERA-GRC-IRM/VERA/milestone/4) reúne la [issue #113](https://github.com/VERA-GRC-IRM/VERA/issues/113) y seis subtareas con resultados esperados. Un corte cerrado significa que los PR asociados se integraron; no confirma el comportamiento en producción.
+Los [cortes integrados](https://github.com/VERA-GRC-IRM/VERA/milestones?state=closed) agrupan PR fusionados en tres hitos históricos: IA contextual, documentación y gobierno, y aseguramiento continuo. El [hito abierto de aceptación](https://github.com/VERA-GRC-IRM/VERA/milestone/4) reúne la [issue #113](https://github.com/VERA-GRC-IRM/VERA/issues/113) y seis subtareas con resultados esperados. Un corte cerrado significa que los PR asociados se integraron; no confirma el comportamiento en producción.
 
 El [proyecto público VERA · Entrega y aceptación](https://github.com/orgs/VERA-GRC-IRM/projects/1) ofrece una [tabla](https://github.com/orgs/VERA-GRC-IRM/projects/1/views/1) y una [vista por estado](https://github.com/orgs/VERA-GRC-IRM/projects/1/views/2). Añade automáticamente las nuevas issues abiertas de `VERA` y sus subtareas. El estado `Done` por sí solo no cierra la issue: el cierre exige evidencia fechada y el proyecto refleja después ese cierre. La etiqueta `external-dependency` indica que falta un entorno, acceso o decisión externa; no representa un fallo de código.
 

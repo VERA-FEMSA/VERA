@@ -25,7 +25,8 @@
 
 | Vista | Qué muestra |
 | --- | --- |
-| [Hitos del repositorio](https://github.com/VERA-GRC-IRM/VERA/milestones) | Tres cortes de PR ya integrados y un hito abierto para la aceptación funcional. Un hito cerrado no equivale a aprobación en producción. |
+| [Cortes integrados](https://github.com/VERA-GRC-IRM/VERA/milestones?state=closed) | Tres hitos con PR ya fusionados. Un hito cerrado no equivale a aprobación en producción. |
+| [Hito de aceptación abierto](https://github.com/VERA-GRC-IRM/VERA/milestone/4) | Verificaciones que faltan antes de afirmar aceptación funcional en producción. |
 | [Tablero público de entrega y aceptación](https://github.com/orgs/VERA-GRC-IRM/projects/1/views/2) | Las verificaciones pendientes y su estado; nuevas issues abiertas de VERA se añaden automáticamente. |
 | [Issue principal de aceptación](https://github.com/VERA-GRC-IRM/VERA/issues/113) | Seis verificaciones con evidencia de cierre definida, incluidas las dependencias de entorno. |
 | [Azure Boards](https://dev.azure.com/FEMSA-GRC-IRM/FEMSA-GRC-IRM) | Historias de usuario y aceptación funcional del equipo; el tablero de GitHub no duplica ese backlog. |
