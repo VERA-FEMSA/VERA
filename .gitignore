@@ -3,8 +3,13 @@
 .env
 node_modules/
 coverage/
+__pycache__/
+*.py[cod]
 test-results/
 playwright-report/
 quality-report/
 supabase/.temp/
 
+.vercel/
+.env*
+!.env.example

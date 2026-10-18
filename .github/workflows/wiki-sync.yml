@@ -1,0 +1,58 @@
+name: Publicar Wiki desde main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/wiki/**
+      - .github/workflows/wiki-sync.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vera-wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Sincronizar páginas versionadas
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/wiki-askpass" <<'ASKPASS'
+          #!/bin/sh
+          case "$1" in
+            *Username*) printf 'x-access-token' ;;
+            *Password*) printf '%s' "$GH_TOKEN" ;;
+            *) exit 1 ;;
+          esac
+          ASKPASS
+          chmod 700 "$RUNNER_TEMP/wiki-askpass"
+          export GIT_ASKPASS="$RUNNER_TEMP/wiki-askpass"
+          export GIT_TERMINAL_PROMPT=0
+
+          git clone "https://github.com/${GITHUB_REPOSITORY}.wiki.git" "$RUNNER_TEMP/vera-wiki"
+          cp docs/wiki/*.md "$RUNNER_TEMP/vera-wiki/"
+          git -C "$RUNNER_TEMP/vera-wiki" add -- '*.md'
+          if git -C "$RUNNER_TEMP/vera-wiki" diff --cached --quiet; then
+            echo 'La Wiki ya coincide con docs/wiki.'
+            exit 0
+          fi
+
+          git -C "$RUNNER_TEMP/vera-wiki" config user.name 'github-actions[bot]'
+          git -C "$RUNNER_TEMP/vera-wiki" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C "$RUNNER_TEMP/vera-wiki" commit -m "docs: sincronizar Wiki desde ${GITHUB_SHA}"
+          git -C "$RUNNER_TEMP/vera-wiki" push origin HEAD
