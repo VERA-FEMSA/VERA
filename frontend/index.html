@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0A2247" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f4f6f7" />
     <meta name="application-name" content="VERA" />
     <meta name="description" content="VERA reúne propuestas, auditorías, riesgos, controles y evidencias para dar seguimiento a decisiones con fundamento." />
     <link rel="canonical" href="https://www.vera-digital-systems.com/" />
@@ -28,6 +29,17 @@
     <meta name="twitter:image" content="https://www.vera-digital-systems.com/social-preview.png" />
     <meta name="twitter:image:alt" content="VERA: decisiones de auditoría con fundamento, de la propuesta al seguimiento con evidencia." />
     <title>VERA | Auditorías, riesgos y evidencia</title>
+    <script>
+      try {
+        const saved = localStorage.getItem('vera:appearance');
+        const dark = saved === 'dark' || (saved !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        document.querySelector('meta[name="theme-color"]').content = dark ? '#0d1923' : '#f4f6f7';
+      } catch {
+        document.documentElement.dataset.theme = 'light';
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

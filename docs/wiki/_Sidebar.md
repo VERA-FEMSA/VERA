@@ -10,6 +10,7 @@
 
 **Diseño y datos**
 
+- [Experiencia y accesibilidad](https://github.com/VERA-GRC-IRM/VERA/wiki/Experiencia-y-accesibilidad)
 - [Arquitectura](https://github.com/VERA-GRC-IRM/VERA/wiki/Arquitectura)
 - [Acceso y permisos](https://github.com/VERA-GRC-IRM/VERA/wiki/Acceso-y-permisos)
 - [Datos y Supabase](https://github.com/VERA-GRC-IRM/VERA/wiki/Datos-y-Supabase)

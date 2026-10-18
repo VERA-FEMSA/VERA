@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Eye, EyeOff, LockKeyhole } from "lucide-react";
+import AccessShell from "../components/AccessShell";
+import { useDocumentTitle } from "../contexts/useDocumentTitle";
 import { exchangeManagedSession, finishPasswordMfaEnrollment, loginUser, startPasswordMfaEnrollment, verify2FA } from "../services/authService";
 import { managedAuth, googleAuthEnabled, microsoftAuthEnabled, startSocialSignIn, takeSocialPrivacyAcknowledgement } from "../services/managedAuth";
 import { PRIVACY_NOTICE_VERSION } from "../constants/privacyNotice";
 import "./Login.css";
 
 function Login() {
+  useDocumentTitle("Iniciar sesión");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -17,6 +21,9 @@ function Login() {
   const [setupSecret, setSetupSecret] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [socialBusy, setSocialBusy] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
 
   const navigate = useNavigate();
 
@@ -135,117 +142,93 @@ function Login() {
 
   const beginSocial = async (provider) => {
     setError("");
+    setSocialBusy(provider);
     try { await startSocialSignIn(provider); }
-    catch { setError("No se pudo iniciar el acceso con este proveedor. Intenta más tarde."); }
+    catch {
+      setError("No se pudo iniciar el acceso con este proveedor. Intenta más tarde.");
+      setSocialBusy(null);
+    }
   };
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="logo-box">
-          <img src="/vera-logo.svg" alt="VERA" style={{ width: 46, height: 46 }} />
-        </div>
-
-        <h1>VERA</h1>
-
-        <p className="brand-line">
-          VERIFICACIÓN · EVIDENCIA · RIESGO · AUDITORÍA
-        </p>
-
-        <p className="subtitle">
-          Plataforma de auditoría interna
-        </p>
-
-        <p className="login-message">
-          {tempToken || managedFactorId || setupToken
-            ? "Ingresa el código de 6 dígitos de tu aplicación de autenticación."
-            : "Inicia sesión para acceder al portafolio y a tus auditorías."}
-        </p>
-
-        <form onSubmit={handleSubmit}>
-          {tempToken || managedFactorId || setupToken ? (
-            <>
-              {setupQr && <div className="mfa-enrollment">
-                <p>Para terminar tu primer acceso, escanea este QR con una aplicación de autenticación e introduce su código. El correo no se usa para este paso.</p>
-                <img src={setupQr} alt="Código QR para configurar el doble factor" />
-                <p>Si no puedes escanearlo, usa esta clave: <code>{setupSecret}</code></p>
-              </div>}
-              {managedQr && <div className="mfa-enrollment">
-                <p>Escanea este código con tu aplicación de autenticación. Se exigirá en cada acceso con contraseña.</p>
-                <img src={managedQr} alt="Código QR para configurar la aplicación de autenticación" />
-              </div>}
-              <label htmlFor="verification-code">Código de verificación</label>
-
-              <input
-                type="text"
-                id="verification-code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder="123456"
-                autoFocus
-              />
-            </>
-          ) : (
-            <>
-              <label htmlFor="login-username">Correo electrónico</label>
-
-              <input
-                type="text"
-                id="login-username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="tu@correo.com"
-                autoComplete="username"
-              />
-
-
-<label htmlFor="login-password">Contraseña</label>
-
-              <input
-                type="password"
-                id="login-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Contraseña"
-                autoComplete="current-password"
-              />
-            </>
-          )}
-
-          {error && <p className="error">{error}</p>}
-
-          <button type="submit" disabled={busy}>
-            {tempToken || managedFactorId || setupToken ? "Verificar" : "Iniciar sesión"}
-          </button>
-
-          {(tempToken || managedFactorId || setupToken) && (
-            <button
-              type="button"
-              className="back-button"
-              onClick={handleBack}
-            >
-              Volver
-            </button>
-          )}
-        </form>
-
-        {(googleAuthEnabled || microsoftAuthEnabled) && !tempToken && !managedFactorId && !setupToken &&
-          <div className="social-options" aria-label="Otros métodos de acceso">
-            {microsoftAuthEnabled && <button type="button" onClick={() => beginSocial("azure")}>Continuar con Microsoft</button>}
-            {googleAuthEnabled && <button type="button" onClick={() => beginSocial("google")}>Continuar con Google</button>}
-          </div>}
-
-        <p className="create-account">
-          ¿Primera vez en VERA? <Link to="/registro">Crear cuenta</Link>{(googleAuthEnabled || microsoftAuthEnabled) && ". Ahí podrás aceptar el aviso de privacidad."}
-        </p>
-        <p className="create-account">
-          <Link to="/acerca">Conoce VERA</Link>
-        </p>
+    <AccessShell>
+      <div className="access-card__heading">
+        <p className="access-card__eyebrow"><LockKeyhole size={15} aria-hidden="true" /> ACCESO A VERA</p>
+        <h1>{tempToken || managedFactorId || setupToken ? "Verifica tu acceso" : "Bienvenido a VERA"}</h1>
+        <p>{tempToken || managedFactorId || setupToken
+          ? "Introduce el código de seis dígitos de tu aplicación de autenticación."
+          : "Elige cómo quieres iniciar sesión."}</p>
       </div>
-    </div>
+
+      {(googleAuthEnabled || microsoftAuthEnabled) && !tempToken && !managedFactorId && !setupToken &&
+        <div className="social-options" aria-label="Acceso con proveedor de identidad">
+          {microsoftAuthEnabled && <button type="button" disabled={busy || Boolean(socialBusy)}
+            onClick={() => beginSocial("azure")}>{socialBusy === "azure" ? "Abriendo Microsoft…" : "Continuar con Microsoft"}</button>}
+          {googleAuthEnabled && <button type="button" disabled={busy || Boolean(socialBusy)}
+            onClick={() => beginSocial("google")}>{socialBusy === "google" ? "Abriendo Google…" : "Continuar con Google"}</button>}
+        </div>}
+
+      {(googleAuthEnabled || microsoftAuthEnabled) && !tempToken && !managedFactorId && !setupToken &&
+        <div className="auth-divider"><span>o accede con contraseña</span></div>}
+
+      <form className="auth-form" onSubmit={handleSubmit}>
+        {tempToken || managedFactorId || setupToken ? (
+          <>
+            {setupQr && <div className="mfa-enrollment">
+              <p>Para terminar tu primer acceso, escanea este QR con una aplicación de autenticación e introduce su código. El correo no se usa para este paso.</p>
+              <img src={setupQr} alt="Código QR para configurar el doble factor" />
+              <p>Si no puedes escanearlo, usa esta clave: <code>{setupSecret}</code></p>
+            </div>}
+            {managedQr && <div className="mfa-enrollment">
+              <p>Escanea este código con tu aplicación de autenticación. Se exigirá en cada acceso con contraseña.</p>
+              <img src={managedQr} alt="Código QR para configurar la aplicación de autenticación" />
+            </div>}
+            <label htmlFor="verification-code">Código de autenticación</label>
+            <input type="text" id="verification-code" inputMode="numeric" pattern="[0-9]{6}"
+              autoComplete="one-time-code" maxLength={6} value={code} required
+              aria-invalid={Boolean(error)} aria-describedby={error ? "login-error" : undefined}
+              onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+              placeholder="6 dígitos" autoFocus />
+          </>
+        ) : (
+          <>
+            <label htmlFor="login-username">Correo electrónico</label>
+            <input type="text" id="login-username" inputMode="email" value={username} required
+              onChange={(event) => setUsername(event.target.value)} placeholder="tu@correo.com"
+              autoComplete="username" aria-invalid={Boolean(error)}
+              aria-describedby={error ? "login-error" : undefined} />
+
+            <label htmlFor="login-password">Contraseña</label>
+            <div className="auth-password-field">
+              <input type={showPassword ? "text" : "password"} id="login-password" value={password}
+                onChange={(event) => setPassword(event.target.value)} required
+                onKeyUp={(event) => setCapsLockOn(event.getModifierState("CapsLock"))}
+                onKeyDown={(event) => setCapsLockOn(event.getModifierState("CapsLock"))}
+                onBlur={() => setCapsLockOn(false)} autoComplete="current-password"
+                aria-invalid={Boolean(error)} aria-describedby={error ? "login-error" : undefined} />
+              <button className="auth-password-toggle" type="button" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>
+                {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+              </button>
+            </div>
+            {capsLockOn && <p className="auth-hint" role="status">Bloq Mayús está activado.</p>}
+          </>
+        )}
+
+        {error && <p id="login-error" className="auth-error" role="alert">{error}</p>}
+
+        <button className="auth-primary" type="submit" disabled={busy || Boolean(socialBusy)}>
+          {busy ? "Un momento…" : tempToken || managedFactorId || setupToken ? "Verificar y entrar" : "Iniciar sesión"}
+        </button>
+        {(tempToken || managedFactorId || setupToken) &&
+          <button type="button" className="auth-back" onClick={handleBack}>Volver a los métodos de acceso</button>}
+      </form>
+
+      <div className="access-card__bottom">
+        <p>¿Primera vez en VERA? <Link to="/registro">Crear cuenta</Link></p>
+        <p className="auth-hint">Si aún no tienes cuenta, el registro explica el rol inicial y el aviso de privacidad.</p>
+      </div>
+    </AccessShell>
   );
 }
 

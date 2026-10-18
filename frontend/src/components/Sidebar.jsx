@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { ROLE_LABELS, USER_VIEW_ROLES } from "../constants/roles";
 import { managedAuth } from "../services/managedAuth";
+import ThemeControl from "./ThemeControl";
 import "../pages/Dashboard.css";
 import "./Sidebar.css";
 
@@ -132,6 +133,7 @@ function Sidebar({ active }) {
         </div>
 
         <div className="sidebar-bottom">
+          <ThemeControl />
           <div className="user-info">
             <div className="avatar">{user?.name?.charAt(0)}</div>
 

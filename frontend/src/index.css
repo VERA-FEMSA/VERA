@@ -1,15 +1,9 @@
-* {
-  box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
-html,
-body,
-#root {
-  margin: 0;
-  min-width: 100%;
+html, body, #root {
+  min-width: 320px;
   min-height: 100%;
-}
-
-body {
   margin: 0;
 }
+
+body { margin: 0; }
