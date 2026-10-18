@@ -169,14 +169,14 @@ function Login() {
             </>
           ) : (
             <>
-<label htmlFor="login-username">Correo electrónico</label>
+              <label htmlFor="login-username">{managedAuthEnabled ? "Correo electrónico" : "Correo institucional"}</label>
 
               <input
                 type="text"
                 id="login-username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="tu@correo.com"
+                placeholder={managedAuthEnabled ? "tu@correo.com" : "correo@institucion.mx"}
                 autoComplete="username"
               />
 
