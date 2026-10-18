@@ -21,6 +21,18 @@
 
 > **Estado del proyecto.** VERA es un prototipo funcional en evolución, con código y pruebas automatizadas. La [demo pública](https://www.vera-digital-systems.com/) se despliega desde `main` de esta organización; consulta el [smoke vigente](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/production-smoke.yml) y la [plataforma de calidad](https://vera-grc-irm.github.io/VERA/) para verificar el commit observado. Los resultados de CI y la disponibilidad pública acreditan solamente las comprobaciones ejecutadas; la [aceptación de producción pendiente](https://github.com/VERA-GRC-IRM/VERA/issues/113) y el [estado por HU](docs/hu-acceptance-audit.md) delimitan lo que falta.
 
+## Entregas y próximos pasos
+
+| Vista | Qué muestra |
+| --- | --- |
+| [Cortes integrados](https://github.com/VERA-GRC-IRM/VERA/milestones?state=closed) | Tres hitos con PR ya fusionados. Un hito cerrado no equivale a aprobación en producción. |
+| [Hito de aceptación abierto](https://github.com/VERA-GRC-IRM/VERA/milestone/4) | Verificaciones que faltan antes de afirmar aceptación funcional en producción. |
+| [Tablero público de entrega y aceptación](https://github.com/orgs/VERA-GRC-IRM/projects/1/views/2) | Las verificaciones pendientes y su estado; nuevas issues abiertas de VERA se añaden automáticamente. |
+| [Issue principal de aceptación](https://github.com/VERA-GRC-IRM/VERA/issues/113) | Seis verificaciones con evidencia de cierre definida, incluidas las dependencias de entorno. |
+| [Azure Boards](https://dev.azure.com/FEMSA-GRC-IRM/FEMSA-GRC-IRM) | Historias de usuario y aceptación funcional del equipo; el tablero de GitHub no duplica ese backlog. |
+
+No se asignaron fechas ni responsables que el equipo no haya acordado. El avance se actualiza al cerrar issues con evidencia del entorno correspondiente; consulta el [portal de calidad](https://vera-grc-irm.github.io/VERA/) para resultados recientes por commit.
+
 ## VERA en un minuto
 
 | Pregunta | Respuesta de VERA |

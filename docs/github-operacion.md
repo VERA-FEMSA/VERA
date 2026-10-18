@@ -6,11 +6,19 @@ Esta guía complementa las HU de Azure DevOps. GitHub conserva código, cambios 
 
 1. Partir de `main` y abrir un PR por resultado revisable. Enlazar la HU cuando exista.
 2. Completar la plantilla de PR con decisiones, pruebas realmente ejecutadas, entorno, commit, duración y riesgos.
-3. Esperar los checks obligatorios: `Quality gates (Node.js 22)`, `UI E2E (Chrome, Edge, Firefox, mobile/tablet)`, `Analyze JavaScript and TypeScript` y `Reviewable PR description`.
+3. Esperar los checks obligatorios: `Quality gates (Node.js 22)`, `UI E2E (Chrome, Edge, Firefox, mobile/tablet)`, `Analyze JavaScript and TypeScript`, `Reviewable PR description` y `Migrations, private access and synthetic restore`.
 4. Resolver conversaciones y revisar personalmente el diff, el alcance de los datos y la evidencia. El autor puede fusionar su propio PR cuando pasan los checks. Solicita una segunda revisión si el cambio afecta datos, permisos, migraciones o despliegues.
 5. Integrar y observar el despliegue correspondiente. GitHub elimina automáticamente la rama integrada; las ramas históricas se revisan antes de borrarlas.
 
 El [ruleset de main](https://github.com/VERA-GRC-IRM/VERA/rules/25312937) exige estos pasos, impide force push y protege la rama contra borrado. Ningún archivo está reservado a una persona o equipo.
+
+## Hitos y seguimiento visible
+
+Los [cortes integrados](https://github.com/VERA-GRC-IRM/VERA/milestones?state=closed) agrupan PR fusionados en tres hitos históricos: IA contextual, documentación y gobierno, y aseguramiento continuo. El [hito abierto de aceptación](https://github.com/VERA-GRC-IRM/VERA/milestone/4) reúne la [issue #113](https://github.com/VERA-GRC-IRM/VERA/issues/113) y seis subtareas con resultados esperados. Un corte cerrado significa que los PR asociados se integraron; no confirma el comportamiento en producción.
+
+El [proyecto público VERA · Entrega y aceptación](https://github.com/orgs/VERA-GRC-IRM/projects/1) ofrece una [tabla](https://github.com/orgs/VERA-GRC-IRM/projects/1/views/1) y una [vista por estado](https://github.com/orgs/VERA-GRC-IRM/projects/1/views/2). Añade automáticamente las nuevas issues abiertas de `VERA` y sus subtareas. El estado `Done` por sí solo no cierra la issue: el cierre exige evidencia fechada y el proyecto refleja después ese cierre. La etiqueta `external-dependency` indica que falta un entorno, acceso o decisión externa; no representa un fallo de código.
+
+No se asignaron fechas o personas sin acuerdo. Mantén las HU y sus estados en Azure Boards, y usa GitHub para PR, defectos técnicos, calidad y aceptación con evidencia. Para una nueva verificación de aceptación, usa el formulario de issue del repositorio y enlaza la HU de Azure cuando exista.
 
 ## GitHub y Azure DevOps
 

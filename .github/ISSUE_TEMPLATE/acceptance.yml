@@ -1,0 +1,50 @@
+name: Verificación de aceptación
+description: Registra una comprobación reproducible de calidad en un entorno concreto, sin duplicar la HU de Azure Boards.
+title: "acceptance: "
+labels: ["quality", "acceptance"]
+body:
+  - type: markdown
+    attributes:
+      value: "Usa datos de prueba y evidencia redactada. No publiques credenciales, tokens, datos personales ni información privada de expedientes. Las HU y sus estados se mantienen en Azure Boards."
+  - type: input
+    id: reference
+    attributes:
+      label: Requisito o HU relacionada
+      description: Enlace a Azure Boards o caso TC/RF/RNF, si existe.
+    validations:
+      required: false
+  - type: input
+    id: environment
+    attributes:
+      label: Entorno y revisión
+      description: Local, Preview, staging o Production; URL permitida, SHA o deployment.
+    validations:
+      required: true
+  - type: textarea
+    id: criterion
+    attributes:
+      label: Criterio y resultado esperado
+      description: Describe qué se debe observar para cerrar esta verificación.
+    validations:
+      required: true
+  - type: textarea
+    id: procedure
+    attributes:
+      label: Pasos y datos de prueba
+      description: Incluye roles y casos positivos o negativos; usa datos sintéticos.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidencia de cierre
+      description: Enlaces a corrida, informe, captura redactada o bitácora, con fecha y resultado. Escribe "pendiente" hasta ejecutarlo.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencias o límites
+      description: Accesos, entorno, decisión externa y lo que esta verificación no demuestra.
+    validations:
+      required: false
