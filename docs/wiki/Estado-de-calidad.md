@@ -24,7 +24,7 @@ El artefacto de la corrida conserva JSON, Markdown, logs e informe de navegador 
 ## Tres enlaces para una revisión completa
 
 1. [Ver el portal de calidad](https://vera-grc-irm.github.io/VERA/): resultado vigente por SHA, enlaces a Summary, logs y artefactos.
-2. [Consultar el plan de 78 casos](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/test-plan.md) y la [matriz de aceptación por HU](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/hu-acceptance-audit.md): qué está implementado, automatizado o pendiente.
+2. [Consultar el registro de evidencia por caso](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/case-evidence-register.md), el [plan de 78 casos](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/test-plan.md) y la [matriz de aceptación por HU](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/hu-acceptance-audit.md): qué código de prueba se relaciona con cada escenario y qué falta por aceptar en Production.
 3. [Abrir el workflow estable](https://github.com/VERA-GRC-IRM/VERA/actions/workflows/classroom-quality.yml): muestra corridas futuras sin cambiar el enlace. Solo integrantes con escritura pueden pulsar **Run workflow**; la lectura pública no requiere clonar el repositorio.
 
 El [PR #98](https://github.com/VERA-GRC-IRM/VERA/pull/98) publicó el [portal de calidad](https://vera-grc-irm.github.io/VERA/) en HTML, Markdown y JSON. Sus datos se regeneran mediante GitHub Actions y Pages, sin llamadas a modelos ni consumo de tokens de IA. Esta página de Wiki sigue siendo una bitácora histórica; el portal muestra el estado más reciente de las corridas.

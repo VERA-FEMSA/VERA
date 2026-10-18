@@ -12,6 +12,7 @@ const npmCommand = npmExecPath
 const startedAt = new Date();
 
 const stages = [
+  { area: "Trazabilidad", name: "78 casos y fuentes de evidencia", args: ["run", "traceability"] },
   { area: "Backend", name: "Sintaxis JavaScript", args: ["run", "lint", "--prefix", "backend"] },
   { area: "Backend", name: "Pruebas y cobertura", args: ["run", "test:coverage", "--prefix", "backend"] },
   { area: "Backend", name: "Auditoría de dependencias", args: ["run", "audit", "--prefix", "backend"] },
@@ -67,6 +68,15 @@ const extractMetrics = () => {
   const coverage = testOutput.match(/all files\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)/i);
   const auditMatches = [...allOutput.matchAll(/found\s+(\d+)\s+vulnerabilities?/gi)];
   const jsBundle = allOutput.match(/index-[^\s]+\.js\s+([\d.]+)\s*kB/i);
+  let traceability = null;
+  if (results.some((result) => result.name === "78 casos y fuentes de evidencia" && result.status === "PASS")) {
+    try {
+      const register = JSON.parse(fs.readFileSync(path.join(reportDirectory, "case-evidence.json"), "utf8"));
+      traceability = { totalCases: register.totalCases,
+        casesWithRelatedSources: register.cases.filter((item) => item.relatedSources.length > 0).length,
+        caseLevelProductionPassesClaimed: register.caseLevelProductionPassesClaimed };
+    } catch { /* The traceability stage has already reported its own result. */ }
+  }
 
   return {
     tests: { total: readCount("tests"), passed: readCount("pass"), failed: readCount("fail") },
@@ -76,7 +86,8 @@ const extractMetrics = () => {
       functionsPercent: Number(coverage[3])
     } : null,
     auditedVulnerabilities: auditMatches.map((match) => Number(match[1])),
-    frontendJavaScriptBundleKb: jsBundle ? Number(jsBundle[1]) : null
+    frontendJavaScriptBundleKb: jsBundle ? Number(jsBundle[1]) : null,
+    traceability
   };
 };
 
@@ -114,6 +125,9 @@ const makeMarkdown = (report) => {
     "## Señales",
     "",
     `- **Pruebas backend:** ${report.metrics.tests.passed}/${report.metrics.tests.total} aprobadas; ${report.metrics.tests.failed} fallidas.`,
+    report.metrics.traceability
+      ? `- **Trazabilidad:** ${report.metrics.traceability.totalCases}/78 casos inventariados; ${report.metrics.traceability.casesWithRelatedSources} con archivos relacionados; ${report.metrics.traceability.caseLevelProductionPassesClaimed} aprobaciones individuales de Production afirmadas.`
+      : "- **Trazabilidad:** sin informe válido; revisar la etapa correspondiente.",
     `- **Cobertura backend:** ${coverageText}`,
     "- **Piso de cobertura backend:** 90% líneas, 75% ramas y 90% funciones; si falta la medición o cae por debajo, el control falla.",
     "- **IA:** evaluación sintética sin llamadas al modelo incluida como etapa obligatoria.",

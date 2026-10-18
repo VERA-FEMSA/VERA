@@ -24,3 +24,5 @@ GitHub solo permite iniciar manualmente workflows a usuarios con permiso de escr
 ## Lo que no puede marcarse aprobado desde esta corrida
 
 La matriz de [`test-plan.md`](test-plan.md) tiene 78 escenarios; algunos no corresponden todavía a una función implementada o requieren hardware, staging o evidencia operativa. La prueba de 150/250 usuarios es un workflow manual separado y requiere staging, una allowlist de hostname y una credencial de prueba. Las pantallas E2E usan fixtures de API; no son una prueba del backend desplegado. El resumen lista estos límites para evitar presentar una función planeada como aprobada.
+
+El [registro de evidencia por caso](case-evidence-register.md) enlaza los 78 escenarios con las pruebas de código relacionadas y distingue su cobertura de un dictamen de aceptación en Production. El control de calidad verifica automáticamente que estén los 78 casos y que los archivos vinculados existan; el JSON detallado queda en el artefacto de la corrida de calidad.

@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "quality": "node scripts/quality.js",
+    "traceability": "node scripts/build-case-evidence.js --check",
     "test": "npm test --prefix backend",
     "test:coverage": "npm run test:coverage --prefix backend",
     "lint": "npm run lint --prefix backend && npm run lint --prefix frontend",
