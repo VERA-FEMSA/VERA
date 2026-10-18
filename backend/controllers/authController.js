@@ -196,7 +196,7 @@ const verify2FA = async (req, res) => {
   const valid =
     user &&
     user.twoFactorEnabled &&
-    verifyTotpCode(user.twoFactorSecret, code);
+    await verifyTotpCode(user.twoFactorSecret, code);
 
   if (!valid) {
     if (user) await logActivity({ actor: user, action: "TWO_FACTOR_FAILED", details: { ip } });
@@ -214,7 +214,7 @@ const setup2FA = async (req, res) => {
   const user = await userRepository.findById(req.user.id);
   if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-  const { generateSecret, generateURI } = require("otplib");
+  const { generateSecret, generateURI } = await import("otplib");
   const secret = generateSecret();
   await userRepository.setPendingSecret(user.id, secret);
 
@@ -231,7 +231,7 @@ const enable2FA = async (req, res) => {
 
   const ok =
     user.pendingSecret &&
-    verifyTotpCode(user.pendingSecret, req.body.code);
+    await verifyTotpCode(user.pendingSecret, req.body.code);
 
   if (!ok) return res.status(400).json({ message: "Código incorrecto" });
 
