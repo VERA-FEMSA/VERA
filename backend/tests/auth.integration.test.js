@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const jwt = require("jsonwebtoken");
-const { authenticator } = require("otplib");
+const { generateSync } = require("otplib");
 
 process.env.JWT_SECRET ||= "auth-integration-test-secret-at-least-32-characters";
 
@@ -215,7 +215,7 @@ test("RNF-16: a user enrolls in TOTP and must verify a fresh code before receivi
   const { secret, qr } = await setup.json();
   assert.ok(secret);
   assert.match(qr, /^data:image\/png;base64,/);
-  const enrollmentCode = authenticator.generate(secret);
+  const enrollmentCode = generateSync({ secret });
   const wrongEnrollmentCode = String((Number(enrollmentCode) + 1) % 1000000).padStart(6, "0");
 
   const invalidSetup = await request(baseUrl, "/api/auth/2fa/setup", { method: "POST" });
@@ -247,7 +247,14 @@ test("RNF-16: a user enrolls in TOTP and must verify a fresh code before receivi
   assert.ok(challenge.tempToken);
   assert.equal(challenge.token, undefined);
 
-  const validCode = authenticator.generate(secret);
+  const validCode = generateSync({ secret });
+  const malformedCode = await request(baseUrl, "/api/auth/verify-2fa", {
+    method: "POST",
+    ip: "198.51.100.16",
+    body: { tempToken: challenge.tempToken, code: "not-a-code" }
+  });
+  assert.equal(malformedCode.status, 401);
+
   const wrongCode = String((Number(validCode) + 1) % 1000000).padStart(6, "0");
   const invalidCode = await request(baseUrl, "/api/auth/verify-2fa", {
     method: "POST",
