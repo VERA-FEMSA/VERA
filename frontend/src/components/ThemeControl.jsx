@@ -13,6 +13,7 @@ function ThemeControl({ compact = false }) {
       <option value="light">Claro</option>
       <option value="dark">Oscuro</option>
       <option value="contrast">Contraste</option>
+      <option value="femsa">FEMSA</option>
     </select>
   </div>;
 }
