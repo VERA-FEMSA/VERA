@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { loginUser, verify2FA } from "../services/authService";
+import { exchangeManagedSession, loginUser, verify2FA } from "../services/authService";
+import { managedAuth, googleAuthEnabled, microsoftAuthEnabled, startSocialSignIn } from "../services/managedAuth";
 import "./Login.css";
 
 function Login() {
@@ -8,28 +9,90 @@ function Login() {
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [tempToken, setTempToken] = useState(null); // set when the server asks for a 2FA code
+  const [managedFactorId, setManagedFactorId] = useState(null);
+  const [managedQr, setManagedQr] = useState(null);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const navigate = useNavigate();
 
-  const finishLogin = (data) => {
+  const finishLogin = useCallback((data) => {
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
     navigate("/dashboard");
-  };
+  }, [navigate]);
+
+  const prepareManagedMfa = useCallback(async () => {
+    const { data, error: factorsError } = await managedAuth.auth.mfa.listFactors();
+    if (factorsError) throw factorsError;
+    const existing = data?.totp?.find((factor) => factor.status === "verified");
+    if (existing) {
+      setManagedFactorId(existing.id);
+      setManagedQr(null);
+      return;
+    }
+    const { data: enrolled, error: enrollError } = await managedAuth.auth.mfa.enroll({ factorType: "totp" });
+    if (enrollError) throw enrollError;
+    setManagedFactorId(enrolled.id);
+    setManagedQr(enrolled.totp.qr_code);
+  }, []);
+
+  const completeManaged = useCallback(async (accessToken) => {
+    try {
+      const data = await exchangeManagedSession(accessToken);
+      finishLogin(data);
+    } catch (verificationError) {
+      if (verificationError.code === "MFA_REQUIRED") {
+        await prepareManagedMfa();
+        return;
+      }
+      await managedAuth.auth.signOut();
+      throw verificationError;
+    }
+  }, [finishLogin, prepareManagedMfa]);
+
+  useEffect(() => {
+    if (!managedAuth) return;
+    let active = true;
+    managedAuth.auth.getSession().then(async ({ data }) => {
+      if (!active || !data.session) return;
+      try { await completeManaged(data.session.access_token); }
+      catch (sessionError) { if (active) setError(sessionError.message); }
+    }).catch(() => { if (active) setError("No se pudo restaurar el acceso. Intenta de nuevo."); });
+    return () => { active = false; };
+  }, [completeManaged]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setBusy(true);
 
     try {
-      if (tempToken) {
+      if (managedFactorId) {
+        const { error: factorError } = await managedAuth.auth.mfa.challengeAndVerify({
+          factorId: managedFactorId, code
+        });
+        if (factorError) throw factorError;
+        const { data } = await managedAuth.auth.getSession();
+        if (!data.session) throw new Error("La sesión expiró. Inicia sesión de nuevo.");
+        await completeManaged(data.session.access_token);
+      } else if (tempToken) {
         // Step 2: verify the 6-digit code
         const data = await verify2FA(tempToken, code);
         finishLogin(data);
       } else {
         // Step 1: username + password
-        const data = await loginUser(username, password);
+        let data;
+        try { data = await loginUser(username, password); }
+        catch (legacyError) {
+          if (!managedAuth || legacyError.status !== 401 || !username.includes("@")) throw legacyError;
+          const managed = await managedAuth.auth.signInWithPassword({
+            email: username.trim().toLowerCase(), password: password.normalize("NFC")
+          });
+          if (managed.error || !managed.data.session) throw legacyError;
+          await completeManaged(managed.data.session.access_token);
+          return;
+        }
 
         if (data.requires2FA) {
           setTempToken(data.tempToken);
@@ -39,14 +102,25 @@ function Login() {
       }
     } catch (err) {
       setError(err.message);
+    } finally {
+      setBusy(false);
     }
   };
 
-  const handleBack = () => {
+  const handleBack = async () => {
+    if (managedFactorId) await managedAuth.auth.signOut();
     setTempToken(null);
+    setManagedFactorId(null);
+    setManagedQr(null);
     setCode("");
     setPassword("");
     setError("");
+  };
+
+  const beginSocial = async (provider) => {
+    setError("");
+    try { await startSocialSignIn(provider); }
+    catch { setError("No se pudo iniciar el acceso con este proveedor. Intenta más tarde."); }
   };
 
   return (
@@ -67,14 +141,18 @@ function Login() {
         </p>
 
         <p className="login-message">
-          {tempToken
+          {tempToken || managedFactorId
             ? "Ingresa el código de 6 dígitos de tu aplicación de autenticación."
             : "Inicia sesión para acceder al portafolio y a tus auditorías."}
         </p>
 
         <form onSubmit={handleSubmit}>
-          {tempToken ? (
+          {tempToken || managedFactorId ? (
             <>
+              {managedQr && <div className="mfa-enrollment">
+                <p>Escanea este código con tu aplicación de autenticación. Se exigirá en cada acceso con contraseña.</p>
+                <img src={managedQr} alt="Código QR para configurar la aplicación de autenticación" />
+              </div>}
               <label htmlFor="verification-code">Código de verificación</label>
 
               <input
@@ -91,14 +169,14 @@ function Login() {
             </>
           ) : (
             <>
-<label htmlFor="login-username">Correo institucional</label>
+<label htmlFor="login-username">Correo electrónico</label>
 
               <input
                 type="text"
                 id="login-username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="correo@institucion.mx"
+                placeholder="tu@correo.com"
                 autoComplete="username"
               />
 
@@ -111,17 +189,18 @@ function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Contraseña"
+                autoComplete="current-password"
               />
             </>
           )}
 
           {error && <p className="error">{error}</p>}
 
-          <button type="submit">
-            {tempToken ? "Verificar" : "Iniciar sesión"}
+          <button type="submit" disabled={busy}>
+            {tempToken || managedFactorId ? "Verificar" : "Iniciar sesión"}
           </button>
 
-          {tempToken && (
+          {(tempToken || managedFactorId) && (
             <button
               type="button"
               className="back-button"
@@ -131,6 +210,12 @@ function Login() {
             </button>
           )}
         </form>
+
+        {(googleAuthEnabled || microsoftAuthEnabled) && !tempToken && !managedFactorId &&
+          <div className="social-options" aria-label="Otros métodos de acceso">
+            {googleAuthEnabled && <button type="button" onClick={() => beginSocial("google")}>Continuar con Google</button>}
+            {microsoftAuthEnabled && <button type="button" onClick={() => beginSocial("azure")}>Continuar con Microsoft</button>}
+          </div>}
 
         <p className="create-account">
           ¿Primera vez en VERA? <Link to="/registro">Crear cuenta</Link>

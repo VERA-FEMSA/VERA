@@ -165,6 +165,36 @@
   text-decoration: underline;
 }
 
+.social-options {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.social-options button {
+  margin-top: 0;
+  background: #fff;
+  border: 1px solid #cbd5df;
+  color: #123f4d;
+}
+
+.social-options button:hover {
+  background: #f1f7f8;
+}
+
+.mfa-enrollment {
+  padding: 12px;
+  border: 1px solid #dfe7ef;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.mfa-enrollment img {
+  display: block;
+  max-width: 180px;
+  margin: 12px auto;
+}
+
 @media (max-width: 480px) {
   .login-card {
     padding: 28px 22px;

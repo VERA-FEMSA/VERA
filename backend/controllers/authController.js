@@ -6,6 +6,7 @@ const { recordLogin } = require("../services/loginLogger");
 const { DEFAULT_ROLE } = require("../config/roles");
 const { getJwtSecret } = require("../config/jwtSecret");
 const { verifyTotpCode } = require("../services/totp");
+const managedAuth = require("../services/managedAuth");
 const {
   USER_STATUS,
   INSTITUTIONAL_DOMAINS,
@@ -231,7 +232,7 @@ const enable2FA = async (req, res) => {
 
   res.json({ message: "2FA activado" });
 };
-// HU-01 (RF-01): registro propio con correo institucional.
+// HU-01 (RF-01): registro propio; el modo gestionado verifica cualquier correo.
 // La cuenta queda pendiente hasta que un Super Admin la apruebe.
 // Validación lineal: evita retroceso costoso con correos controlados por el cliente.
 const isValidEmailFormat = (email) => {
@@ -259,6 +260,39 @@ const register = async (req, res) => {
 
   if (!isValidEmailFormat(email)) {
     return res.status(400).json({ message: "El correo no tiene un formato válido." });
+  }
+  if (managedAuth.enabled()) {
+    const policy = await managedAuth.validateNewPassword(password, email);
+    if (policy.unavailable) {
+      return res.status(503).json({ message: "No se pudo verificar la seguridad de la contraseña. Intenta más tarde." });
+    }
+    if (!policy.valid) return res.status(400).json({ message: policy.message });
+    if (await userRepository.emailExists(email)) {
+      return res.status(409).json({ message: "Ya existe una cuenta o solicitud con ese correo." });
+    }
+    let signup;
+    try {
+      signup = await managedAuth.signUp({ email, password: policy.password, name });
+    } catch {
+      return res.status(503).json({ message: "No se pudo enviar el correo de verificación. Intenta más tarde." });
+    }
+    // GoTrue's REST /signup returns the user object itself when email confirmation is required.
+    const identity = signup.data;
+    if (!signup.ok || !identity?.id || !identity.identities?.length) {
+      return res.status(signup.status === 429 ? 429 : 503).json({
+        message: "No se pudo enviar el correo de verificación. Intenta más tarde."
+      });
+    }
+    const user = await userRepository.createPendingExternal({
+      name, email, authUserId: identity.id, authProvider: "email", role: DEFAULT_ROLE
+    });
+    await logAccessChange({
+      actor: { id: user.id, username: user.username, role: "PUBLIC" },
+      action: "ACCOUNT_REQUESTED",
+      target: user,
+      details: { method: "EMAIL_VERIFICATION" }
+    });
+    return res.status(202).json({ message: "Solicitud recibida. Revisa tu correo para verificar la dirección." });
   }
   if (!isInstitutionalEmail(email)) {
     const domains = INSTITUTIONAL_DOMAINS.map((d) => "@" + d).join(", ");
@@ -291,4 +325,63 @@ const register = async (req, res) => {
   });
 };
 
-module.exports = { login, verify2FA, setup2FA, enable2FA, register };
+const exchangeManaged = async (req, res) => {
+  if (!managedAuth.enabled()) return res.status(404).json({ message: "Método de acceso no disponible." });
+  const accessToken = req.body?.accessToken;
+  if (typeof accessToken !== "string" || accessToken.length > 5000) {
+    return res.status(400).json({ message: "Sesión de identidad inválida." });
+  }
+  let result;
+  try { result = await managedAuth.getUser(accessToken); } catch {
+    return res.status(503).json({ message: "No se pudo verificar la identidad. Intenta más tarde." });
+  }
+  if (!result.ok) return res.status(401).json({ message: "Sesión de identidad inválida o expirada." });
+  const identity = result.data;
+  const email = String(identity.email || "").trim().toLowerCase();
+  const provider = identity.app_metadata?.provider;
+  const claims = jwt.decode(accessToken);
+  const expectedIssuer = `${process.env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1`;
+  if (!identity.id || !isValidEmailFormat(email) || !identity.email_confirmed_at ||
+      !["email", "google", "azure"].includes(provider) ||
+      !claims || claims.sub !== identity.id || claims.iss !== expectedIssuer) {
+    return res.status(401).json({ message: "No se pudo verificar la identidad y el correo." });
+  }
+  if ((provider === "google" && process.env.VERA_GOOGLE_AUTH_ENABLED !== "true") ||
+      (provider === "azure" && process.env.VERA_AZURE_AUTH_ENABLED !== "true")) {
+    return res.status(403).json({ message: "Este proveedor aún no está disponible en VERA." });
+  }
+  let user = await userRepository.findByAuthUserId(identity.id);
+  if (!user) {
+    if (provider === "email") {
+      return res.status(403).json({ message: "Completa el registro desde VERA antes de iniciar sesión." });
+    }
+    if (await userRepository.emailExists(email)) {
+      return res.status(409).json({ message: "Ese correo ya tiene una cuenta VERA. Solicita vinculación a un administrador." });
+    }
+    const name = String(identity.user_metadata?.full_name || identity.user_metadata?.name || email)
+      .trim().slice(0, 100);
+    const created = await userRepository.createPendingExternal({
+      name, email, authUserId: identity.id, authProvider: provider, role: DEFAULT_ROLE
+    });
+    await logAccessChange({
+      actor: { id: created.id, username: created.username, role: "PUBLIC" },
+      action: "ACCOUNT_REQUESTED",
+      target: created,
+      details: { method: provider.toUpperCase() }
+    });
+    return res.status(403).json({ message: "Solicitud recibida. Un administrador debe aprobar tu acceso." });
+  }
+  if (user.email !== email || user.authProvider !== provider) {
+    return res.status(403).json({ message: "La identidad necesita revisión de un administrador." });
+  }
+  if (user.status !== USER_STATUS.ACTIVE) {
+    return res.status(403).json({ message: user.status === USER_STATUS.PENDING
+      ? "Tu cuenta está pendiente de aprobación." : "Tu cuenta está deshabilitada." });
+  }
+  if (user.authProvider === "email" && claims.aal !== "aal2") {
+    return res.status(428).json({ code: "MFA_REQUIRED", message: "Configura o completa la verificación con tu aplicación de autenticación." });
+  }
+  return issueSession(req, res, user, provider === "email" ? "MANAGED_PASSWORD_TOTP" : `OAUTH_${provider.toUpperCase()}`);
+};
+
+module.exports = { login, verify2FA, setup2FA, enable2FA, register, exchangeManaged };

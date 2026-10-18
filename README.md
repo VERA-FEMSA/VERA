@@ -129,6 +129,8 @@ Vite indica la URL local de la interfaz. Los almacenes predeterminados son `memo
 
 La **[Wiki de VERA](https://github.com/VERA-GRC-IRM/VERA/wiki)** es la puerta de entrada para lectura. Sus páginas se conservan en [`docs/wiki/`](docs/wiki/Home.md) para revisión por PR y se publican desde `main` mediante GitHub Actions. Los runbooks de `docs/` y el código son la fuente técnica versionada para detalles que cambian. Si una página contradice una ruta o una prueba del commit actual, se corrige con la discrepancia documentada.
 
+La [guía de identidad y registro abierto](docs/identity-rollout.md) documenta correo de cualquier dominio, verificación, MFA en cuentas nuevas y Google/Microsoft. Este camino se activa solo después de configurar y verificar sus proveedores externos.
+
 Para colaborar, parte de `main`, consulta [AGENTS.md](AGENTS.md) y la [guía para asistentes de código](docs/ai-development/README.md), mantén el PR enfocado y explica las verificaciones que **realmente** ejecutaste. Los resultados de CI y la revisión humana forman parte de la entrega.
 
 <p align="center"><sub>VERA · Verificación, evidencia, riesgo y auditoría · Producto en evolución</sub></p>
