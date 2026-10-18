@@ -21,7 +21,7 @@ Los flujos anteriores de código por correo y aprobación de cuentas se retiraro
 
 Las banderas del frontend solo controlan la interfaz. El backend vuelve a comprobar el método, el estado y el rol en cada operación protegida. Nunca se publican `SUPABASE_SECRET_KEY` ni secretos OAuth como variables `VITE_*`.
 
-Cuando una persona enlaza Microsoft y Google a la misma identidad de Supabase, `app_metadata.provider` conserva el **primer** proveedor. VERA determina el método de la entrada actual con la marca de último acceso de cada identidad autenticada que devuelve Supabase, contrasta la marca con la emisión del token y rechaza casos ambiguos. Así, la bandera del proveedor y `public.logins.method` reflejan el acceso utilizado; el proveedor histórico de la cuenta VERA no se reescribe.
+Cuando una persona enlaza Microsoft y Google a la misma identidad de Supabase, `app_metadata.provider` conserva el **primer** proveedor. La marca de último acceso por identidad tampoco identifica con fiabilidad la sesión actual: Supabase puede reutilizar una sesión y no adelantar esa marca al repetir OAuth. VERA registra `OAUTH_LINKED` en esa situación, sin atribuir falsamente la entrada a Microsoft o Google; ambos proveedores deben estar habilitados en el backend para admitir la sesión vinculada. El proveedor histórico de la cuenta y el rol no se reescriben. Una nueva cuenta con identidad ya vinculada requiere revisión manual para evitar asociación accidental.
 
 ## Orden de activación
 

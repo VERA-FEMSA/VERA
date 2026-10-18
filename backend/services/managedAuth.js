@@ -65,24 +65,26 @@ const validateNewPassword = async (password, email) => {
 
 const getUser = async (token) => request("user", { token });
 
-// Supabase app_metadata.provider is the FIRST linked provider, not the one
-// used for this sign-in. Identity timestamps come from Supabase Auth and are
-// maintained per provider. Fail closed if linked identities are ambiguous.
+// Supabase exposes the first provider and linked identities, but does not
+// reliably expose which linked social provider issued this particular session.
+// Do not infer it from last_sign_in_at: a repeated OAuth login can reuse the
+// Supabase session without advancing that identity timestamp.
 const signInProvider = (user, claims) => {
   const allowed = new Set(["email", "google", "azure"]);
   const identities = Array.isArray(user?.identities) ? user.identities : [];
   if (identities.some((entry) => !allowed.has(entry?.provider))) return null;
   if (identities.length === 1) return identities[0].provider;
   if (identities.length > 1) {
-    const recent = identities.map((entry) => ({
-      provider: entry.provider,
-      signedInAt: Date.parse(entry.last_sign_in_at || "")
-    })).sort((a, b) => b.signedInAt - a.signedInAt);
-    if (recent.some((entry) => !Number.isFinite(entry.signedInAt)) ||
-        recent[0].signedInAt === recent[1].signedInAt ||
-        !Number.isFinite(claims?.iat) ||
-        recent[0].signedInAt > (claims.iat + 120) * 1000) return null;
-    return recent[0].provider;
+    const social = identities.filter((entry) => entry.provider !== "email");
+    const methods = new Set(Array.isArray(claims?.amr) ? claims.amr.map((entry) => entry.method) : []);
+    const viaOAuth = [...methods].some((method) => method === "oauth" || method?.startsWith("oauth_provider/"));
+    if (identities.some((entry) => entry.provider === "email")) {
+      if (methods.has("password")) return claims.aal === "aal2" ? "email" : null;
+      if (!viaOAuth) return null;
+    }
+    if (social.length > 1) return "linked";
+    if (social.length === 1 && viaOAuth) return social[0].provider;
+    return null;
   }
   const first = user?.app_metadata?.provider;
   const listed = user?.app_metadata?.providers;
