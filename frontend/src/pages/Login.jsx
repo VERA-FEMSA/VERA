@@ -225,7 +225,7 @@ function Login() {
       </form>
 
       <div className="access-card__bottom">
-        <p>¿Primera vez en VERA? <Link to="/registro">Crea tu cuenta</Link></p>
+        <p>¿Primera vez en VERA? <Link to="/registro">Crear cuenta</Link></p>
         <p className="auth-hint">Si aún no tienes cuenta, el registro explica el rol inicial y el aviso de privacidad.</p>
       </div>
     </AccessShell>

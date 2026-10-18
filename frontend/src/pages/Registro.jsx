@@ -93,7 +93,7 @@ function Registro() {
       </div> : <>
         <div className="registration-note" role="note">
           {directRegistrationEnabled
-            ? "Puedes usar cualquier correo. Si eliges contraseña, no verificamos que controles esa dirección; escribe una que sea tuya."
+            ? "Puedes usar cualquier correo. El correo no se verifica si eliges contraseña; escribe una dirección que sea tuya."
             : socialEnabled
               ? "Tu identidad se confirma con Microsoft o Google."
               : "El alta de cuentas nuevas no está disponible por ahora."}
