@@ -68,6 +68,52 @@ if [[ "$bucket" != "1" ]]; then
   exit 1
 fi
 
+# Exercise actual VERA tables, their versioned updates and the database ledger.
+# Every row exists only inside this disposable database.
+sql "insert into public.vera_audit_proposals (id, payload) values ('qa-proposal-local', jsonb_build_object('id','qa-proposal-local','status','OPEN','title','Local QA proposal','area','QA','year',2026));" >/dev/null
+sql "update public.vera_audit_proposals set payload=payload || jsonb_build_object('status','APPROVED'), version=version+1 where id='qa-proposal-local' and version=1;" >/dev/null
+sql "insert into public.vera_risks (id, payload) values ('qa-risk-local', jsonb_build_object('id','qa-risk-local','title','Local QA risk','area','QA'));" >/dev/null
+ledger_before=$(sql "select count(*) from public.vera_audit_events where source='DATABASE' and action in ('VERA_AUDIT_PROPOSALS_INSERT','VERA_AUDIT_PROPOSALS_UPDATE','VERA_RISKS_INSERT') and (target->>'id') in ('qa-proposal-local','qa-risk-local');")
+if [[ "$ledger_before" != "3" ]]; then
+  echo "Expected three database ledger events for the synthetic VERA rows; found ${ledger_before}." >&2
+  exit 1
+fi
+
+for client_role in anon authenticated; do
+  if docker exec "$container" psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 -c "set role ${client_role}; select id from public.vera_audit_proposals limit 1;" >"${RUNNER_TEMP}/vera-qa-denied-${client_role}.log" 2>&1; then
+    echo "Private proposal data was readable as ${client_role}." >&2
+    exit 1
+  fi
+  if ! grep -q 'permission denied' "${RUNNER_TEMP}/vera-qa-denied-${client_role}.log"; then
+    echo "The ${client_role} read failed for an unexpected reason." >&2
+    exit 1
+  fi
+done
+
+restart_started_ms=$(date +%s%3N)
+docker restart "$container" >/dev/null
+ready=false
+for _ in {1..30}; do
+  if docker exec "$container" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+    ready=true
+    break
+  fi
+  sleep 1
+done
+if [[ "$ready" != "true" ]]; then
+  echo "Disposable PostgreSQL did not become ready after restart." >&2
+  exit 1
+fi
+restart_ms=$(($(date +%s%3N) - restart_started_ms))
+
+proposal_after=$(sql "select count(*) from public.vera_audit_proposals where id='qa-proposal-local' and payload->>'status'='APPROVED' and version=2;")
+risk_after=$(sql "select count(*) from public.vera_risks where id='qa-risk-local' and payload->>'title'='Local QA risk';")
+ledger_after=$(sql "select count(*) from public.vera_audit_events where source='DATABASE' and action in ('VERA_AUDIT_PROPOSALS_INSERT','VERA_AUDIT_PROPOSALS_UPDATE','VERA_RISKS_INSERT') and (target->>'id') in ('qa-proposal-local','qa-risk-local');")
+if [[ "$proposal_after" != "1" || "$risk_after" != "1" || "$ledger_after" != "3" ]]; then
+  echo "Synthetic VERA rows or their ledger events did not persist after PostgreSQL restart." >&2
+  exit 1
+fi
+
 # A disposable row proves the mechanics of a logical data export and import.
 # This is not a backup of, or restore from, the production Supabase project.
 sql "create table public.vera_qa_restore_probe (id integer primary key, marker text not null); insert into public.vera_qa_restore_probe values (1, 'synthetic-only');" >/dev/null
@@ -86,6 +132,7 @@ sql 'drop table public.vera_qa_restore_probe;' >/dev/null
 export VERA_QA_MIGRATIONS="$applied_migrations"
 export VERA_QA_TABLES="${#tables[@]}"
 export VERA_QA_START_AND_RESET_MS="$((migrated_ms - started_ms))"
+export VERA_QA_RESTART_MS="$restart_ms"
 export VERA_QA_RESTORE_MS="$restore_ms"
 python3 - <<'PY'
 import json
@@ -101,10 +148,14 @@ report = {
     "migrationsApplied": int(os.environ["VERA_QA_MIGRATIONS"]),
     "privateTablesWithRlsAndNoClientGrants": int(os.environ["VERA_QA_TABLES"]),
     "privateEvidenceBucket": True,
+    "syntheticVeraRowsAfterDatabaseRestart": 2,
+    "syntheticDatabaseLedgerEventsAfterRestart": 3,
+    "anonymousAndAuthenticatedReadDenied": True,
+    "databaseRestartMs": int(os.environ["VERA_QA_RESTART_MS"]),
     "syntheticLogicalRestore": True,
     "startAndMigrationReplayMs": int(os.environ["VERA_QA_START_AND_RESET_MS"]),
     "syntheticRestoreMs": int(os.environ["VERA_QA_RESTORE_MS"]),
-    "scope": "Schema and synthetic restore rehearsal only; no production persistence, backup, RPO, or load acceptance.",
+    "scope": "Disposable local Supabase schema, synthetic VERA row persistence after PostgreSQL restart, and synthetic logical restore; no production persistence, backup, RPO, or load acceptance.",
 }
 Path("quality-report").mkdir(exist_ok=True)
 Path("quality-report/local-supabase-rehearsal.json").write_text(
@@ -115,7 +166,10 @@ summary = (
     f"- Result: **PASS**; migrations {report['migrationsApplied']}/{report['migrationsApplied']}\n"
     f"- Private tables with RLS and no anon/authenticated grants: {report['privateTablesWithRlsAndNoClientGrants']}\n"
     "- Private evidence bucket: verified\n"
+    "- Synthetic VERA proposal, risk and three database ledger events: persisted after PostgreSQL restart\n"
+    "- Direct reads as anon and authenticated: denied\n"
     f"- Local start and migration replay: {report['startAndMigrationReplayMs']} ms\n"
+    f"- Local PostgreSQL restart: {report['databaseRestartMs']} ms\n"
     f"- Synthetic logical restore: PASS in {report['syntheticRestoreMs']} ms\n"
     "- Scope: disposable local database; no real Supabase production backup or restore.\n"
 )
