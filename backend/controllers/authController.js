@@ -1,11 +1,12 @@
 const jwt = require("jsonwebtoken");
-const { authenticator } = require("otplib");
+const { generateSecret, generateURI } = require("otplib");
 const QRCode = require("qrcode");
 const userRepository = require("../repositories/userRepository");
 const { logAccessChange, logActivity } = require("../services/auditLogger");
 const { recordLogin } = require("../services/loginLogger");
 const { DEFAULT_ROLE } = require("../config/roles");
 const { getJwtSecret } = require("../config/jwtSecret");
+const { verifyTotpCode } = require("../services/totp");
 const {
   USER_STATUS,
   INSTITUTIONAL_DOMAINS,
@@ -19,8 +20,6 @@ const {
 
 const MAX_ATTEMPTS = 5;
 const LOCK_TIME_MS = 5 * 60 * 1000; // 5 minutes
-
-authenticator.options = { window: 1 }; // accept the previous/next 30s code (clock drift)
 
 // ip -> { count, lockUntil }
 const loginAttempts = new Map();
@@ -187,10 +186,7 @@ const verify2FA = async (req, res) => {
   const valid =
     user &&
     user.twoFactorEnabled &&
-    authenticator.verify({
-      token: String(code || ""),
-      secret: user.twoFactorSecret
-    });
+    verifyTotpCode(user.twoFactorSecret, code);
 
   if (!valid) {
     if (user) await logActivity({ actor: user, action: "TWO_FACTOR_FAILED", details: { ip } });
@@ -208,10 +204,10 @@ const setup2FA = async (req, res) => {
   const user = await userRepository.findById(req.user.id);
   if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-  const secret = authenticator.generateSecret();
+  const secret = generateSecret();
   await userRepository.setPendingSecret(user.id, secret);
 
-  const otpauth = authenticator.keyuri(user.username, "VERA", secret);
+  const otpauth = generateURI({ issuer: "VERA", label: user.username, secret });
   const qr = await QRCode.toDataURL(otpauth);
 
   // "secret" lets users type the key manually if they can't scan the QR
@@ -224,10 +220,7 @@ const enable2FA = async (req, res) => {
 
   const ok =
     user.pendingSecret &&
-    authenticator.verify({
-      token: String(req.body.code || ""),
-      secret: user.pendingSecret
-    });
+    verifyTotpCode(user.pendingSecret, req.body.code);
 
   if (!ok) return res.status(400).json({ message: "Código incorrecto" });
 
