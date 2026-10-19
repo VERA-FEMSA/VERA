@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ArrowUpRight, Maximize2, Play, QrCode, X } from "lucide-react";
 
 const ACCESS_URL = "https://www.vera-digital-systems.com/";
@@ -8,6 +8,13 @@ function LoginCompanion({ compact = false }) {
   const dialogRef = useRef(null);
   const titleId = useId();
   const [active, setActive] = useState(null);
+
+  useEffect(() => {
+    const layout = window.matchMedia("(max-width: 900px)");
+    const closeOnLayoutChange = () => dialogRef.current?.close();
+    layout.addEventListener("change", closeOnLayoutChange);
+    return () => layout.removeEventListener("change", closeOnLayoutChange);
+  }, []);
 
   const open = (kind) => {
     setActive(kind);
