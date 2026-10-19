@@ -49,7 +49,8 @@
 .access-brand small { display: block; line-height: 1.05; }
 .access-brand strong { font-size: 25px; letter-spacing: -.04em; }
 .access-brand small { margin-top: 3px; color: var(--vera-text-muted); font-size: 11px; letter-spacing: .08em; }
-.access-header__links { display: flex; align-items: center; gap: clamp(12px, 2vw, 28px); }
+.access-header__links { display: flex; align-items: center; gap: clamp(12px, 1.7vw, 25px); margin-left: auto; }
+.access-header__appearance { flex: none; }
 .access-header__links a,
 .access-footer a {
   color: var(--vera-text-muted);
@@ -60,6 +61,7 @@
 }
 .access-header__links a:hover,
 .access-footer a:hover { color: var(--vera-accent); text-decoration-color: currentColor; }
+.access-header__links a:focus-visible { color: var(--vera-accent); text-decoration-color: currentColor; }
 .access-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(420px, 530px);
@@ -305,10 +307,16 @@
   .login-companion--compact button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; padding: 8px; border: 1px solid var(--vera-border); border-radius: 9px; background: var(--vera-surface-soft); color: var(--vera-text); font-size: 12px; font-weight: 700; cursor: pointer; }
   .login-companion--compact button:hover { border-color: var(--vera-accent); background: var(--vera-accent-soft); }
 }
+@media (max-width: 760px) {
+  .access-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 13px; }
+  .access-header__links { grid-column: 1 / -1; grid-row: 2; justify-content: space-between; gap: 13px; max-width: 100%; margin: 0; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+  .access-header__links::-webkit-scrollbar { display: none; }
+  .access-header__appearance { grid-column: 2; grid-row: 1; }
+}
 @media (max-width: 600px) {
   .access-header, .access-main, .access-footer { width: min(100% - 30px, 620px); }
   .access-header { align-items: flex-start; gap: 12px; padding-block: 18px; }
-  .access-header__links { flex-wrap: wrap; justify-content: flex-end; gap: 7px 13px; }
+  .access-header__links { gap: 10px; }
   .access-header__links a { font-size: 12px; }
   .access-header__links a[href="/privacidad"] { display: none; }
   .access-header .theme-control > label { display: none; }

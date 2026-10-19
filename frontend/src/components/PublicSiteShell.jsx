@@ -2,14 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import ThemeControl from "./ThemeControl";
+import { PUBLIC_NAVIGATION } from "../constants/publicNavigation";
 import "../pages/PublicOverview.css";
-
-const navigation = [
-  { to: "/acerca", label: "Plataforma" },
-  { to: "/soluciones", label: "Soluciones" },
-  { to: "/confianza", label: "Confianza" },
-  { to: "/tecnologia", label: "Tecnología", secondary: true }
-];
 
 function PublicSiteShell({ children, mainId = "public-main" }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -39,7 +33,7 @@ function PublicSiteShell({ children, mainId = "public-main" }) {
           {menuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
         </button>
         <nav id="public-primary-nav" className={`public-overview__nav${menuOpen ? " is-open" : ""}`} aria-label="Navegación pública">
-          {navigation.map(({ to, label, secondary }) => <NavLink key={to} to={to} className={({ isActive }) => `public-overview__nav-link${secondary ? " public-overview__nav-link--secondary" : ""}${isActive ? " is-active" : ""}`} onClick={() => setMenuOpen(false)}>{label}</NavLink>)}
+          {PUBLIC_NAVIGATION.map(({ to, label, secondary }) => <NavLink key={to} to={to} className={({ isActive }) => `public-overview__nav-link${secondary ? " public-overview__nav-link--secondary" : ""}${isActive ? " is-active" : ""}`} onClick={() => setMenuOpen(false)}>{label}</NavLink>)}
           <ThemeControl compact />
           <Link className="public-overview__login" to="/" onClick={() => setMenuOpen(false)}>Acceder a VERA</Link>
         </nav>
