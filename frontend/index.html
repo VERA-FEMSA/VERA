@@ -11,6 +11,48 @@
     <link rel="icon" type="image/svg+xml" href="/vera-logo.svg" />
     <link rel="icon" type="image/png" href="/vera-logo.png" />
     <link rel="apple-touch-icon" href="/vera-logo.png" />
+    <link rel="preload" as="image" href="/vera-logo.svg" />
+    <style>
+      .vera-transition {
+        position: fixed;
+        z-index: 10000;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background: #1f7156;
+        color: #fff;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .vera-transition::before {
+        position: absolute;
+        inset: 0;
+        background: #bf4246;
+        content: "";
+        transform: scaleX(0);
+        transform-origin: left center;
+      }
+      .vera-transition--play { animation: vera-transition-exit 620ms ease-out both; }
+      .vera-transition--play::before { animation: vera-transition-femsa 620ms cubic-bezier(.2, .7, .3, 1) both; }
+      .vera-transition__identity { position: relative; z-index: 1; display: flex; align-items: center; gap: 17px; }
+      .vera-transition__mark { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 18px; background: #fff; }
+      .vera-transition__mark img { display: block; width: 58px; height: 58px; }
+      .vera-transition__name strong { display: block; font: 750 41px/1 system-ui, sans-serif; letter-spacing: .015em; }
+      .vera-transition__name small { display: block; margin-top: 5px; font: 700 10px/1.3 system-ui, sans-serif; letter-spacing: .19em; }
+      @keyframes vera-transition-femsa {
+        0%, 26% { transform: scaleX(0); }
+        72%, 100% { transform: scaleX(1); }
+      }
+      @keyframes vera-transition-exit {
+        0%, 68% { opacity: 1; visibility: visible; }
+        100% { opacity: 0; visibility: hidden; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .vera-transition, .vera-transition--play { display: none; animation: none; }
+      }
+    </style>
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="es_MX" />
     <meta property="og:site_name" content="VERA Digital Systems" />
@@ -50,6 +92,12 @@
     </script>
   </head>
   <body>
+    <div id="vera-first-frame" class="vera-transition vera-transition--play" aria-hidden="true">
+      <div class="vera-transition__identity">
+        <span class="vera-transition__mark"><img src="/vera-logo.svg" width="58" height="58" alt="" /></span>
+        <span class="vera-transition__name"><strong>VERA</strong><small>DIGITAL SYSTEMS</small></span>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
