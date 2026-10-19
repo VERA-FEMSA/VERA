@@ -31,6 +31,8 @@ function Login() {
   const finishLogin = useCallback((data) => {
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
+    const transition = document.getElementById("vera-first-frame");
+    transition?.replaceWith(transition.cloneNode(true));
     navigate("/dashboard");
   }, [navigate]);
 
