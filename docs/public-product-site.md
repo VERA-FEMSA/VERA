@@ -8,6 +8,8 @@ La portada nombra el tipo de plataforma en una frase antes de profundizar en ben
 
 El [tráiler de VERA](https://www.youtube.com/shorts/X2RuivSwSVo) aparece en `/acerca#trailer-vera`, después de la vista del producto. Su marco vertical respeta el formato original del video y los tokens de apariencia del sitio. El reproductor de YouTube solo se crea al pulsar **Reproducir tráiler**; **Cerrar video** lo retira y detiene la reproducción. Hay un enlace directo al video original si el reproductor externo no está disponible. README y Wiki enlazan tanto al original como a esta sección. El video es material de presentación, no evidencia de aceptación funcional.
 
+El inicio de sesión muestra un QR estático que abre la URL canónica `https://www.vera-digital-systems.com/` y un acceso discreto al mismo tráiler. En escritorio están junto a la introducción, a la vista sin desplazar la página en una pantalla habitual; en móvil aparecen dos acciones compactas cerca del título. El QR ampliado y el video se abren en ventanas accesibles que pueden cerrarse con Escape. El reproductor se carga solamente al solicitar el video y se destruye al cerrar la ventana. El QR es de navegación: no contiene credenciales, no autentica y no sustituye el QR de configuración del doble factor.
+
 El sitio no añade un catálogo de precios, clientes, certificaciones o métricas comerciales que no existen. En cada recorrido se identifica que VERA es un prototipo funcional con datos de demostración y que la aceptación completa en producción sigue pendiente. La historia principal es **contexto → decisión → sustento → seguimiento**, sustentada por la [descripción del producto](../README.md) y los [flujos](wiki/Producto-y-flujos.md).
 
 ## Lenguaje visual e interacción

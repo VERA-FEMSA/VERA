@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import ThemeControl from "./ThemeControl";
+import LoginCompanion from "./LoginCompanion";
 
 const journey = ["Planificación", "Auditorías", "Riesgos y controles", "Evidencias"];
 
@@ -29,6 +30,7 @@ function AccessShell({ children, variant = "login" }) {
           </li>)}
         </ol>
         <p className="access-demo-note">Entorno de demostración · Usa únicamente datos de prueba.</p>
+        {variant === "login" && <LoginCompanion />}
       </aside>
       <section className="access-card" aria-label={variant === "register" ? "Crear cuenta" : "Acceder a VERA"}>
         {children}
