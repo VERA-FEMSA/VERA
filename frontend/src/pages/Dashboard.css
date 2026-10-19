@@ -671,3 +671,232 @@
     grid-row: 1 / span 2;
   }
 }
+
+/* Portfolio landing page: one visual system for the five appearance modes. */
+.role-dashboard {
+  max-width: 1600px;
+  margin-inline: auto;
+  padding: 32px clamp(22px, 3.2vw, 50px) 56px;
+}
+
+.role-dashboard :is(#portfolio-summary, #portfolio-analysis, #portfolio-priorities) { scroll-margin-top: 86px; }
+
+.role-dashboard .dashboard-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.618fr) minmax(210px, 1fr);
+  align-items: center;
+  gap: 28px;
+  margin-bottom: 0;
+  padding: clamp(24px, 2.8vw, 38px);
+  overflow: hidden;
+  border: 1px solid var(--vera-border);
+  border-radius: 18px;
+  background: linear-gradient(115deg, var(--vera-surface) 55%, var(--vera-surface-soft));
+}
+
+.role-dashboard .dashboard-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--vera-accent-strong);
+}
+
+.role-dashboard .dashboard-hero .eyebrow,
+.role-dashboard .dashboard-panel .eyebrow { color: var(--vera-accent); letter-spacing: .13em; }
+.role-dashboard .dashboard-hero h1 {
+  max-width: 740px;
+  margin: 13px 0 10px;
+  color: var(--vera-text-strong);
+  font-size: clamp(29px, 2.8vw, 40px);
+  line-height: 1.13;
+  letter-spacing: -.025em;
+}
+.role-dashboard .dashboard-hero p { max-width: 620px; color: var(--vera-text-muted); font-size: 15px; line-height: 1.5; }
+.dashboard-hero-tools { display: grid; justify-items: end; gap: 8px; min-width: 0; }
+.dashboard-scope-note { color: var(--vera-text-muted); font-size: 12px; text-align: right; }
+.dashboard-refresh-status { min-height: 1em; color: var(--vera-text-muted); font-size: 11px; }
+.role-dashboard .dashboard-refresh {
+  min-height: 44px;
+  border-color: var(--vera-border);
+  background: var(--vera-surface);
+  color: var(--vera-text-strong);
+}
+.role-dashboard .dashboard-refresh:hover:not(:disabled) { border-color: var(--vera-accent); background: var(--vera-accent-soft); }
+
+.dashboard-page-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 25px;
+  margin-top: 19px;
+  border-bottom: 1px solid var(--vera-border);
+}
+.dashboard-page-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-bottom: 2px solid transparent;
+  color: var(--vera-text-muted);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.dashboard-page-nav a:hover, .dashboard-page-nav a:focus-visible { color: var(--vera-accent); border-bottom-color: var(--vera-accent); }
+
+.dashboard-action-section {
+  display: grid;
+  grid-template-columns: minmax(150px, .7fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 18px;
+  padding: 20px 0 21px;
+  border-bottom: 1px solid var(--vera-border-soft);
+}
+.dashboard-section-kicker { color: var(--vera-accent); font-size: 11px; font-weight: 750; letter-spacing: .12em; }
+.dashboard-action-section h2, .dashboard-section-heading h2 {
+  margin: 5px 0 0;
+  color: var(--vera-text-strong);
+  font-size: 18px;
+  line-height: 1.3;
+}
+.role-dashboard .dashboard-quick-actions { justify-content: flex-end; gap: 8px; margin: 0; }
+.role-dashboard .dashboard-quick-actions a {
+  min-height: 44px;
+  padding: 9px 12px;
+  border-color: var(--vera-border);
+  background: var(--vera-surface);
+  color: var(--vera-text-strong);
+  font-size: 12px;
+}
+.role-dashboard .dashboard-quick-actions a:hover { border-color: var(--vera-accent); background: var(--vera-accent-soft); }
+
+.dashboard-overview-section { margin-top: 25px; }
+.dashboard-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.dashboard-section-heading > span { color: var(--vera-text-muted); font-size: 12px; }
+.role-dashboard .kpi-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.role-dashboard .kpi-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  min-height: 155px;
+  padding: 19px 19px 20px;
+  border: 1px solid var(--vera-border);
+  border-top: 3px solid var(--vera-accent-strong);
+  border-radius: 12px;
+  background: var(--vera-surface);
+  box-shadow: none;
+}
+.role-dashboard .kpi-card:nth-child(2), .role-dashboard .kpi-card:nth-child(5) { border-top-color: var(--vera-warning); }
+.role-dashboard .kpi-card:nth-child(3) { border-top-color: var(--vera-success); }
+.role-dashboard .kpi-card:nth-child(4) { border-top-color: var(--vera-danger); }
+.role-dashboard .kpi-label { margin: 0 0 15px; color: var(--vera-text-muted); font-size: 11px; line-height: 1.35; letter-spacing: .06em; }
+.role-dashboard .kpi-row strong { margin: 0 0 4px; color: var(--vera-text-strong); font-size: clamp(31px, 3vw, 42px); line-height: 1; font-variant-numeric: tabular-nums; }
+.role-dashboard .kpi-row p { color: var(--vera-text-muted); font-size: 12px; line-height: 1.35; }
+
+.role-dashboard .dashboard-insight-row {
+  grid-template-columns: minmax(0, 1.618fr) minmax(320px, 1fr);
+  align-items: stretch;
+  gap: 16px;
+  margin-top: 19px;
+}
+.role-dashboard .dashboard-panel {
+  min-width: 0;
+  padding: 23px;
+  border: 1px solid var(--vera-border);
+  border-radius: 14px;
+  background: var(--vera-surface);
+  box-shadow: none;
+}
+.role-dashboard .dashboard-panel-heading { align-items: flex-start; margin-bottom: 17px; }
+.role-dashboard .dashboard-panel-heading h2 { color: var(--vera-text-strong); font-size: 18px; line-height: 1.3; }
+.role-dashboard .dashboard-panel-heading > span { color: var(--vera-text-muted); white-space: nowrap; }
+.role-dashboard .dashboard-panel-heading a { min-height: 32px; color: var(--vera-accent); }
+.dashboard-view-switch { display: inline-flex; gap: 3px; margin-bottom: 20px; padding: 3px; border: 1px solid var(--vera-border); border-radius: 9px; background: var(--vera-surface-soft); }
+.dashboard-view-switch button { min-height: 36px; padding: 6px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--vera-text-muted); font-size: 12px; font-weight: 700; cursor: pointer; }
+.dashboard-view-switch button[aria-pressed="true"] { background: var(--vera-accent-strong); color: var(--vera-on-accent); }
+.dashboard-view-switch button:hover:not([aria-pressed="true"]) { color: var(--vera-text-strong); background: var(--vera-surface); }
+
+.role-dashboard .status-chart { gap: 17px; }
+.role-dashboard .status-chart-row { grid-template-columns: minmax(145px, .9fr) minmax(90px, 1.5fr) 30px; color: var(--vera-text-muted); font-size: 12px; }
+.role-dashboard .status-chart-row strong { color: var(--vera-text-strong); font-variant-numeric: tabular-nums; }
+.role-dashboard .status-chart-track { height: 11px; background: var(--vera-surface-soft); }
+.role-dashboard .bar-open { background: var(--vera-warning); }
+.role-dashboard .bar-approved { background: var(--vera-accent); }
+.role-dashboard .bar-active { background: var(--vera-success); }
+.role-dashboard .bar-closed { background: var(--vera-text-subtle); }
+.role-dashboard .bar-rejected { background: var(--vera-danger); }
+.role-dashboard .dashboard-progress-summary { margin-top: 23px; padding-top: 18px; border-top: 1px solid var(--vera-border-soft); color: var(--vera-text-muted); }
+.role-dashboard .dashboard-progress-summary strong { color: var(--vera-text-strong); font-variant-numeric: tabular-nums; }
+.role-dashboard .dashboard-progress-summary .progress-track { background: var(--vera-surface-soft); }
+.role-dashboard .dashboard-progress-summary .progress-track > span { background: var(--vera-accent-strong); }
+
+.status-distribution { min-height: 181px; }
+.status-distribution-bar { display: flex; height: 24px; overflow: hidden; border-radius: 7px; background: var(--vera-surface-soft); }
+.status-distribution-bar > span { display: block; height: 100%; }
+.status-distribution-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px 20px; margin-top: 20px; }
+.status-distribution-legend > div { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 8px; color: var(--vera-text-muted); font-size: 12px; }
+.status-distribution-legend strong { color: var(--vera-text-strong); font-variant-numeric: tabular-nums; }
+.status-legend-swatch { display: block; width: 9px; height: 9px; border-radius: 50%; }
+
+.role-dashboard .dashboard-risk-cell { min-height: 60px; }
+.role-dashboard .dashboard-risk-cell strong { font-variant-numeric: tabular-nums; }
+.role-dashboard .dashboard-risk-cell span, .role-dashboard .risk-row-label, .role-dashboard .risk-column-labels { font-size: 11px; }
+.risk-summary-chart { display: grid; gap: 19px; min-height: 212px; align-content: start; }
+.risk-summary-chart [role="list"] { display: grid; gap: 19px; }
+.risk-summary-row { display: grid; grid-template-columns: 50px minmax(0, 1fr) 26px; align-items: center; gap: 10px; color: var(--vera-text-muted); font-size: 12px; }
+.risk-summary-row strong { color: var(--vera-text-strong); text-align: right; font-variant-numeric: tabular-nums; }
+.risk-summary-track { height: 14px; overflow: hidden; border-radius: 5px; background: var(--vera-surface-soft); }
+.risk-summary-fill { display: block; height: 100%; border-radius: inherit; }
+.risk-summary-chart p { margin: 7px 0 0; color: var(--vera-text-muted); font-size: 11px; }
+.role-dashboard .dashboard-chart-note { color: var(--vera-text-muted); font-size: 11px; }
+
+.role-dashboard .pending-panel { margin-top: 16px; }
+.role-dashboard .dashboard-pending-item { border-top-color: var(--vera-border-soft); }
+.role-dashboard .pending-item-main h3 { color: var(--vera-text-strong); }
+.role-dashboard .pending-item-main p { color: var(--vera-text-muted); }
+.role-dashboard .pending-open-link { min-width: 36px; min-height: 36px; color: var(--vera-accent); }
+
+@media (max-width: 1300px) {
+  .role-dashboard .dashboard-action-section { grid-template-columns: 1fr; }
+  .role-dashboard .dashboard-quick-actions { justify-content: flex-start; }
+  .role-dashboard .kpi-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .role-dashboard .kpi-card { grid-column: span 2; }
+  .role-dashboard .kpi-card:nth-child(n+4) { grid-column: span 3; }
+}
+
+@media (max-width: 1120px) {
+  .role-dashboard .dashboard-insight-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .role-dashboard .dashboard-hero { grid-template-columns: 1fr; gap: 18px; }
+  .dashboard-hero-tools { justify-items: start; }
+  .dashboard-scope-note { text-align: left; }
+}
+
+@media (max-width: 850px) {
+  .role-dashboard .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .role-dashboard .kpi-card, .role-dashboard .kpi-card:nth-child(n+4) { grid-column: auto; }
+  .role-dashboard .kpi-card:first-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 750px) {
+  .role-dashboard { padding: 24px 20px 44px; }
+  .role-dashboard .dashboard-hero { grid-template-columns: 1fr; gap: 22px; }
+  .dashboard-hero-tools { justify-items: start; }
+  .dashboard-scope-note { text-align: left; }
+  .role-dashboard .dashboard-insight-row { gap: 14px; }
+  .dashboard-section-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+}
+
+@media (max-width: 520px) {
+  .role-dashboard .dashboard-hero { padding: 23px 20px; }
+  .role-dashboard .dashboard-hero h1 { font-size: 29px; }
+  .role-dashboard .kpi-card { min-height: 142px; padding: 17px 15px; }
+  .role-dashboard .status-chart-row { grid-template-columns: minmax(100px, 130px) minmax(45px, 1fr) 22px; gap: 7px; }
+  .status-distribution-legend { grid-template-columns: 1fr; }
+  .role-dashboard .dashboard-panel { padding: 18px; }
+  .role-dashboard .dashboard-panel-heading { flex-wrap: wrap; }
+}
