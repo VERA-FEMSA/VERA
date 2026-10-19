@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import PublicSiteShell from "../components/PublicSiteShell";
 import { useDocumentTitle } from "../contexts/useDocumentTitle";
 
@@ -16,7 +17,17 @@ const valuePillars = [
 ];
 
 function PublicOverview() {
+  const [isTrailerVisible, setIsTrailerVisible] = useState(false);
+  const { hash } = useLocation();
   useDocumentTitle("Plataforma de auditoría y riesgo");
+
+  useEffect(() => {
+    if (hash !== "#trailer-vera") return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("trailer-vera")?.scrollIntoView({ block: window.innerWidth > 760 ? "center" : "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [hash]);
 
   return <PublicSiteShell mainId="public-overview-main">
     <section className="public-hero" aria-labelledby="public-overview-title">
@@ -68,6 +79,33 @@ function PublicOverview() {
         <a href="https://github.com/VERA-GRC-IRM/VERA/wiki">Documentación <span aria-hidden="true">↗</span></a>
         <a href="https://vera-grc-irm.github.io/VERA/">Resultados de calidad <span aria-hidden="true">↗</span></a>
       </nav>
+    </section>
+
+    <section className="public-section public-film" id="trailer-vera" aria-labelledby="public-film-title">
+      <div className="public-film__copy">
+        <p className="public-eyebrow">VERA EN VIDEO</p>
+        <h2 id="public-film-title">El recorrido, en movimiento.</h2>
+        <p>Una introducción visual a VERA. Reproduce el tráiler aquí o ábrelo directamente en YouTube.</p>
+        <div className="public-film__actions">
+          <button className="public-button" type="button" aria-controls="public-film-player" aria-expanded={isTrailerVisible} onClick={() => setIsTrailerVisible((visible) => !visible)}>
+            {isTrailerVisible ? "Cerrar video" : "Reproducir tráiler"}
+          </button>
+          <a className="public-text-link" href="https://www.youtube.com/shorts/X2RuivSwSVo" target="_blank" rel="noopener noreferrer" aria-label="Abrir tráiler en YouTube (nueva pestaña)">Abrir en YouTube <span aria-hidden="true">↗</span></a>
+        </div>
+        <p className="public-film__note">El reproductor de YouTube se carga solo al pulsar reproducir.</p>
+      </div>
+      <div className="public-film__stage" id="public-film-player" role="group" aria-label="Tráiler de VERA">
+        <div className="public-film__frame">
+          {isTrailerVisible
+            ? <iframe title="Tráiler de VERA en YouTube" src="https://www.youtube-nocookie.com/embed/X2RuivSwSVo?autoplay=1&playsinline=1&rel=0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+            : <div className="public-film__poster" aria-hidden="true">
+              <span className="public-film__poster-top">VERA / PERSPECTIVA</span>
+              <img src="/vera-logo.svg" width="84" height="84" alt="" />
+              <span className="public-film__poster-bottom">AUDITORÍA · RIESGO · EVIDENCIA</span>
+            </div>}
+        </div>
+        <span className="public-film__caption">TRÁILER · FORMATO VERTICAL</span>
+      </div>
     </section>
 
     <section className="public-section public-intro" aria-labelledby="public-intro-title">

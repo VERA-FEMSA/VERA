@@ -4,6 +4,8 @@
 
 **Una sola vista del recorrido de auditoría.** Explora el producto, la arquitectura, los permisos, la operación y la evidencia de calidad sin perder el contexto de cada decisión. Esta Wiki conecta las perspectivas de negocio, ingeniería, operación y aseguramiento de calidad.
 
+**VERA en video:** [ver el tráiler en YouTube](https://www.youtube.com/shorts/X2RuivSwSVo) · [reproducirlo en la presentación pública](https://www.vera-digital-systems.com/acerca#trailer-vera).
+
 > **Cómo leer el estado:** VERA es un prototipo funcional en evolución. «Implementado en código», «aprobado en CI» y «aceptado en producción» son afirmaciones distintas. Consulta [Estado y evidencias](https://github.com/VERA-GRC-IRM/VERA/wiki/Modulos-y-HU) antes de cerrar una HU.
 
 ## Empieza por lo que necesitas

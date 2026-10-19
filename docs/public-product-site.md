@@ -6,6 +6,8 @@ Las rutas públicas de VERA presentan el producto antes de iniciar sesión. El e
 
 La portada nombra el tipo de plataforma en una frase antes de profundizar en beneficios. El enlace de acceso aclara que hace falta una cuenta y ofrece el registro. Bajo el primer bloque se muestra una vista del panel actual y se puede abrir la captura completa; junto a ella aparecen enlaces directos al repositorio, la Wiki y el portal de calidad.
 
+El [tráiler de VERA](https://www.youtube.com/shorts/X2RuivSwSVo) aparece en `/acerca#trailer-vera`, después de la vista del producto. Su marco vertical respeta el formato original del video y los tokens de apariencia del sitio. El reproductor de YouTube solo se crea al pulsar **Reproducir tráiler**; **Cerrar video** lo retira y detiene la reproducción. Hay un enlace directo al video original si el reproductor externo no está disponible. README y Wiki enlazan tanto al original como a esta sección. El video es material de presentación, no evidencia de aceptación funcional.
+
 El sitio no añade un catálogo de precios, clientes, certificaciones o métricas comerciales que no existen. En cada recorrido se identifica que VERA es un prototipo funcional con datos de demostración y que la aceptación completa en producción sigue pendiente. La historia principal es **contexto → decisión → sustento → seguimiento**, sustentada por la [descripción del producto](../README.md) y los [flujos](wiki/Producto-y-flujos.md).
 
 ## Lenguaje visual e interacción
