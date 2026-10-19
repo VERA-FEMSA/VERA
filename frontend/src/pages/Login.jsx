@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import AccessShell from "../components/AccessShell";
+import LoginCompanion from "../components/LoginCompanion";
 import { useDocumentTitle } from "../contexts/useDocumentTitle";
 import { exchangeManagedSession, finishPasswordMfaEnrollment, loginUser, startPasswordMfaEnrollment, verify2FA } from "../services/authService";
 import { managedAuth, googleAuthEnabled, microsoftAuthEnabled, startSocialSignIn, takeSocialPrivacyAcknowledgement } from "../services/managedAuth";
@@ -159,6 +160,8 @@ function Login() {
           ? "Introduce el código de seis dígitos de tu aplicación de autenticación."
           : "Elige cómo quieres iniciar sesión."}</p>
       </div>
+
+      {!tempToken && !managedFactorId && !setupToken && <div className="access-companion-mobile"><LoginCompanion compact /></div>}
 
       {(googleAuthEnabled || microsoftAuthEnabled) && !tempToken && !managedFactorId && !setupToken &&
         <div className="social-options" aria-label="Acceso con proveedor de identidad">
