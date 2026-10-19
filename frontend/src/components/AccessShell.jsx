@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import ThemeControl from "./ThemeControl";
 import LoginCompanion from "./LoginCompanion";
+import { PUBLIC_NAVIGATION } from "../constants/publicNavigation";
 
 const journey = ["Planificación", "Auditorías", "Riesgos y controles", "Evidencias"];
 
@@ -13,10 +14,10 @@ function AccessShell({ children, variant = "login" }) {
         <span><strong>VERA</strong><small>Digital Systems</small></span>
       </Link>
       <nav className="access-header__links" aria-label="Navegación pública">
-        <Link to="/acerca">Acerca de VERA</Link>
+        {PUBLIC_NAVIGATION.map(({ to, label }) => <Link key={to} to={to}>{label}</Link>)}
         <Link to="/privacidad">Privacidad</Link>
-        <ThemeControl compact />
       </nav>
+      <div className="access-header__appearance"><ThemeControl compact /></div>
     </header>
 
     <main id="access-content" className="access-main">
