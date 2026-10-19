@@ -80,6 +80,36 @@
   --vera-focus: #ffdc73;
 }
 
+/* FEMSA's published #BF4246 is used for primary controls. The VERA mark and
+   semantic success/warning/danger colors keep their original meaning. */
+:root[data-brand="femsa"] {
+  color-scheme: dark;
+  --vera-canvas: #121a24;
+  --vera-surface: #1c2933;
+  --vera-surface-raised: #253540;
+  --vera-surface-soft: #263742;
+  --vera-surface-tint: #3b2c34;
+  --vera-text: #f7f8f9;
+  --vera-text-strong: #ffffff;
+  --vera-text-muted: #cbd5dc;
+  --vera-text-subtle: #b5c3cc;
+  --vera-border: #71848e;
+  --vera-border-soft: #536772;
+  --vera-accent: #ffb0b2;
+  --vera-accent-strong: #bf4246;
+  --vera-accent-hover: #a53038;
+  --vera-accent-soft: #41262d;
+  --vera-on-accent: #ffffff;
+  --vera-success: #a9e1c4;
+  --vera-success-soft: #173c36;
+  --vera-danger: #ffc0b7;
+  --vera-danger-soft: #4d2a2d;
+  --vera-warning: #f2d18a;
+  --vera-warning-soft: #403725;
+  --vera-focus: #ffb0b2;
+  --vera-shadow: 0 20px 55px rgba(0, 0, 0, .27);
+}
+
 html { background: var(--vera-canvas); }
 body { color: var(--vera-text); background: var(--vera-canvas); }
 button, input, select, textarea { font: inherit; }
