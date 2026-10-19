@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, ArrowRight, CheckCircle2, ClipboardList, Flag, RotateCw, ShieldAlert } from "lucide-react";
+import { Activity, ArrowRight, CheckCircle2, ClipboardList, RotateCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { getDashboardSummary } from "../services/dashboardService";
@@ -14,11 +14,14 @@ const STATUS_LABELS = {
 };
 
 const RISK_LABELS = { 1: "Baja", 2: "Media", 3: "Alta" };
+const RISK_LEVELS = ["Bajo", "Medio", "Alto"];
 
 function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [statusView, setStatusView] = useState("bars");
+  const [riskView, setRiskView] = useState("matrix");
 
   const load = async () => {
     setLoading(true);
@@ -42,24 +45,34 @@ function Dashboard() {
   }, []);
 
   const metrics = summary?.metrics;
-  const maxStatusCount = Math.max(1, ...(summary?.statusCounts || []).map((item) => item.count));
+  const statusCounts = summary?.statusCounts || [];
+  const maxStatusCount = Math.max(1, ...statusCounts.map((item) => item.count));
   const riskCells = summary?.riskMatrix || [];
+  const riskTotals = RISK_LEVELS.map((risk) => ({
+    risk,
+    count: riskCells.flat().filter((cell) => cell.risk === risk).reduce((total, cell) => total + cell.count, 0)
+  }));
+  const maxRiskCount = Math.max(1, ...riskTotals.map(({ count }) => count));
 
   return (
     <div className="dashboard-layout">
       <Sidebar active="dashboard" />
       <main className="dashboard-main">
         <section className="dashboard-content role-dashboard">
-          <div className="dashboard-header">
-            <div>
+          <header className="dashboard-header dashboard-hero">
+            <div className="dashboard-hero-copy">
               <span className="eyebrow">PANEL PRINCIPAL · {summary?.scopeLabel || "CARGANDO"}</span>
               <h1>{summary?.title || "Panel de auditorías"}</h1>
               <p>{summary?.description || "Resumen actualizado del portafolio y sus prioridades."}</p>
             </div>
-            <button className="dashboard-refresh" type="button" onClick={load} disabled={loading}>
-              <RotateCw size={16} aria-hidden="true" /> Actualizar
-            </button>
-          </div>
+            <div className="dashboard-hero-tools">
+              <span className="dashboard-scope-note">Información visible para tu rol</span>
+              <button className="dashboard-refresh" type="button" onClick={load} disabled={loading}>
+                <RotateCw size={16} aria-hidden="true" /> Actualizar
+              </button>
+              <span className="dashboard-refresh-status" role="status">{loading && summary ? "Actualizando datos" : ""}</span>
+            </div>
+          </header>
 
           {error && (
             <div className="dashboard-alert" role="alert">
@@ -72,46 +85,91 @@ function Dashboard() {
             <div className="dashboard-loading" role="status">Cargando indicadores del portafolio...</div>
           ) : summary && (
             <>
-              <div className="kpi-grid">
-                <article className="kpi-card">
-                  <span className="kpi-label">AUDITORÍAS VISIBLES</span>
-                  <div className="kpi-row"><div><strong>{metrics.total}</strong><p>{summary.scopeLabel}</p></div><div className="kpi-icon"><ClipboardList size={22} /></div></div>
-                </article>
-                <article className="kpi-card">
-                  <span className="kpi-label">PENDIENTES DE DECISIÓN</span>
-                  <div className="kpi-row"><div><strong>{metrics.pending}</strong><p>Propuestas abiertas</p></div><div className="kpi-icon warning"><ShieldAlert size={22} /></div></div>
-                </article>
-                <article className="kpi-card">
-                  <span className="kpi-label">AUDITORÍAS EN CURSO</span>
-                  <div className="kpi-row"><div><strong>{metrics.active}</strong><p>Actualmente activas</p></div><div className="kpi-icon green"><Activity size={22} /></div></div>
-                </article>
-                <article className="kpi-card">
-                  <span className="kpi-label">RIESGO ALTO</span>
-                  <div className="kpi-row"><div><strong>{metrics.highRisk}</strong><p>Propuestas y auditorías visibles</p></div><div className="kpi-icon warning"><ShieldAlert size={22} /></div></div>
-                </article>
-                <article className="kpi-card">
-                  <span className="kpi-label">HALLAZGOS ABIERTOS</span>
-                  <div className="kpi-row"><div><strong>{metrics.openFindings}</strong><p>Vinculados a auditorías visibles</p></div><div className="kpi-icon warning"><Flag size={22} /></div></div>
-                </article>
-              </div>
+              <nav className="dashboard-page-nav" aria-label="Secciones del panel">
+                <a href="#portfolio-summary">Panorama</a>
+                <a href="#portfolio-analysis">Estado y riesgo</a>
+                <a href="#portfolio-priorities">Por atender</a>
+              </nav>
 
-              <div className="dashboard-insight-row">
+              <section id="portfolio-summary" className="dashboard-overview-section" aria-labelledby="dashboard-overview-title">
+                <div className="dashboard-section-heading">
+                  <div><span className="dashboard-section-kicker">VISTA GENERAL</span><h2 id="dashboard-overview-title">Indicadores del portafolio</h2></div>
+                  <span>Según el alcance de tu rol</span>
+                </div>
+                <div className="kpi-grid">
+                  <article className="kpi-card">
+                    <span className="kpi-label">REGISTROS VISIBLES</span>
+                    <div className="kpi-row"><div><strong>{metrics.total}</strong><p>{summary.scopeLabel}</p></div></div>
+                  </article>
+                  <article className="kpi-card">
+                    <span className="kpi-label">{summary.permissions.canApprove ? "PENDIENTES DE DECISIÓN" : "PROPUESTAS ABIERTAS"}</span>
+                    <div className="kpi-row"><div><strong>{metrics.pending}</strong><p>Propuestas abiertas</p></div></div>
+                  </article>
+                  <article className="kpi-card">
+                    <span className="kpi-label">AUDITORÍAS EN CURSO</span>
+                    <div className="kpi-row"><div><strong>{metrics.active}</strong><p>Actualmente activas</p></div></div>
+                  </article>
+                  <article className="kpi-card">
+                    <span className="kpi-label">RIESGO ALTO</span>
+                    <div className="kpi-row"><div><strong>{metrics.highRisk}</strong><p>Propuestas y auditorías visibles</p></div></div>
+                  </article>
+                  <article className="kpi-card">
+                    <span className="kpi-label">HALLAZGOS ABIERTOS</span>
+                    <div className="kpi-row"><div><strong>{metrics.openFindings}</strong><p>Vinculados a auditorías visibles</p></div></div>
+                  </article>
+                </div>
+              </section>
+
+              <section className="dashboard-action-section" aria-labelledby="dashboard-actions-title">
+                <div>
+                  <span className="dashboard-section-kicker">IR DIRECTO A</span>
+                  <h2 id="dashboard-actions-title">Acciones y consultas</h2>
+                </div>
+                <nav className="dashboard-quick-actions" aria-label="Acciones rápidas">
+                  {summary.permissions.canCreate && <Link to="/planificacion"><ClipboardList size={17} aria-hidden="true" />Nueva propuesta</Link>}
+                  {summary.permissions.canApprove && <Link to="/planificacion"><CheckCircle2 size={17} aria-hidden="true" />Revisar propuestas</Link>}
+                  <Link to="/auditorias-activas"><Activity size={17} aria-hidden="true" />Auditorías activas y riesgos</Link>
+                  <Link to="/trimestres"><ArrowRight size={17} aria-hidden="true" />Plan trimestral</Link>
+                </nav>
+              </section>
+
+              <div id="portfolio-analysis" className="dashboard-insight-row">
                 <section className="dashboard-panel status-chart-panel" aria-labelledby="status-chart-title">
                   <div className="dashboard-panel-heading">
-                    <div><span className="eyebrow">ESTADO DEL PORTAFOLIO</span><h2 id="status-chart-title">Auditorías por estado</h2></div>
+                    <div><span className="eyebrow">ESTADO DEL PORTAFOLIO</span><h2 id="status-chart-title">Registros por estado</h2></div>
                     <span>{metrics.total} en total</span>
                   </div>
-                  <div className="status-chart" role="list">
-                    {summary.statusCounts.map(({ status, count }) => (
-                      <div className="status-chart-row" role="listitem" key={status}>
-                        <span>{STATUS_LABELS[status]}</span>
-                        <div className="status-chart-track" role="img" aria-label={`${count} ${STATUS_LABELS[status]}`}>
-                          <span className={`status-chart-bar bar-${status.toLowerCase()}`} style={{ width: `${(count / maxStatusCount) * 100}%` }} />
-                        </div>
-                        <strong>{count}</strong>
-                      </div>
-                    ))}
+                  <div className="dashboard-view-switch" role="group" aria-label="Vista de estados">
+                    <button type="button" aria-pressed={statusView === "bars"} onClick={() => setStatusView("bars")}>Comparación</button>
+                    <button type="button" aria-pressed={statusView === "distribution"} onClick={() => setStatusView("distribution")}>Distribución</button>
                   </div>
+                  {statusView === "bars" ? (
+                    <div className="status-chart" role="list">
+                      {statusCounts.map(({ status, count }) => (
+                        <div className="status-chart-row" role="listitem" key={status}>
+                          <span>{STATUS_LABELS[status]}</span>
+                          <div className="status-chart-track" role="img" aria-label={`${count} ${STATUS_LABELS[status]}`}>
+                            <span className={`status-chart-bar bar-${status.toLowerCase()}`} style={{ width: `${(count / maxStatusCount) * 100}%` }} />
+                          </div>
+                          <strong>{count}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="status-distribution">
+                      {metrics.total === 0 ? <p className="dashboard-chart-note">Todavía no hay registros en este alcance.</p> :
+                        <div className="status-distribution-bar" role="img" aria-label={statusCounts.map(({ status, count }) => `${STATUS_LABELS[status]}: ${count}`).join(", ")}>
+                          {statusCounts.filter(({ count }) => count > 0).map(({ status, count }) =>
+                            <span key={status} className={`bar-${status.toLowerCase()}`} style={{ width: `${(count / metrics.total) * 100}%` }} />)}
+                        </div>}
+                      <div className="status-distribution-legend" role="list">
+                        {statusCounts.map(({ status, count }) => <div key={status} role="listitem">
+                          <span className={`status-legend-swatch bar-${status.toLowerCase()}`} aria-hidden="true" />
+                          <span>{STATUS_LABELS[status]}</span><strong>{count}</strong>
+                        </div>)}
+                      </div>
+                    </div>
+                  )}
                   <div className="dashboard-progress-summary">
                     <span>Avance medio de auditorías iniciadas</span><strong>{metrics.averageProgress}%</strong>
                     <div className="progress-track"><span style={{ width: `${metrics.averageProgress}%` }} /></div>
@@ -123,7 +181,11 @@ function Dashboard() {
                     <div><span className="eyebrow">RIESGO EN EJECUCIÓN</span><h2 id="dashboard-risk-title">Matriz probabilidad × impacto</h2></div>
                     <Link to="/auditorias-activas">Abrir matriz <ArrowRight size={15} /></Link>
                   </div>
-                  <div className="dashboard-risk-matrix">
+                  <div className="dashboard-view-switch" role="group" aria-label="Vista de riesgos">
+                    <button type="button" aria-pressed={riskView === "matrix"} onClick={() => setRiskView("matrix")}>Matriz</button>
+                    <button type="button" aria-pressed={riskView === "levels"} onClick={() => setRiskView("levels")}>Por nivel</button>
+                  </div>
+                  {riskView === "matrix" ? <div className="dashboard-risk-matrix">
                     <div className="risk-axis-label">Probabilidad</div>
                     <div className="risk-matrix-body">
                       {[...riskCells].reverse().map((row) => (
@@ -138,12 +200,23 @@ function Dashboard() {
                       ))}
                       <div className="risk-column-labels"><span>Impacto</span>{[1, 2, 3].map((level) => <span key={level}>{RISK_LABELS[level]}</span>)}</div>
                     </div>
-                  </div>
+                  </div> : <div className="risk-summary-chart">
+                    <div role="list">
+                      {riskTotals.map(({ risk, count }) => <div className="risk-summary-row" role="listitem" key={risk}>
+                        <span>{risk}</span>
+                        <div className="risk-summary-track" role="img" aria-label={`${count} auditorías con riesgo ${risk.toLowerCase()}`}>
+                          <span className={`risk-summary-fill cell-${risk.toLowerCase()}`} style={{ width: `${(count / maxRiskCount) * 100}%` }} />
+                        </div>
+                        <strong>{count}</strong>
+                      </div>)}
+                    </div>
+                    <p>Distribución de las {metrics.active} auditorías en curso.</p>
+                  </div>}
                   <p className="dashboard-chart-note">Conteo de auditorías activas. Clasificación calculada con la regla de riesgo documentada.</p>
                 </section>
               </div>
 
-              <section className="dashboard-panel pending-panel" aria-labelledby="pending-title">
+              <section id="portfolio-priorities" className="dashboard-panel pending-panel" aria-labelledby="pending-title">
                 <div className="dashboard-panel-heading">
                   <div><span className="eyebrow">SIGUIENTE ACCIÓN</span><h2 id="pending-title">{summary.permissions.canApprove ? "Propuestas pendientes de decisión" : summary.role === "AUDITOR" ? "Mis auditorías por atender" : "Actividades en seguimiento"}</h2></div>
                   <Link to={summary.role === "AUDITOR" ? "/auditorias-activas" : "/planificacion"}>Ver tablero <ArrowRight size={15} /></Link>
@@ -167,12 +240,6 @@ function Dashboard() {
                 )}
               </section>
 
-              <nav className="dashboard-quick-actions" aria-label="Acciones rápidas">
-                {summary.permissions.canCreate && <Link to="/planificacion"><ClipboardList size={17} />Nueva propuesta</Link>}
-                {summary.permissions.canApprove && <Link to="/planificacion"><CheckCircle2 size={17} />Revisar propuestas</Link>}
-                <Link to="/auditorias-activas"><Activity size={17} />Auditorías activas y riesgos</Link>
-                <Link to="/trimestres"><ArrowRight size={17} />Plan trimestral</Link>
-              </nav>
             </>
           )}
         </section>

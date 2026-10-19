@@ -27,6 +27,8 @@ El selector usa cinco opciones nativas: **Sistema**, **Claro**, **Oscuro**, **Co
 
 ## Vistas autenticadas
 
+La primera pantalla, **Panel de Portafolio**, tiene una [guía propia de lectura y diseño](portfolio-dashboard.md): explica la jerarquía de indicadores, las dos vistas de estado, las dos vistas de riesgo, el alcance por rol y los límites de interpretación de las cifras.
+
 Los contenidos, acciones, rutas, permisos y estructura de cada pantalla se mantienen. La navegación lateral ahora agrupa los mismos módulos en **Portafolio y auditorías**, **Riesgos y evidencia**, **Seguimiento**, **Asistencia** y **Cuenta y administración**. El acceso de Super Admin a las cuatro vistas previas de rol sigue disponible, ahora dentro de la zona desplazable del menú. En escritorio se puede contraer a una barra de iconos con nombres accesibles y se recuerda la elección en el navegador; en móvil aparece como panel completo con cierre, bloqueo de foco y tecla Escape. La barra de búsqueda global permanece en la parte superior, permite `Ctrl/Cmd + K`, búsqueda sin acentos y navegación por teclado.
 
 La búsqueda presenta exclusivamente las secciones que el menú ya muestra al rol actual. También localiza botones y enlaces visibles de la pantalla abierta: al seleccionarlos desplaza y enfoca el control, sin pulsarlo. No consulta datos, archivos ni funciones ocultas; tampoco amplía los permisos del usuario. Las acciones como cerrar sesión conservan una etiqueta explícita antes de ejecutarse.

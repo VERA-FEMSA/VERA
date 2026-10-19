@@ -10,6 +10,8 @@ El selector **Apariencia** permite usar el tema del sistema, Claro, Oscuro, Cont
 
 En las vistas posteriores al acceso se conserva la estructura de cada pantalla. El menú lateral reúne las mismas opciones en grupos por tarea y puede contraerse en escritorio; en móvil se abre como panel completo y se cierra con Escape. La barra superior permite buscar módulos y localizar controles visibles de la pantalla con `Ctrl/Cmd + K`. Localizar un control lo enfoca sin ejecutar la acción. Las vistas previas de rol de Super Admin y todos los enlaces originales siguen disponibles. Se unificó la tipografía con el resto de la aplicación, se hicieron más legibles los textos secundarios y se corrigió el color de los estados intermedios en oscuro. Se reforzó el foco visible de las tarjetas de propuestas, filas de auditoría, filtros y controles de usuarios.
 
+El [Panel de Portafolio](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/portfolio-dashboard.md) ordena la primera lectura por contexto, indicadores, acciones, estado, riesgo y pendientes. Sus gráficos permiten comparar estados o ver su distribución, y alternar entre matriz de riesgo y conteos por nivel con los mismos datos del servidor. Conserva enlaces y acciones por rol, y documenta el significado y alcance de cada cifra.
+
 ## Diseño y límites
 
 La [guía técnica de experiencia](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/ui-experience.md) reúne las decisiones de formularios, teclado, foco, legibilidad y contraste, con referencias a WCAG 2.2 y WAI. Describe criterios de revisión; no certifica por sí sola conformidad de accesibilidad ni la aceptación funcional en producción.

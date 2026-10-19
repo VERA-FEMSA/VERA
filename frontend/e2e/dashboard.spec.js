@@ -8,9 +8,9 @@ test("director sees dashboard metrics and charts without decision actions", asyn
   await page.goto("/dashboard");
 
   await expect(page.getByRole("heading", { name: "Consulta del portafolio" })).toBeVisible();
-  await expect(page.getByText("AUDITORÍAS VISIBLES", { exact: true })).toBeVisible();
+  await expect(page.getByText("REGISTROS VISIBLES", { exact: true })).toBeVisible();
   await expect(page.getByText("HALLAZGOS ABIERTOS", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Auditorías por estado" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Registros por estado" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Matriz probabilidad × impacto" })).toBeVisible();
   await expect(page.locator(".dashboard-risk-cell")).toHaveCount(9);
   await expect(page.getByRole("navigation", { name: "Acciones rápidas" }).getByRole("link", { name: "Nueva propuesta" })).toHaveCount(0);
