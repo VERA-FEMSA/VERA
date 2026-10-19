@@ -20,7 +20,7 @@ VERA es un entorno de demostración. La interfaz lo indica antes del acceso y ex
 | Navegación | Títulos por ruta, enlace para saltar al contenido público, encabezados semánticos, etiquetas explícitas y enlaces directos entre acceso, registro, producto y privacidad. Dentro de la aplicación, el menú se agrupa por tarea y se puede contraer en escritorio. |
 | Búsqueda global | La barra superior encuentra módulos, vistas previas de rol, Apariencia, Cerrar sesión y controles visibles de la pantalla actual. Al elegir un control de la pantalla, lo enfoca sin ejecutar la acción. |
 | Apariencia | FEMSA es la presentación inicial al abrir cualquier ruta en un navegador sin preferencia guardada, incluso desde un enlace compartido. El usuario puede elegir Sistema, Claro, Oscuro o Contraste; su elección se conserva en el navegador y se aplica antes de pintar la página. |
-| Entrada visual | Una transición decorativa de 620 ms muestra el logo VERA sobre verde y revela el rojo FEMSA al cargar la página y después de autenticar. No retrasa la navegación ni impide interactuar; se omite si el sistema pide movimiento reducido. |
+| Entrada visual | Un velo verde VERA translúcido y desenfocado, con el logo nítido al centro, recibe una luz roja FEMSA y se disuelve en un segundo al cargar la página y después de autenticar. No retrasa la navegación ni impide interactuar; se omite si el sistema pide movimiento reducido. |
 
 ## Sistema visual
 
