@@ -23,11 +23,13 @@ function PublicOverview() {
       <div className="public-hero__copy">
         <p className="public-eyebrow public-eyebrow--on-dark">VERA / GOBIERNO · RIESGO · AUDITORÍA</p>
         <h1 id="public-overview-title">Decisiones mejor informadas. Auditorías conectadas.</h1>
-        <p className="public-hero__lead">VERA reúne planificación, riesgo, controles y evidencia en un recorrido visible para cada rol. Del planteamiento de una iniciativa a su seguimiento, con contexto en cada decisión.</p>
+        <p className="public-hero__definition">Una plataforma de auditoría y gestión de riesgos que conecta decisiones, controles y evidencias.</p>
+        <p className="public-hero__lead">Del planteamiento de una iniciativa a su seguimiento, cada rol puede entender qué ocurrió y consultar el contexto que le corresponde.</p>
         <div className="public-hero__actions">
           <Link className="public-button public-button--light" to="/soluciones">Explorar la plataforma <span aria-hidden="true">↗</span></Link>
           <Link className="public-text-link public-text-link--light" to="/">Acceder al entorno <span aria-hidden="true">↗</span></Link>
         </div>
+        <p className="public-hero__access">Para entrar necesitas una cuenta. <Link to="/registro">Puedes crearla aquí.</Link></p>
         <p className="public-hero__disclaimer">Prototipo funcional en evolución · Entorno público con datos de demostración</p>
       </div>
       <div className="public-flow" aria-label="Recorrido de VERA: propuesta, decisión, ejecución y evidencia">
@@ -42,6 +44,30 @@ function PublicOverview() {
         </ol>
         <p>Del planteamiento al registro de lo ocurrido.</p>
       </div>
+    </section>
+
+    <section className="public-section public-showcase" aria-labelledby="public-showcase-title">
+      <div className="public-section__topline"><p className="public-eyebrow">UNA VISTA DEL PRODUCTO</p><span>Panel de portafolio · interfaz actual</span></div>
+      <div className="public-showcase__intro">
+        <h2 id="public-showcase-title" className="public-section__statement">El contexto también se ve.</h2>
+        <p>Indicadores, acciones y riesgo aparecen en una misma vista. Esta captura se generó con la interfaz de VERA y datos sintéticos de demostración.</p>
+      </div>
+      <figure className="public-showcase__figure">
+        <div className="public-showcase__frame">
+          <div className="public-showcase__frame-label"><span>PANEL DE PORTAFOLIO</span><span>VERA / DEMO</span></div>
+          <picture>
+            <source media="(max-width: 760px)" srcSet="/portfolio-demo-mobile.png" width="390" height="844" />
+            <img src="/portfolio-demo.png" width="1440" height="960" loading="lazy" decoding="async" alt="Panel de portafolio de VERA con navegación e indicadores de auditoría; las cifras son sintéticas." />
+          </picture>
+        </div>
+        <figcaption>Vista en modo claro con cifras de prueba; no representa actividad real. <a className="public-showcase__full--desktop" href="/portfolio-demo.png" target="_blank" rel="noopener noreferrer">Ampliar captura de escritorio (nueva pestaña)</a><a className="public-showcase__full--mobile" href="/portfolio-demo-mobile.png" target="_blank" rel="noopener noreferrer">Ampliar captura móvil (nueva pestaña)</a></figcaption>
+      </figure>
+      <nav className="public-showcase__evidence" aria-label="Evidencia pública de VERA">
+        <span>VERA, EN ABIERTO</span>
+        <a href="https://github.com/VERA-GRC-IRM/VERA">Código y cambios <span aria-hidden="true">↗</span></a>
+        <a href="https://github.com/VERA-GRC-IRM/VERA/wiki">Documentación <span aria-hidden="true">↗</span></a>
+        <a href="https://vera-grc-irm.github.io/VERA/">Resultados de calidad <span aria-hidden="true">↗</span></a>
+      </nav>
     </section>
 
     <section className="public-section public-intro" aria-labelledby="public-intro-title">

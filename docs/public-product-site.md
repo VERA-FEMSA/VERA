@@ -4,6 +4,8 @@
 
 Las rutas públicas de VERA presentan el producto antes de iniciar sesión. El encabezado mantiene cuatro decisiones de navegación: **Plataforma** (`/acerca`) explica la propuesta de valor; **Soluciones** (`/soluciones`) parte de preguntas de dirección, planeación y auditoría; **Confianza** (`/confianza`) explica alcance por rol, decisiones y trazabilidad; **Tecnología** (`/tecnologia`) queda a la derecha con la implementación y evidencia. **Acceder a VERA** lleva al inicio de sesión. El aviso de privacidad permanece accesible desde el pie de todas las páginas públicas.
 
+La portada nombra el tipo de plataforma en una frase antes de profundizar en beneficios. El enlace de acceso aclara que hace falta una cuenta y ofrece el registro. Bajo el primer bloque se muestra una vista del panel actual y se puede abrir la captura completa; junto a ella aparecen enlaces directos al repositorio, la Wiki y el portal de calidad.
+
 El sitio no añade un catálogo de precios, clientes, certificaciones o métricas comerciales que no existen. En cada recorrido se identifica que VERA es un prototipo funcional con datos de demostración y que la aceptación completa en producción sigue pendiente. La historia principal es **contexto → decisión → sustento → seguimiento**, sustentada por la [descripción del producto](../README.md) y los [flujos](wiki/Producto-y-flujos.md).
 
 ## Lenguaje visual e interacción
@@ -13,6 +15,8 @@ La composición usa una portada oscura anclada a los colores de VERA, tipografí
 Hay transiciones cortas en enlaces y tarjetas, una entrada suave del esquema y señales discretas en el recorrido. `prefers-reduced-motion: reduce` elimina estas animaciones. La perspectiva en **Soluciones** es una selección local que modifica texto explicativo, sin consultar API ni cambiar permisos. El menú móvil conserva todas las rutas, anuncia su estado y se cierra con Escape devolviendo el foco al botón. Los enlaces tienen texto visible y las páginas cuentan con títulos y encabezados propios.
 
 Las referencias visuales consultadas fueron las páginas públicas de [Collibra](https://www.collibra.com/), [Monte Carlo](https://montecarlo.ai/), [Databricks](https://www.databricks.com/) y [Soda](https://soda.io/). Se tomó el patrón de mensaje principal claro, pocos recorridos y acceso separado de la explicación del producto; no se copiaron recursos, marcas, cifras ni afirmaciones de estas empresas.
+
+Las imágenes `frontend/public/portfolio-demo.png` y `frontend/public/portfolio-demo-mobile.png` son capturas de la interfaz React de `Dashboard` en escritorio y móvil. Se generaron localmente con el rol `DIRECTOR` y la respuesta sintética de `frontend/e2e/fixtures.js`; las cifras y el nombre de cuenta son datos de prueba. **No son una captura de producción ni evidencia de persistencia o autorización del backend.** La portada las carga de forma diferida, reserva su espacio y usa la versión móvil donde corresponde. Si cambia el panel, se deben renovar ambas imágenes desde la interfaz vigente con datos sintéticos y mantener esta leyenda.
 
 ## Límites técnicos
 
@@ -24,3 +28,4 @@ Esta entrega es de frontend: no modifica autenticación, API, roles ni persisten
 - Mantener la distinción entre función implementada, configuración disponible y capacidad futura.
 - Si cambia la estructura del producto, actualizar simultáneamente portada, Soluciones, Confianza, Tecnología y la Wiki.
 - Conservar el acceso y el aviso de privacidad visibles en móvil, teclado y todos los modos de apariencia.
+- Mantener los enlaces de evidencia apuntando a fuentes vivas y revisar las capturas cuando cambie el diseño del panel.
