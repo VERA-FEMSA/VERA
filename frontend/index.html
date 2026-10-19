@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="dark" data-brand="femsa">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#f4f6f7" />
+    <meta name="theme-color" content="#121a24" />
     <meta name="application-name" content="VERA" />
     <meta name="description" content="VERA reúne propuestas, auditorías, riesgos, controles y evidencias para dar seguimiento a decisiones con fundamento." />
     <link rel="canonical" href="https://www.vera-digital-systems.com/" />
@@ -32,15 +32,20 @@
     <script>
       try {
         const saved = localStorage.getItem('vera:appearance');
-        const dark = ['dark', 'contrast', 'femsa'].includes(saved) || (saved !== 'light' && saved !== 'contrast' && saved !== 'femsa' && matchMedia('(prefers-color-scheme: dark)').matches);
+        const preference = ['system', 'light', 'dark', 'contrast', 'femsa'].includes(saved) ? saved : 'femsa';
+        const dark = preference === 'system' ? matchMedia('(prefers-color-scheme: dark)').matches : ['dark', 'contrast', 'femsa'].includes(preference);
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-        if (saved === 'contrast') document.documentElement.dataset.contrast = 'high';
-        if (saved === 'femsa') document.documentElement.dataset.brand = 'femsa';
+        if (preference === 'contrast') document.documentElement.dataset.contrast = 'high';
+        else delete document.documentElement.dataset.contrast;
+        if (preference === 'femsa') document.documentElement.dataset.brand = 'femsa';
+        else delete document.documentElement.dataset.brand;
         if (localStorage.getItem('vera:navigation-collapsed') === 'true') document.documentElement.dataset.navCollapsed = 'true';
         document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-        document.querySelector('meta[name="theme-color"]').content = saved === 'femsa' ? '#121a24' : dark ? '#0d1923' : '#f4f6f7';
+        document.querySelector('meta[name="theme-color"]').content = preference === 'femsa' ? '#121a24' : dark ? '#0d1923' : '#f4f6f7';
       } catch {
-        document.documentElement.dataset.theme = 'light';
+        document.documentElement.dataset.theme = 'dark';
+        document.documentElement.dataset.brand = 'femsa';
+        document.documentElement.style.colorScheme = 'dark';
       }
     </script>
   </head>
