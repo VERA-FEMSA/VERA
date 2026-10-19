@@ -1,0 +1,26 @@
+# Sitio público de producto
+
+## Propósito y navegación
+
+Las rutas públicas de VERA presentan el producto antes de iniciar sesión. El encabezado mantiene cuatro decisiones de navegación: **Plataforma** (`/acerca`) explica la propuesta de valor; **Soluciones** (`/soluciones`) parte de preguntas de dirección, planeación y auditoría; **Confianza** (`/confianza`) explica alcance por rol, decisiones y trazabilidad; **Tecnología** (`/tecnologia`) queda a la derecha con la implementación y evidencia. **Acceder a VERA** lleva al inicio de sesión. El aviso de privacidad permanece accesible desde el pie de todas las páginas públicas.
+
+El sitio no añade un catálogo de precios, clientes, certificaciones o métricas comerciales que no existen. En cada recorrido se identifica que VERA es un prototipo funcional con datos de demostración y que la aceptación completa en producción sigue pendiente. La historia principal es **contexto → decisión → sustento → seguimiento**, sustentada por la [descripción del producto](../README.md) y los [flujos](wiki/Producto-y-flujos.md).
+
+## Lenguaje visual e interacción
+
+La composición usa una portada oscura anclada a los colores de VERA, tipografía de sistema, espacio amplio, líneas de relación y un esquema de cuatro etapas diseñado en CSS. No se usan fotografías genéricas, logotipos de clientes ajenos ni contadores ficticios. Las secciones interiores toman los tokens de `frontend/src/theme.css` para Claro, Oscuro, Contraste y FEMSA. El hero conserva una base nocturna de marca; el acento decorativo cambia con la apariencia.
+
+Hay transiciones cortas en enlaces y tarjetas, una entrada suave del esquema y señales discretas en el recorrido. `prefers-reduced-motion: reduce` elimina estas animaciones. La perspectiva en **Soluciones** es una selección local que modifica texto explicativo, sin consultar API ni cambiar permisos. El menú móvil conserva todas las rutas, anuncia su estado y se cierra con Escape devolviendo el foco al botón. Los enlaces tienen texto visible y las páginas cuentan con títulos y encabezados propios.
+
+Las referencias visuales consultadas fueron las páginas públicas de [Collibra](https://www.collibra.com/), [Monte Carlo](https://montecarlo.ai/), [Databricks](https://www.databricks.com/) y [Soda](https://soda.io/). Se tomó el patrón de mensaje principal claro, pocos recorridos y acceso separado de la explicación del producto; no se copiaron recursos, marcas, cifras ni afirmaciones de estas empresas.
+
+## Límites técnicos
+
+Esta entrega es de frontend: no modifica autenticación, API, roles ni persistencia. El inicio de sesión sigue en `/`, independiente del sitio de presentación. La ruta de privacidad conserva íntegro el texto vigente. Los metadatos de vista previa social del HTML base siguen siendo generales del dominio; compartir una ruta interna puede mostrar el mismo resumen del sitio. La validación de un entorno real y la [aceptación pendiente](https://github.com/VERA-GRC-IRM/VERA/issues/113) son procesos separados de esta presentación.
+
+## Mantenimiento de contenido
+
+- Contrastar cualquier nueva afirmación comercial con el código, el estado de la demo y la evidencia vigente.
+- Mantener la distinción entre función implementada, configuración disponible y capacidad futura.
+- Si cambia la estructura del producto, actualizar simultáneamente portada, Soluciones, Confianza, Tecnología y la Wiki.
+- Conservar el acceso y el aviso de privacidad visibles en móvil, teclado y todos los modos de apariencia.

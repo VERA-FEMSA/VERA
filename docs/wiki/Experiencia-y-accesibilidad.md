@@ -1,6 +1,6 @@
 # Experiencia y accesibilidad
 
-VERA presenta desde el primer acceso qué hace la plataforma y que el entorno público contiene datos de demostración. [Iniciar sesión](https://www.vera-digital-systems.com/), [crear cuenta](https://www.vera-digital-systems.com/registro), [conocer VERA](https://www.vera-digital-systems.com/acerca) y [leer el aviso de privacidad](https://www.vera-digital-systems.com/privacidad) son recorridos directos.
+VERA presenta antes del acceso qué hace la plataforma y que el entorno público contiene datos de demostración. [Plataforma](https://www.vera-digital-systems.com/acerca), [Soluciones](https://www.vera-digital-systems.com/soluciones), [Confianza](https://www.vera-digital-systems.com/confianza) y [Tecnología](https://www.vera-digital-systems.com/tecnologia) son los cuatro recorridos públicos; el último reúne código, Wiki y evidencia de calidad. [Iniciar sesión](https://www.vera-digital-systems.com/), [crear cuenta](https://www.vera-digital-systems.com/registro) y [leer el aviso de privacidad](https://www.vera-digital-systems.com/privacidad) siguen siendo rutas directas.
 
 Microsoft, Google y contraseña aparecen según la configuración vigente. La interfaz informa que una cuenta nueva comienza como **Auditor** y que pedir otro rol requiere autorización. El registro por contraseña no verifica la titularidad del correo: consulta la [guía de identidad](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/identity-rollout.md) antes de usar un correo nuevo.
 
