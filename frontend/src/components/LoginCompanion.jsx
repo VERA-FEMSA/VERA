@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from "react";
-import { ArrowUpRight, Play, QrCode, X } from "lucide-react";
+import { ArrowUpRight, Maximize2, Play, QrCode, X } from "lucide-react";
 
 const ACCESS_URL = "https://www.vera-digital-systems.com/";
 const VIDEO_URL = "https://www.youtube.com/shorts/X2RuivSwSVo";
@@ -19,15 +19,15 @@ function LoginCompanion({ compact = false }) {
       <button type="button" onClick={() => open("qr")}><QrCode size={17} aria-hidden="true" /> Abrir en el celular</button>
       <button type="button" onClick={() => open("video")}><Play size={16} aria-hidden="true" /> Ver VERA en video</button>
     </div> : <div className="login-companion" aria-label="Acceso móvil y presentación">
-      <div className="login-companion__mobile">
-        <img src="/access-qr.svg" width="94" height="94" alt="Código QR que abre www.vera-digital-systems.com" />
+      <button className="login-companion__mobile" type="button" onClick={() => open("qr")} aria-haspopup="dialog">
+        <img src="/access-qr.svg" width="94" height="94" alt="" />
         <div>
           <span className="login-companion__label">ACCESO MÓVIL</span>
           <strong>Continúa en tu teléfono.</strong>
           <span>Escanea para abrir VERA.</span>
-          <a href={ACCESS_URL} target="_blank" rel="noopener noreferrer">Abrir enlace <ArrowUpRight size={14} aria-hidden="true" /></a>
+          <span className="login-companion__expand">Ampliar QR <Maximize2 size={14} aria-hidden="true" /></span>
         </div>
-      </div>
+      </button>
       <button className="login-companion__film" type="button" onClick={() => open("video")}>
         <span className="login-companion__film-mark" aria-hidden="true"><Play size={20} fill="currentColor" /></span>
         <span><small>INTRODUCCIÓN</small><strong>VERA en video</strong><span>Una mirada breve a la plataforma</span></span>
@@ -50,7 +50,7 @@ function LoginCompanion({ compact = false }) {
         <a className="login-companion__fallback" href={VIDEO_URL} target="_blank" rel="noopener noreferrer">Abrir en YouTube <ArrowUpRight size={15} aria-hidden="true" /></a>
       </> : <>
         <p>Escanea este código con la cámara de tu teléfono para abrir el inicio de sesión.</p>
-        <img className="login-companion__qr" src="/access-qr.svg" width="220" height="220" alt="Código QR que abre www.vera-digital-systems.com" />
+        <img className="login-companion__qr" src="/access-qr.svg" width="300" height="300" alt="Código QR que abre www.vera-digital-systems.com" />
         <a className="login-companion__fallback" href={ACCESS_URL} target="_blank" rel="noopener noreferrer">www.vera-digital-systems.com <ArrowUpRight size={15} aria-hidden="true" /></a>
       </>}
     </dialog>

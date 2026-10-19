@@ -6,9 +6,9 @@ const STORAGE_KEY = "vera:appearance";
 function savedPreference() {
   try {
     const value = localStorage.getItem(STORAGE_KEY);
-    return ["light", "dark", "contrast", "femsa"].includes(value) ? value : "system";
+    return ["system", "light", "dark", "contrast", "femsa"].includes(value) ? value : "femsa";
   } catch {
-    return "system";
+    return "femsa";
   }
 }
 
@@ -45,8 +45,7 @@ function ThemeProvider({ children }) {
     if (!["system", "light", "dark", "contrast", "femsa"].includes(next)) return;
     setPreference(next);
     try {
-      if (next === "system") localStorage.removeItem(STORAGE_KEY);
-      else localStorage.setItem(STORAGE_KEY, next);
+      localStorage.setItem(STORAGE_KEY, next);
     } catch {
       // Appearance remains usable for this session if storage is unavailable.
     }
