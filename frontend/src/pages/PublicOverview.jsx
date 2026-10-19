@@ -1,105 +1,94 @@
 import { Link } from "react-router-dom";
-import ThemeControl from "../components/ThemeControl";
+import PublicSiteShell from "../components/PublicSiteShell";
 import { useDocumentTitle } from "../contexts/useDocumentTitle";
-import "./PublicOverview.css";
 
-const capabilities = [
-  {
-    number: "01",
-    title: "Planificar",
-    description: "Propuestas, revisión y decisiones antes de iniciar una auditoría."
-  },
-  {
-    number: "02",
-    title: "Relacionar",
-    description: "Auditorías, riesgos, controles y evidencias en un mismo recorrido."
-  },
-  {
-    number: "03",
-    title: "Dar seguimiento",
-    description: "Indicadores, actividades e historial para conocer qué requiere atención."
-  }
+const steps = [
+  { number: "01", name: "Propuesta", detail: "Objetivo y alcance" },
+  { number: "02", name: "Decisión", detail: "Revisión registrada" },
+  { number: "03", name: "Ejecución", detail: "Riesgos y controles" },
+  { number: "04", name: "Evidencia", detail: "Seguimiento trazable" }
+];
+
+const valuePillars = [
+  { index: "01 / VISIBILIDAD", title: "El portafolio, en contexto.", detail: "Indicadores, prioridades y auditorías visibles según el alcance de cada usuario." },
+  { index: "02 / GOBIERNO", title: "Decisiones que dejan rastro.", detail: "Una propuesta pasa por revisión antes de iniciar; la decisión y su historial se conservan." },
+  { index: "03 / SUSTENTO", title: "La evidencia no queda aislada.", detail: "Riesgos, controles, hallazgos y evidencias se relacionan con el expediente." }
 ];
 
 function PublicOverview() {
-  useDocumentTitle("Acerca de VERA");
-  return (
-    <div className="public-overview">
-      <a className="skip-link" href="#public-overview-main">Saltar al contenido</a>
-      <div className="public-overview__shell">
-        <header className="public-overview__header">
-          <Link className="public-overview__brand" to="/" aria-label="VERA, ir al inicio de sesión">
-            <img src="/vera-logo.svg" alt="" width="42" height="42" />
-            <span>VERA<small>Digital Systems</small></span>
-          </Link>
-          <nav className="public-overview__nav" aria-label="Navegación pública">
-            <Link to="/privacidad">Privacidad</Link>
-            <ThemeControl compact />
-            <Link className="public-overview__login" to="/">Iniciar sesión</Link>
-          </nav>
-        </header>
+  useDocumentTitle("Plataforma de auditoría y riesgo");
 
-        <main id="public-overview-main">
-          <section className="public-overview__hero" aria-labelledby="public-overview-title">
-            <div className="public-overview__hero-copy">
-              <p className="public-overview__eyebrow">VERIFICACIÓN · EVIDENCIA · RIESGO · AUDITORÍA</p>
-              <h1 id="public-overview-title">Cada decisión de auditoría merece contexto.</h1>
-              <p className="public-overview__intro">
-                VERA conecta propuestas, auditorías, riesgos, controles y evidencias en un recorrido trazable. Es un prototipo funcional que sigue evolucionando.
-              </p>
-              <div className="public-overview__actions">
-                <Link className="public-overview__primary" to="/">Entrar a VERA</Link>
-                <Link className="public-overview__secondary" to="/registro">Crear cuenta</Link>
-              </div>
-            </div>
-            <div className="public-overview__journey" aria-label="Recorrido de VERA">
-              <div className="public-overview__journey-head"><span>RECORRIDO DE INFORMACIÓN</span><span>VERA / 01—04</span></div>
-              <ol>
-                <li><span>01</span><strong>Proponer</strong><small>Definir el objetivo y el alcance.</small></li>
-                <li><span>02</span><strong>Decidir</strong><small>Revisar antes de activar la auditoría.</small></li>
-                <li><span>03</span><strong>Relacionar</strong><small>Vincular riesgos, controles y evidencias.</small></li>
-                <li><span>04</span><strong>Dar seguimiento</strong><small>Consultar pendientes e historial.</small></li>
-              </ol>
-              <p>Información de demostración · Sin datos reales de FEMSA</p>
-            </div>
-          </section>
-
-          <section className="public-overview__section" aria-labelledby="capabilities-title">
-            <div className="public-overview__section-heading">
-              <p className="public-overview__eyebrow">UNA SOLA LECTURA DEL PORTAFOLIO</p>
-              <h2 id="capabilities-title">De la planificación al seguimiento</h2>
-            </div>
-            <div className="public-overview__capabilities">
-              {capabilities.map((item) => (
-                <article className="public-overview__card" key={item.number}>
-                  <span className="public-overview__number">{item.number}</span>
-                  <h3>{item.title}</h3>
-                  <p>{item.description}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="public-overview__before" aria-labelledby="before-title">
-            <div><p className="public-overview__eyebrow">ANTES DE ENTRAR</p><h2 id="before-title">Un entorno claro desde el primer acceso.</h2></div>
-            <div><p>Puedes crear una cuenta con contraseña, Microsoft o Google. Las cuentas nuevas comienzan con el rol Auditor; solicitar otro rol requiere autorización.</p>
-              <p>Este entorno usa datos de demostración. No ingreses información real o confidencial en los expedientes de prueba.</p></div>
-          </section>
-        </main>
-
-        <footer className="public-overview__footer">
-          <p>VERA · Auditorías, riesgos y evidencia</p>
-          <p>
-            <a href="https://github.com/VERA-GRC-IRM/VERA">Repositorio</a>
-            <span aria-hidden="true"> · </span>
-            <Link to="/privacidad">Aviso de privacidad</Link>
-            <span aria-hidden="true"> · </span>
-            <a href="mailto:carlos.sanchez.gtz.it@gmail.com?subject=VERA%20-%20privacidad">Consultas de privacidad</a>
-          </p>
-        </footer>
+  return <PublicSiteShell mainId="public-overview-main">
+    <section className="public-hero" aria-labelledby="public-overview-title">
+      <div className="public-hero__copy">
+        <p className="public-eyebrow public-eyebrow--on-dark">VERA / GOBIERNO · RIESGO · AUDITORÍA</p>
+        <h1 id="public-overview-title">Decisiones mejor informadas. Auditorías conectadas.</h1>
+        <p className="public-hero__lead">VERA reúne planificación, riesgo, controles y evidencia en un recorrido visible para cada rol. Del planteamiento de una iniciativa a su seguimiento, con contexto en cada decisión.</p>
+        <div className="public-hero__actions">
+          <Link className="public-button public-button--light" to="/soluciones">Explorar la plataforma <span aria-hidden="true">↗</span></Link>
+          <Link className="public-text-link public-text-link--light" to="/">Acceder al entorno <span aria-hidden="true">↗</span></Link>
+        </div>
+        <p className="public-hero__disclaimer">Prototipo funcional en evolución · Entorno público con datos de demostración</p>
       </div>
-    </div>
-  );
+      <div className="public-flow" aria-label="Recorrido de VERA: propuesta, decisión, ejecución y evidencia">
+        <div className="public-flow__heading"><span>UN RECORRIDO CON CONTEXTO</span><span>VERA / 01—04</span></div>
+        <div className="public-flow__path" aria-hidden="true"><span /></div>
+        <ol>
+          {steps.map((step) => <li key={step.number}>
+            <span className="public-flow__number">{step.number}</span>
+            <div><strong>{step.name}</strong><small>{step.detail}</small></div>
+            <span className="public-flow__mark" aria-hidden="true" />
+          </li>)}
+        </ol>
+        <p>Del planteamiento al registro de lo ocurrido.</p>
+      </div>
+    </section>
+
+    <section className="public-section public-intro" aria-labelledby="public-intro-title">
+      <div className="public-section__heading">
+        <p className="public-eyebrow">LA IDEA CENTRAL</p>
+        <h2 id="public-intro-title">Lo importante no es ver más información. Es entender cómo se relaciona.</h2>
+      </div>
+      <div className="public-intro__aside">
+        <p>Cuando propuestas, auditorías, riesgos y evidencias viven en lugares separados, resulta más difícil explicar una decisión y darle seguimiento. VERA presenta esas piezas como parte de un mismo proceso.</p>
+        <Link className="public-text-link" to="/soluciones">Conoce las soluciones <span aria-hidden="true">↗</span></Link>
+      </div>
+    </section>
+
+    <section className="public-section public-value" aria-labelledby="public-value-title">
+      <div className="public-section__topline"><p className="public-eyebrow">VALOR PARA EL NEGOCIO</p><span>Un sistema de lectura, decisión y seguimiento</span></div>
+      <h2 id="public-value-title" className="public-section__statement">Un portafolio que se puede explicar.</h2>
+      <div className="public-value__grid">
+        {valuePillars.map((pillar) => <article className="public-value__card" key={pillar.index}>
+          <span>{pillar.index}</span><h3>{pillar.title}</h3><p>{pillar.detail}</p>
+        </article>)}
+      </div>
+    </section>
+
+    <section className="public-section public-split" aria-labelledby="public-differentiation-title">
+      <div className="public-split__visual" aria-hidden="true">
+        <span className="public-split__orbit public-split__orbit--outer" />
+        <span className="public-split__orbit public-split__orbit--inner" />
+        <span className="public-split__core">VERA</span>
+        <span className="public-split__label public-split__label--one">AUDITORÍA</span>
+        <span className="public-split__label public-split__label--two">RIESGO</span>
+        <span className="public-split__label public-split__label--three">EVIDENCIA</span>
+      </div>
+      <div className="public-split__copy">
+        <p className="public-eyebrow">GRC + IRM EN EL MISMO RECORRIDO</p>
+        <h2 id="public-differentiation-title">La decisión, el riesgo y su sustento deben verse juntos.</h2>
+        <p>VERA no presenta un indicador sin su contexto. El usuario puede pasar del panorama a la propuesta, la auditoría y los registros relacionados. El asistente ayuda a consultar información autorizada y muestra fuentes para que una persona compruebe la respuesta.</p>
+        <Link className="public-text-link" to="/confianza">Cómo cuidamos la trazabilidad <span aria-hidden="true">↗</span></Link>
+      </div>
+    </section>
+
+    <section className="public-final-cta" aria-labelledby="public-final-title">
+      <p className="public-eyebrow public-eyebrow--on-dark">CONOCE VERA</p>
+      <h2 id="public-final-title">Explora el recorrido completo.</h2>
+      <p>Una experiencia de demostración para entender cómo se conectan planificación, ejecución, riesgo y evidencia.</p>
+      <div className="public-hero__actions"><Link className="public-button public-button--light" to="/">Entrar a la demo <span aria-hidden="true">↗</span></Link><Link className="public-text-link public-text-link--light" to="/tecnologia">Ver la ingeniería <span aria-hidden="true">↗</span></Link></div>
+    </section>
+  </PublicSiteShell>;
 }
 
 export default PublicOverview;

@@ -2,6 +2,8 @@
 
 ## Alcance
 
+Las páginas públicas de producto ahora tienen una [guía de navegación, contenido y diseño](public-product-site.md). **Plataforma**, **Soluciones** y **Confianza** explican VERA desde el negocio; **Tecnología** reúne las fuentes de ingeniería y calidad en una posición secundaria del encabezado. El inicio de sesión permanece en `/`.
+
 Las rutas públicas `/`, `/registro`, `/acerca` y `/privacidad` comparten lenguaje visual y navegación. El selector **Apariencia** está disponible también en el menú lateral de las vistas autenticadas. Esta entrega modifica presentación y estados de interacción del frontend. Los contratos de autenticación, permisos, API y esquema de datos no cambian.
 
 VERA es un entorno de demostración. La interfaz lo indica antes del acceso y explica que las cuentas nuevas comienzan como **Auditor**; un cambio de rol exige la autorización que ya implementa el servidor. El alta por contraseña sigue sin verificar que la persona controle el correo escrito, conforme al alcance documentado en [identidad y registro](identity-rollout.md). El diseño no debe ocultar esa limitación ni sugerir una recuperación de cuenta que VERA todavía no ofrece.

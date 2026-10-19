@@ -10,6 +10,9 @@ import Usuarios from "./pages/Usuarios";
 import MiRol from "./pages/MiRol";
 import Registro from "./pages/Registro";
 import PublicOverview from "./pages/PublicOverview";
+import PublicSolutions from "./pages/PublicSolutions";
+import PublicTrust from "./pages/PublicTrust";
+import PublicTechnology from "./pages/PublicTechnology";
 import PrivacyNotice from "./pages/PrivacyNotice";
 import Auditoria from "./pages/Auditoria";
 import Planificacion from "./pages/Planificacion";
@@ -49,6 +52,9 @@ function App() {
         
         <Route path="/registro" element={<Registro />} />
         <Route path="/acerca" element={<PublicOverview />} />
+        <Route path="/soluciones" element={<PublicSolutions />} />
+        <Route path="/confianza" element={<PublicTrust />} />
+        <Route path="/tecnologia" element={<PublicTechnology />} />
         <Route path="/privacidad" element={<PrivacyNotice />} />
         <Route path="/mi-rol" element={<ProtectedRoute><MiRol /></ProtectedRoute>} />
 

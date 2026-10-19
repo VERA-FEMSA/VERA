@@ -30,6 +30,6 @@ La interfaz tiene rutas explícitas en [`frontend/src/App.jsx`](https://github.c
 
 ## Cómo explorarla
 
-- [Abrir el despliegue del equipo](https://vera-figbo.vercel.app). Actualmente aparece primero el acceso de Vercel; para verificar la aplicación se necesitan permisos de ese proyecto y una cuenta activa de VERA. La sesión de Azure DevOps no sustituye ninguno de ellos.
+- [Conocer la plataforma](https://www.vera-digital-systems.com/acerca) antes de iniciar sesión. Las secciones [Soluciones](https://www.vera-digital-systems.com/soluciones), [Confianza](https://www.vera-digital-systems.com/confianza) y [Tecnología](https://www.vera-digital-systems.com/tecnologia) separan valor de negocio, trazabilidad y evidencia técnica. Para explorar los módulos autenticados, abre la [demo](https://www.vera-digital-systems.com/) con una cuenta de VERA; utiliza solo datos de prueba.
 - Para una evaluación sin cuenta, abre los [resultados de GitHub Actions](https://github.com/VERA-GRC-IRM/VERA/actions) y el [plan de pruebas](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/testing/test-plan.md).
 - Para ver la implementación de una historia concreta, sigue [Módulos y HU](https://github.com/VERA-GRC-IRM/VERA/wiki/Modulos-y-HU).
