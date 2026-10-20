@@ -20,7 +20,9 @@ const verifyToken = async (req, res, next) => {
   } catch {
     return res.status(401).json({ message: "Token inválido o expirado" });
   }
-  if (decoded.purpose) return res.status(401).json({ message: "Token inválido" });
+  if (decoded.purpose && decoded.purpose !== "role-tour") {
+    return res.status(401).json({ message: "Token inválido" });
+  }
 
   try {
     // HU-01: se lee el usuario actual para que un cambio de rol
@@ -28,6 +30,21 @@ const verifyToken = async (req, res, next) => {
     const user = await userRepository.findById(decoded.id);
     if (!user || user.status !== USER_STATUS.ACTIVE) {
       return res.status(401).json({ message: "Tu cuenta está deshabilitada o ya no existe." });
+    }
+
+    if (decoded.purpose === "role-tour") {
+      const { ROLE_TOUR_ACCOUNTS } = require("../config/roleTour");
+      const actor = await userRepository.findById(decoded.actorId);
+      if (!actor || actor.status !== USER_STATUS.ACTIVE || actor.role !== "SUPER_ADMIN" ||
+          user.role !== decoded.role || user.email !== ROLE_TOUR_ACCOUNTS[user.role] ||
+          Number(actor.id) === Number(user.id)) {
+        return res.status(401).json({ message: "El recorrido de rol ya no está disponible." });
+      }
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        return res.status(403).json({ message: "El recorrido de rol es solo de lectura. Vuelve a Super Admin para realizar cambios." });
+      }
+      req.user = { id: user.id, username: user.username, role: user.role, roleTour: true };
+      return next();
     }
 
     req.user = { id: user.id, username: user.username, role: user.role };

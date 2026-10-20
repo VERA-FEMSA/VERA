@@ -1,0 +1,33 @@
+.role-tour-banner {
+  position: fixed;
+  inset: auto 18px 18px auto;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: min(620px, calc(100vw - 36px));
+  padding: 10px 12px 10px 16px;
+  border: 1px solid var(--vera-border);
+  border-radius: 12px;
+  background: var(--vera-surface);
+  color: var(--vera-text);
+  box-shadow: 0 12px 38px rgba(15, 35, 44, .22);
+  font-size: 13px;
+}
+.role-tour-banner button {
+  flex: none;
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--vera-accent-strong);
+  color: var(--vera-on-accent);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.role-tour-banner button:focus-visible { outline: 3px solid var(--vera-accent); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .role-tour-banner { left: 12px; right: 12px; bottom: 12px; max-width: none; flex-wrap: wrap; }
+  .role-tour-banner button { width: 100%; }
+}

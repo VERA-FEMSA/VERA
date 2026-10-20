@@ -4,6 +4,7 @@ const userRepository = require("../repositories/userRepository");
 const { logAccessChange, logActivity } = require("../services/auditLogger");
 const { recordLogin } = require("../services/loginLogger");
 const { DEFAULT_ROLE } = require("../config/roles");
+const { ROLE_TOUR_ACCOUNTS } = require("../config/roleTour");
 const { getJwtSecret } = require("../config/jwtSecret");
 const { verifyTotpCode } = require("../services/totp");
 const managedAuth = require("../services/managedAuth");
@@ -368,4 +369,30 @@ const exchangeManaged = async (req, res) => {
     provider === "linked" ? "OAUTH_LINKED" : `OAUTH_${provider.toUpperCase()}`);
 };
 
-module.exports = { login, verify2FA, setup2FA, enable2FA, register, exchangeManaged };
+// The target is a dedicated role account; its password is never used or returned.
+// Requests with this short-lived token are restricted to reads in verifyToken.
+const startRoleTour = async (req, res) => {
+  if (req.user.role !== "SUPER_ADMIN" || req.user.roleTour) {
+    return res.status(403).json({ message: "Solo Super Admin puede iniciar un recorrido de rol." });
+  }
+  const role = req.body?.role;
+  if (typeof role !== "string" || !Object.hasOwn(ROLE_TOUR_ACCOUNTS, role)) {
+    return res.status(400).json({ message: "Selecciona un rol válido." });
+  }
+  const target = await userRepository.findByLogin(ROLE_TOUR_ACCOUNTS[role]);
+  if (!target || target.status !== USER_STATUS.ACTIVE || target.role !== role) {
+    return res.status(409).json({ message: "La cuenta de recorrido para ese rol no está disponible." });
+  }
+  const token = jwt.sign(
+    { id: target.id, actorId: req.user.id, role, purpose: "role-tour" },
+    getJwtSecret(),
+    { expiresIn: "20m" }
+  );
+  await logActivity({ actor: req.user, action: "ROLE_TOUR_STARTED", details: { role } });
+  return res.json({ token, user: {
+    id: target.id, username: target.username, name: target.name, role: target.role,
+    roleTour: true
+  } });
+};
+
+module.exports = { login, verify2FA, setup2FA, enable2FA, register, exchangeManaged, startRoleTour };

@@ -2,8 +2,8 @@ const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const router = express.Router();
 
-const { verifyMfaEnrollment } = require("../middleware/authMiddleware");
-const { login, verify2FA, setup2FA, enable2FA, register, exchangeManaged } = require("../controllers/authController");
+const { verifyToken, verifyMfaEnrollment } = require("../middleware/authMiddleware");
+const { login, verify2FA, setup2FA, enable2FA, register, exchangeManaged, startRoleTour } = require("../controllers/authController");
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -22,5 +22,6 @@ router.post("/managed/exchange", authLimiter, exchangeManaged);
 router.post("/verify-2fa", authLimiter, verify2FA);
 router.post("/2fa/setup", verifyMfaEnrollment, authLimiter, setup2FA);
 router.post("/2fa/enable", verifyMfaEnrollment, authLimiter, enable2FA);
+router.post("/role-tour", verifyToken, authLimiter, startRoleTour);
 
 module.exports = router;
