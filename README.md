@@ -57,6 +57,8 @@ flowchart LR
 
 El flujo se apoya en autorización del servidor y registros de actividad. La interfaz orienta al usuario; no sustituye los permisos de la API. El [centro de conocimiento](https://github.com/VERA-GRC-IRM/VERA/wiki) explica el recorrido, las reglas y sus límites.
 
+El perfil Super Admin puede [recorrer las vistas reales de Auditor, Jefatura, Gerente y Director](docs/role-tour.md) desde el menú lateral. Las consultas usan los permisos y datos de cada rol; el recorrido es de solo lectura y tiene un regreso visible al perfil original.
+
 ## Explorar el producto
 
 | Área | Qué permite hacer | Código principal |

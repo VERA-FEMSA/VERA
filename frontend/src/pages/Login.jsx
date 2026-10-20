@@ -7,6 +7,7 @@ import { useDocumentTitle } from "../contexts/useDocumentTitle";
 import { exchangeManagedSession, finishPasswordMfaEnrollment, loginUser, startPasswordMfaEnrollment, verify2FA } from "../services/authService";
 import { managedAuth, googleAuthEnabled, microsoftAuthEnabled, startSocialSignIn, takeSocialPrivacyAcknowledgement } from "../services/managedAuth";
 import { PRIVACY_NOTICE_VERSION } from "../constants/privacyNotice";
+import { clearRoleTourSession } from "../services/roleTour";
 import "./Login.css";
 
 function Login() {
@@ -29,6 +30,7 @@ function Login() {
   const navigate = useNavigate();
 
   const finishLogin = useCallback((data) => {
+    clearRoleTourSession();
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
     const transition = document.getElementById("vera-first-frame");

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -31,6 +32,13 @@ import { USER_VIEW_ROLES } from "./constants/roles";
 
 
 function App() {
+  useEffect(() => {
+    const syncSession = (event) => {
+      if (event.key === "token" || event.key === "user") window.location.reload();
+    };
+    window.addEventListener("storage", syncSession);
+    return () => window.removeEventListener("storage", syncSession);
+  }, []);
   return (
     <BrowserRouter>
       <AssistantConversationProvider>

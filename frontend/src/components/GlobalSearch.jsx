@@ -50,7 +50,7 @@ function GlobalSearch({ groups, previewRoles, onNavigate, onPreviewRole, onRevea
 
   const commands = [
     ...groups.flatMap(({ label, items }) => items.map((item) => ({ key: item.id, label: item.label, group: label, kind: "navigate", path: item.path }))),
-    ...previewRoles.map(({ role, label }) => ({ key: `role-${role}`, label: `Ver vista de ${label}`, group: "Vistas de rol", kind: "preview", role })),
+    ...previewRoles.map(({ role, label }) => ({ key: `role-${role}`, label: `Recorrer vista de ${label}`, group: "Vistas de rol", kind: "preview", role })),
     { key: "appearance", label: "Apariencia", group: "Cuenta", kind: "appearance" },
     { key: "logout", label: "Cerrar sesión", group: "Cuenta", kind: "logout" },
     ...pageActions.map((action) => ({ ...action, kind: "focus" }))

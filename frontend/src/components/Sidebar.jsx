@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { ROLE_LABELS, USER_VIEW_ROLES } from "../constants/roles";
 import { managedAuth } from "../services/managedAuth";
+import { clearRoleTourSession, startRoleTour } from "../services/roleTour";
 import ThemeControl from "./ThemeControl";
 import GlobalSearch from "./GlobalSearch";
 import "../pages/Dashboard.css";
@@ -32,12 +33,6 @@ const ICON_SIZE = 20;
 const ICON_STROKE = 1.75;
 const PREVIEW_ROLES = ["AUDITOR", "JEFATURA", "GERENTE", "DIRECTOR"];
 const NAV_STORAGE_KEY = "vera:navigation-collapsed";
-const PREVIEW_ACTIONS = {
-  AUDITOR: "Consulta sus auditorías asignadas y registra evidencias y hallazgos autorizados.",
-  JEFATURA: "Consulta el portafolio y puede proponer auditorías y registrar evidencias.",
-  GERENTE: "Puede gestionar riesgos y controles y decidir sobre propuestas de auditoría.",
-  DIRECTOR: "Consulta el portafolio y las cuentas; no modifica riesgos ni aprueba propuestas."
-};
 
 function Sidebar({ active }) {
   const navigate = useNavigate();
@@ -48,11 +43,10 @@ function Sidebar({ active }) {
     try { return localStorage.getItem(NAV_STORAGE_KEY) === "true"; }
     catch { return false; }
   });
-  const [previewRole, setPreviewRole] = useState(null);
+  const [tourLoading, setTourLoading] = useState(false);
+  const [tourError, setTourError] = useState("");
   const mobileToggleRef = useRef(null);
   const sidebarRef = useRef(null);
-  const previewCloseRef = useRef(null);
-  const previewOpenerRef = useRef(null);
 
   useEffect(() => {
     document.documentElement.dataset.navCollapsed = collapsed ? "true" : "false";
@@ -71,7 +65,7 @@ function Sidebar({ active }) {
     if (!mobileOpen || !isMobile) return undefined;
     sidebarRef.current?.querySelector(".nav-item")?.focus();
     const onKeyDown = (event) => {
-      if (document.querySelector("dialog[open], .role-preview-dialog")) return;
+      if (document.querySelector("dialog[open]")) return;
       if (event.key === "Escape") { setMobileOpen(false); mobileToggleRef.current?.focus(); }
       if (event.key !== "Tab") return;
       const focusable = [mobileToggleRef.current, ...sidebarRef.current.querySelectorAll("button, select, a[href]")]
@@ -84,25 +78,12 @@ function Sidebar({ active }) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [mobileOpen, isMobile]);
 
-  useEffect(() => {
-    if (!previewRole) return undefined;
-    previewCloseRef.current?.focus();
-    const onKeyDown = (event) => {
-      if (document.querySelector("dialog[open]")) return;
-      if (event.key === "Escape") { event.preventDefault(); setPreviewRole(null); }
-      if (event.key === "Tab") { event.preventDefault(); previewCloseRef.current?.focus(); }
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      if (previewOpenerRef.current?.isConnected) previewOpenerRef.current.focus();
-    };
-  }, [previewRole]);
-
-  const openPreviewRole = (role) => {
-    previewOpenerRef.current = document.activeElement?.closest(".global-search-dialog")
-      ? document.querySelector(".global-search-trigger") : document.activeElement;
-    setPreviewRole(role);
+  const openPreviewRole = async (role) => {
+    if (tourLoading) return;
+    setTourLoading(true);
+    setTourError("");
+    try { await startRoleTour(role); }
+    catch (error) { setTourError(error.message); setTourLoading(false); }
   };
 
   const revealAppearance = () => {
@@ -116,6 +97,7 @@ function Sidebar({ active }) {
     catch { /* Local VERA logout still proceeds if the identity provider is unavailable. */ }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    clearRoleTourSession();
     navigate("/");
   };
 
@@ -202,15 +184,16 @@ function Sidebar({ active }) {
             </section>)}
           </nav>
           {previewRoles.length > 0 && <div className="role-preview-launcher">
-            <strong>VER VISTA DE OTRO ROL</strong>
+            <strong>RECORRER EXPERIENCIA DE OTRO ROL</strong>
             <div className="role-preview-buttons">
               {previewRoles.map(({ role, label }) => <button type="button" key={role}
-                onClick={() => openPreviewRole(role)} aria-label={`Ver vista de ${label}`}
-                title={collapsed && !isMobile ? `Ver vista de ${label}` : undefined}>
-                <span className="role-preview-full">Ver vista de {label}</span>
+                onClick={() => openPreviewRole(role)} disabled={tourLoading} aria-label={`Recorrer vista de ${label}`}
+                title={collapsed && !isMobile ? `Recorrer vista de ${label}` : undefined}>
+                <span className="role-preview-full">Recorrer vista de {label}</span>
                 <span className="role-preview-short" aria-hidden="true">{label.charAt(0)}</span>
               </button>)}
             </div>
+            {tourError && <p className="role-tour-error" role="alert">{tourError}</p>}
           </div>}
         </div>
 
@@ -236,22 +219,7 @@ function Sidebar({ active }) {
       </aside>
       <GlobalSearch groups={groups} previewRoles={previewRoles} onNavigate={goTo}
         onPreviewRole={openPreviewRole} onRevealAppearance={revealAppearance} onLogout={logout}
-        onOpen={() => setMobileOpen(false)} disabled={Boolean(previewRole)} />
-      {previewRole && <div className="role-preview-backdrop" role="presentation" onClick={() => setPreviewRole(null)}>
-        <section className="role-preview-dialog" role="dialog" aria-modal="true"
-          aria-label={`Vista previa de ${ROLE_LABELS[previewRole]}`} onClick={(event) => event.stopPropagation()}>
-          <button type="button" className="role-preview-close" ref={previewCloseRef} onClick={() => setPreviewRole(null)} aria-label="Cerrar vista previa"><X size={20} /></button>
-          <span className="eyebrow">VISTA PREVIA · SIN CAMBIAR PERMISOS</span>
-          <h2>{ROLE_LABELS[previewRole]}</h2>
-          <p>{PREVIEW_ACTIONS[previewRole]}</p>
-          <h3>Navegación de este rol</h3>
-          <ul>{items.filter((item) => item.id !== "usuarios" && item.id !== "auditoria")
-            .map((item) => <li key={item.id}>{item.label}</li>)}
-            {previewRole === "DIRECTOR" && <li>Usuarios (consulta)</li>}
-          </ul>
-          <p className="role-preview-note">Esta vista muestra la navegación y el alcance general. Tu sesión SUPER_ADMIN conserva sus permisos reales; no se ejecutan acciones como otra persona.</p>
-        </section>
-      </div>}
+        onOpen={() => setMobileOpen(false)} disabled={tourLoading} />
     </>
   );
 }
