@@ -37,7 +37,7 @@ function AuditoriasActivas() {
   const [activeStep, setActiveStep] = useState("execution");
   const [activeTab, setActiveTab] = useState("summary");
   const [auditContext, setAuditContext] = useState(null);
-  const [contextError, setContextError] = useState("");
+  const [contextError, setContextError] = useState(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -51,6 +51,7 @@ function AuditoriasActivas() {
       if (auditId) {
         setSelectedAudit(active.find((item) => item.id === auditId) || null);
         setAuditContext(await getAuditContext(auditId));
+        setContextError(null);
       }
       setError("");
     } catch (loadError) {
@@ -86,12 +87,13 @@ function AuditoriasActivas() {
   useEffect(() => {
     if (!auditId) return;
     let cancelled = false;
-    setAuditContext(null);
-    setContextError("");
     getAuditContext(auditId).then((context) => {
-      if (!cancelled) setAuditContext(context);
+      if (!cancelled) {
+        setAuditContext(context);
+        setContextError(null);
+      }
     }).catch((loadError) => {
-      if (!cancelled) setContextError(loadError.message);
+      if (!cancelled) setContextError({ id: auditId, message: loadError.message });
     });
     return () => { cancelled = true; };
   }, [auditId]);
@@ -126,6 +128,7 @@ function AuditoriasActivas() {
   };
 
   const currentContext = auditContext?.audit.id === selectedAudit?.id ? auditContext : null;
+  const currentContextError = !currentContext && contextError?.id === selectedAudit?.id ? contextError.message : "";
   const linkedRisks = currentContext?.groups.risks || [];
   const linkedControls = currentContext?.groups.controls || [];
   const linkedEvidence = currentContext?.groups.evidence || [];
@@ -399,8 +402,8 @@ function AuditoriasActivas() {
                     </nav>
 
                     <div className="governance-panel">
-                      {contextError && <p role="alert">No se pudieron cargar las relaciones: {contextError}</p>}
-                      {activeTab !== "summary" && activeTab !== "activity" && !currentContext && !contextError && <p role="status">Cargando relaciones del expediente...</p>}
+                      {currentContextError && <p role="alert">No se pudieron cargar las relaciones: {currentContextError}</p>}
+                      {activeTab !== "summary" && activeTab !== "activity" && !currentContext && !currentContextError && <p role="status">Cargando relaciones del expediente...</p>}
                       {activeTab === "summary" && (
                         <>
                           <h3>Resumen de auditoría</h3>
