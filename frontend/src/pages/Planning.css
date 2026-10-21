@@ -999,6 +999,83 @@
   line-height: 1.5;
 }
 
+.audit-context-map > p {
+  margin: 6px 0 18px;
+  color: var(--vera-text-muted);
+}
+
+.audit-context-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.audit-context-metrics button {
+  padding: 16px;
+  border: 1px solid var(--vera-border);
+  border-radius: 10px;
+  background: var(--vera-accent-soft);
+  color: var(--vera-text-strong);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.audit-context-metrics strong,
+.audit-context-metrics span,
+.audit-context-row strong,
+.audit-context-row span {
+  display: block;
+}
+
+.audit-context-metrics strong {
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.audit-context-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--vera-border);
+}
+
+.audit-context-row span,
+.audit-context-map > small {
+  color: var(--vera-text-muted);
+  font-size: 12px;
+}
+
+.audit-context-row strong { color: var(--vera-text-strong); }
+
+.audit-context-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.audit-context-links button {
+  padding: 7px 10px;
+  border: 1px solid var(--vera-border);
+  border-radius: 8px;
+  background: var(--vera-surface);
+  color: var(--vera-accent);
+  cursor: pointer;
+  font: inherit;
+}
+
+.audit-context-map button:focus-visible {
+  outline: 3px solid var(--vera-focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+  .audit-context-row { align-items: flex-start; flex-direction: column; }
+}
+
 .matrix-audit-open {
   border: 0;
   margin: 0;

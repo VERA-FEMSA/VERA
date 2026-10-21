@@ -1,4 +1,5 @@
 const { buildAssistantContext, sourceFor } = require("./assistantContextService");
+const { relateAudit } = require("./auditContextService");
 const { askAzureOpenAi } = require("./azureOpenAiService");
 
 const MAX_ITEMS_PER_SECTION = 10;
@@ -14,10 +15,7 @@ const buildAuditDossier = async (user, auditId, { generate = true, ask = askAzur
     type: "audit", id: auditId
   });
   const audit = visibleRecords.audits.find((item) => item.id === auditId);
-  const risks = visibleRecords.risks.filter((item) => item.linkedAuditId === auditId);
-  const riskIds = new Set(risks.map((item) => item.id));
-  const controls = visibleRecords.controls.filter((item) => item.riskIds.some((id) => riskIds.has(id)));
-  const findings = visibleRecords.findings.filter((item) => riskIds.has(item.riskId));
+  const { risks, controls, findings } = relateAudit(auditId, visibleRecords);
   const pending = visibleRecords.pending.filter((item) => item.entityId === auditId);
   const sections = [
     section("risks", "Riesgos vinculados", "risks", risks),
