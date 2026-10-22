@@ -7,6 +7,50 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/assistant/insights", (route) => route.fulfill({ json: { insights: [], partial: false } }));
 });
 
+test("Copiloto: memoria visible, editable, pausada y borrable", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "read-only", conversations: true, memory: true
+  } }));
+  await page.route("**/api/assistant/conversations", (route) => route.fulfill({ json: { conversations: [] } }));
+  const id = "33333333-3333-4333-8333-333333333333";
+  let note = null;
+  await page.route("**/api/assistant/memories**", (route) => {
+    const method = route.request().method();
+    if (method === "GET") return route.fulfill({ json: { memories: note ? [note] : [] } });
+    if (method === "POST") {
+      note = { id, content: route.request().postDataJSON().content, enabled: true, version: 1 };
+      return route.fulfill({ status: 201, json: { memory: note } });
+    }
+    if (method === "PATCH") {
+      note = { ...note, ...route.request().postDataJSON(), version: note.version + 1 };
+      return route.fulfill({ json: { memory: note } });
+    }
+    if (method === "DELETE") { note = null; return route.fulfill({ status: 204, body: "" }); }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByRole("button", { name: /Memoria personalizada/ }).click();
+  await page.getByRole("button", { name: "Añadir nota" }).click();
+  await page.getByLabel("Nota para futuras conversaciones").fill("Prefiero respuestas breves");
+  await page.getByRole("button", { name: "Guardar nota" }).click();
+  await expect(page.getByText("Prefiero respuestas breves")).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: /Memoria personalizada/ }).click();
+  await expect(page.getByText("Prefiero respuestas breves")).toBeVisible();
+  await page.getByRole("button", { name: "Pausar" }).click();
+  await expect(page.getByText("(pausada)")).toBeVisible();
+  await page.getByRole("button", { name: "Editar" }).click();
+  await page.getByLabel("Nota para futuras conversaciones").fill("Prefiero tablas breves");
+  await page.getByRole("button", { name: "Guardar nota" }).click();
+  await expect(page.getByText("Prefiero tablas breves")).toBeVisible();
+  await page.getByRole("button", { name: "Borrar" }).click();
+  await page.getByRole("button", { name: "Sí, borrar nota" }).click();
+  await expect(page.getByText("No hay notas guardadas.")).toBeVisible();
+  const access = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(access.violations.map(({ id }) => id)).toEqual([]);
+});
+
 test("Copiloto: proyectos privados agrupan hilos y borrarlos conserva el historial", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {

@@ -2,6 +2,7 @@ const { buildAssistantContext } = require("./assistantContextService");
 const { getVerifiedAnswer } = require("./assistantVerifiedAnswers");
 const { askAzureOpenAi, readiness } = require("./azureOpenAiService");
 const { searchAssistantEvidence } = require("./assistantEvidenceSearchService");
+const assistantMemory = require("../repositories/assistantMemoryRepository");
 
 const answerAssistant = async (user, question, history = [], focus = null, withEvidence = false) => {
   if (!readiness().available) {
@@ -28,7 +29,9 @@ const answerAssistant = async (user, question, history = [], focus = null, withE
       citations, references: verified.references ?? (verified.metric ? [] : references),
       coverage, asOf, usage: null };
   }
-  const { answer, sourceIds, usage } = await askAzureOpenAi({ question, context, history });
+  const memory = process.env.VERA_AI_MEMORY_ENABLED === "true" && !user.roleTour
+    ? (await assistantMemory.list(user)).filter((item) => item.enabled).map((item) => item.content) : [];
+  const { answer, sourceIds, usage } = await askAzureOpenAi({ question, context, history, memory });
   const citations = sourceIds.map((id) => sourceCatalog.find((item) => item.sourceId === id)).filter(Boolean);
   return { answer, mode: "generated", citations, references, coverage, asOf, usage };
 };
