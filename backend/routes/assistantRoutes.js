@@ -92,12 +92,16 @@ router.post("/conversations/:id/attachments", attachmentEnabled,
     standardHeaders: "draft-8", legacyHeaders: false }),
   express.raw({ type: () => true, limit: "2mb" }), async (req, res) => {
     const mime = String(req.headers["content-type"] || "").split(";")[0].toLowerCase();
+    if (!Buffer.isBuffer(req.body)) {
+      return res.status(400).json({ message: "El cuerpo del archivo no es válido." });
+    }
+    const fileBytes = Buffer.from(req.body);
     let name;
     try { name = decodeURIComponent(String(req.headers["x-file-name"] || "")); }
     catch { return res.status(400).json({ message: "El nombre del archivo no es válido." }); }
     name = name.replace(/[\\/\x00-\x1f\x7f]/g, "").trim();
-    if (!name || name.length > 120 || !Buffer.isBuffer(req.body) || req.body.length === 0 ||
-        req.body.length > 2 * 1024 * 1024 || !(SEARCHABLE_MIME.has(mime) || IMAGE_MIME.has(mime))) {
+    if (!name || name.length > 120 || fileBytes.length === 0 ||
+        fileBytes.length > 2 * 1024 * 1024 || !(SEARCHABLE_MIME.has(mime) || IMAGE_MIME.has(mime))) {
       return res.status(400).json({ message: "Adjunta un PDF, DOCX, TXT, CSV, PNG, JPEG o WebP de hasta 2 MB." });
     }
     try {
@@ -114,11 +118,11 @@ router.post("/conversations/:id/attachments", attachmentEnabled,
       }
       let extracted = { chunks: [], status: "ready", truncated: false };
       if (SEARCHABLE_MIME.has(mime)) {
-        try { extracted = await extractEvidenceText(req.body, mime); }
+        try { extracted = await extractEvidenceText(fileBytes, mime); }
         catch { return res.status(422).json({ message: "No se pudo extraer texto de este archivo." }); }
       }
       const file = await evidenceStorage.upload({ entityType: "ai", entityId: req.params.id,
-        mime, bytes: req.body });
+        mime, bytes: fileBytes });
       try {
         const saved = await attachments.create(req.user, req.params.id,
           { name, file, chunks: extracted.chunks, status: extracted.status, truncated: extracted.truncated });
