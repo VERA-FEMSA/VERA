@@ -40,7 +40,9 @@ function CommitteeDossier() {
   }, [auditId, revision]);
 
   const refresh = () => { setLoading(true); setError(""); setRevision((current) => current + 1); };
-  const auditPath = `/auditorias-activas/${encodeURIComponent(auditId)}`;
+  const auditPath = context?.audit.status && context.audit.status !== "ACTIVE"
+    ? `/auditorias?auditId=${encodeURIComponent(auditId)}`
+    : `/auditorias-activas/${encodeURIComponent(auditId)}`;
   const facts = context ? dossierFacts(context) : null;
 
   return <div className="dashboard-layout committee-layout">
