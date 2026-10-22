@@ -107,7 +107,7 @@ function AuditoriasActivas() {
     { id: "execution", label: "Ejecución y progreso", icon: ShieldAlert },
     { id: "supervision", label: "Supervisión", icon: Activity },
     { id: "closure", label: "Cierre", icon: CheckCircle2 },
-    { id: "report", label: "Reporte", icon: FileText, locked: true },
+    { id: "report", label: "Reporte", icon: FileText },
     { id: "followup", label: "Follow-up", icon: LockKeyhole, locked: true }
   ];
   const currentStepIndex = governanceSteps.findIndex((step) => step.id === activeStep);
@@ -404,6 +404,12 @@ function AuditoriasActivas() {
                     </nav>
 
                     <div className="governance-panel">
+                      {activeStep === "report" && currentContext && <section aria-label="Reporte de auditoría">
+                        <h3>Reporte del expediente</h3>
+                        <p>{currentContext.audit.title} · {currentContext.audit.status} · {currentContext.audit.area}</p>
+                        <p>{linkedRisks.length} riesgos · {linkedControls.length} controles · {linkedFindings.length} hallazgos · {linkedEvidence.length} evidencias vinculadas.</p>
+                        <button type="button" className="secondary-action" onClick={() => navigate(`/auditorias?auditId=${encodeURIComponent(selectedAudit.id)}`)}>Ver reporte y descargar CSV</button>
+                      </section>}
                       {currentContextError && <p role="alert">No se pudieron cargar las relaciones: {currentContextError}</p>}
                       {activeTab !== "summary" && activeTab !== "activity" && !currentContext && !currentContextError && <p role="status">Cargando relaciones del expediente...</p>}
                       {activeTab === "summary" && (

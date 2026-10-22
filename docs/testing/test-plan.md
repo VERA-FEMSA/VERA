@@ -88,13 +88,13 @@ La disponibilidad de 99.5% requiere una ventana de medición mensual; RTO de 4 h
 | TC-19 | RF-19: archivo excede límite | API/E2E | Media | 4 | Parcial: backend limita a 3 MB y devuelve 413; falta evidencia E2E/remota |
 | TC-20 | RF-24: notificación al responsable | API/E2E | Media | 4 | Parcial: bandeja derivada, prioridad y alcance por rol probados; falta canal externo/evento de entrega |
 | TC-21 | RF-24: marcar/gestionar como leída | API/E2E | Media | 4 | Parcial: pruebas HTTP y repositorio simulado cubren lectura por persona, permisos y reversión; falta comprobar persistencia real en despliegue |
-| TC-22 | RF-27: aplicar filtros | API/E2E | Media | 5 | Parcial: filtros de riesgos/evidencias y auditorías se cubren por API; filtros de reportes no implementados |
-| TC-23 | RF-27: búsqueda con coincidencias | API/E2E | Media | 5 | Parcial: búsquedas de riesgos, evidencias y auditorías por API; HU-26 agrega UI; falta búsqueda global/reportes |
-| TC-24 | RF-27: búsqueda sin resultados | API/UI | Media | 5 | Parcial: HU-26 muestra estado vacío en UI; falta búsqueda de reportes |
-| TC-25 | RF-27: filtro sin resultados | API/UI | Media | 5 | Parcial: falta estado vacío de filtros UI y reporte |
-| TC-26 | RF-29: exportación completa | API/E2E | Media | 5 | Bloqueado: no se encontró función de reportes/exportación en la línea base |
-| TC-27 | RF-29: exportar datos filtrados | API/E2E | Media | 5 | Bloqueado: falta función de exportación |
-| TC-28 | RF-29: exportar filtro vacío | API/UI | Media | 5 | Bloqueado: falta función de exportación |
+| TC-22 | RF-27: aplicar filtros | API/E2E | Media | 5 | Parcial: filtros de riesgos/evidencias, auditorías y reportes se cubren por API; falta dictamen desplegado. |
+| TC-23 | RF-27: búsqueda con coincidencias | API/E2E | Media | 5 | Parcial: búsqueda por API/UI de auditorías y reporte filtrado; falta aceptar alcance global con criterios oficiales. |
+| TC-24 | RF-27: búsqueda sin resultados | API/UI | Media | 5 | Parcial: HU-26 y el reporte muestran estado vacío; falta dictamen desplegado. |
+| TC-25 | RF-27: filtro sin resultados | API/UI | Media | 5 | Parcial: filtro vacío y CSV solo con encabezados implementados; falta dictamen desplegado. |
+| TC-26 | RF-29: exportación completa | API/E2E | Media | 5 | Cubierto en código: descarga CSV del portafolio visible; falta dictamen de Production. |
+| TC-27 | RF-29: exportar datos filtrados | API/E2E | Media | 5 | Cubierto en código: exportación con los mismos filtros de búsqueda y alcance por rol; falta dictamen de Production. |
+| TC-28 | RF-29: exportar filtro vacío | API/UI | Media | 5 | Cubierto en código: reporte vacío y CSV con encabezados; falta dictamen de Production. |
 | TC-29 | RF-30/RNF-03: funciones distintas por rol | Unit/API/E2E | Alta | 2 | Parcial: listado/edición y denegación por rol cubiertos en API; falta matriz completa de módulos |
 | TC-30 | RF-33: cerrar auditoría y evitar edición posterior | API/UI | Alta | 3 | Parcial: flujo API y rechazo de transiciones/edición posteriores; reflejo visual queda en PR-5 |
 | TC-31 | RNF-01: 150 usuarios concurrentes | Carga | Alta | 7 | Implementación preparada en k6; no ejecutada: requiere staging HTTPS y JWT de cuenta de carga activa; límite global actual de 600 solicitudes/IP/15 min puede rechazar la corrida |
@@ -119,7 +119,7 @@ La disponibilidad de 99.5% requiere una ventana de medición mensual; RTO de 4 h
 | TC-50 | RF-23: cerrar hallazgo tras completar plan | API/E2E | Alta | 3 | Bloqueado: depende de hallazgos/planes de acción no implementados |
 | TC-51 | RF-25: historial de cambios de auditoría | API/UI | Media | 4 | Parcial: historial contextual de propuestas y filtro de bitácora probados; falta historial de expediente persistente/UI |
 | TC-52 | RF-26: comentario dentro de auditoría | API/E2E | Media | 4 | Parcial: permisos, alcance y validación de comentarios del expediente de planificación probados; falta persistencia/UI |
-| TC-53 | RF-28: reporte combinado de auditorías/riesgos/hallazgos | API/E2E | Media | 5 | Bloqueado: existe el registro básico de hallazgos de HU-15, pero no un reporte combinado |
+| TC-53 | RF-28: reporte combinado de auditorías/riesgos/hallazgos | API/E2E | Media | 5 | Cubierto en código: reporte vinculado por expediente, con controles y conteo de evidencias; falta dictamen de Production. |
 | TC-54 | RF-31: crear propuesta con objetivo, alcance, justificación y periodo | API/E2E | Alta | 3 | Parcial: creación/validaciones de propuesta probadas; cotejar cada campo requerido |
 | TC-55 | RF-32: aprobar propuesta | API/E2E | Alta | 3 | Existente: aprobación, permisos y transición probados por API |
 | TC-56 | RF-32: rechazar propuesta con motivo | API/E2E | Alta | 3 | Existente: motivo obligatorio, actor/fecha y estado terminal probados por API |
@@ -134,7 +134,7 @@ La disponibilidad de 99.5% requiere una ventana de medición mensual; RTO de 4 h
 | TC-65 | RNF-12: revisión de privacidad y tratamiento de datos | Revisión/manual | Alta | 7 | Pendiente: definir jurisdicción, inventario de datos y responsable de aprobación |
 | TC-66 | RNF-13: conservar historial/evidencia según retención | Operativa/API | Alta | 4 | Bloqueado: almacenamiento actual en memoria, sin política de retención |
 | TC-67 | RNF-14: panel carga en máximo 2 segundos | Rendimiento/E2E | Media | 7 | Parcial: perfil k6 propone medir API p95 <1500 ms, pero no se ha ejecutado; falta medición completa de página, red y hardware representativos |
-| TC-68 | RNF-15: reporte de hasta 100 páginas en máximo 10 segundos | Rendimiento | Media | 7 | Bloqueado: reportes no implementados |
+| TC-68 | RNF-15: reporte de hasta 100 páginas en máximo 10 segundos | Rendimiento | Media | 7 | Bloqueado: el reporte CSV no tiene concepto de páginas; falta acordar formato paginado y medir 100 páginas en entorno representativo. |
 | TC-69 | RNF-16: activar y usar 2FA | API/E2E | Alta | 2 | Cubierto por API: enrolamiento TOTP, código erróneo/expirado y sesión solo tras código válido |
 | TC-70 | RNF-18: WCAG 2.1 AA | A11y/UI/manual | Media | 6 | Parcial: axe analiza login y panel contra reglas WCAG 2.1 A/AA; falta teclado/lector, resto de rutas y revisión manual antes de afirmar conformidad |
 | TC-71 | RNF-19: interfaz completamente en español | UI/manual | Media | 6 | Pendiente: inventario y verificación de textos visibles |

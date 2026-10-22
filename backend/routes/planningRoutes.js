@@ -20,10 +20,33 @@ const {
 } = require("../controllers/planningController");
 const { getHistory, addComment } = require("../controllers/planningHistoryController");
 const { buildAuditContext } = require("../services/auditContextService");
+const { parseAuditFilters } = require("../services/auditSearch");
+const { buildPortfolioReport, reportToCsv } = require("../services/portfolioReportService");
 
 // Todos los usuarios con sesión pueden consultar el tablero.
 router.get("/", verifyToken, listProposals);
 router.get("/search", verifyToken, searchPlanningAudits);
+router.get("/report", verifyToken, async (req, res, next) => {
+  try {
+    const { filters, error } = parseAuditFilters(req.query);
+    if (error) return res.status(400).json({ message: error });
+    if (req.query.format !== undefined && req.query.format !== "csv") {
+      return res.status(400).json({ message: "El formato no es válido." });
+    }
+    const report = await buildPortfolioReport(req.user, filters);
+    res.set("Cache-Control", "no-store");
+    res.set("Vary", "Authorization");
+    if (req.query.format === "csv") {
+      res.set("Content-Type", "text/csv; charset=utf-8");
+      res.set("Content-Disposition", 'attachment; filename="vera-reporte-portafolio.csv"');
+      return res.send(reportToCsv(report));
+    }
+    return res.json(report);
+  } catch (error) {
+    if (error.status === 403) return res.status(403).json({ message: error.message });
+    return next(error);
+  }
+});
 router.get("/active", verifyToken, listActiveAudits);
 router.get("/auditors", verifyToken, allowRoles(...AUDIT_PROPOSAL_CREATE_ROLES), listAuditors);
 router.get("/:id/context", verifyToken, async (req, res, next) => {
