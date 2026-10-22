@@ -3,6 +3,8 @@ import { Activity, ArrowRight, CheckCircle2, ClipboardList, RotateCw } from "luc
 import { Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { getDashboardSummary } from "../services/dashboardService";
+import { getActions } from "../services/actionService";
+import { localToday } from "../utils/localDate";
 import "./Dashboard.css";
 
 const STATUS_LABELS = {
@@ -15,34 +17,46 @@ const STATUS_LABELS = {
 
 const RISK_LABELS = { 1: "Baja", 2: "Media", 3: "Alta" };
 const RISK_LEVELS = ["Bajo", "Medio", "Alto"];
+const ACTION_STATUS = { OPEN: "Abierta", IN_PROGRESS: "En curso" };
+const ACTION_SOURCE = { AUDIT: "Auditoría", RISK: "Riesgo", CONTROL: "Control", FINDING: "Hallazgo" };
+const actionDate = (value) => new Date(`${value}T00:00:00`).toLocaleDateString("es-MX", {
+  day: "numeric", month: "short", year: "numeric"
+});
 
 function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actions, setActions] = useState([]);
+  const [actionsLoading, setActionsLoading] = useState(true);
+  const [actionsError, setActionsError] = useState("");
+  const [revision, setRevision] = useState(0);
   const [statusView, setStatusView] = useState("bars");
   const [riskView, setRiskView] = useState("matrix");
 
-  const load = async () => {
+  const load = () => {
     setLoading(true);
-    try {
-      setSummary(await getDashboardSummary());
-      setError("");
-    } catch (loadError) {
-      setError(loadError.message);
-    } finally {
-      setLoading(false);
-    }
+    setActionsLoading(true);
+    setRevision((current) => current + 1);
   };
 
   useEffect(() => {
     let cancelled = false;
     getDashboardSummary()
-      .then((data) => { if (!cancelled) setSummary(data); })
+      .then((data) => { if (!cancelled) { setSummary(data); setError(""); } })
       .catch((loadError) => { if (!cancelled) setError(loadError.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [revision]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getActions()
+      .then((result) => { if (!cancelled) { setActions(result.actions); setActionsError(""); } })
+      .catch((loadError) => { if (!cancelled) setActionsError(loadError.message); })
+      .finally(() => { if (!cancelled) setActionsLoading(false); });
+    return () => { cancelled = true; };
+  }, [revision]);
 
   const metrics = summary?.metrics;
   const statusCounts = summary?.statusCounts || [];
@@ -53,6 +67,12 @@ function Dashboard() {
     count: riskCells.flat().filter((cell) => cell.risk === risk).reduce((total, cell) => total + cell.count, 0)
   }));
   const maxRiskCount = Math.max(1, ...riskTotals.map(({ count }) => count));
+  let user = null;
+  try { user = JSON.parse(localStorage.getItem("user") || "null"); } catch { /* Sin asignaciones personales. */ }
+  const activeActions = actions.filter((item) => ["OPEN", "IN_PROGRESS"].includes(item.status));
+  const myActions = activeActions.filter((item) => item.assigneeId === user?.id);
+  const overdueActions = myActions.filter((item) => item.dueDate < localToday());
+  const nextActions = [...myActions].sort((first, second) => first.dueDate.localeCompare(second.dueDate)).slice(0, 3);
 
   return (
     <div className="dashboard-layout">
@@ -67,10 +87,10 @@ function Dashboard() {
             </div>
             <div className="dashboard-hero-tools">
               <span className="dashboard-scope-note">Información visible para tu rol</span>
-              <button className="dashboard-refresh" type="button" onClick={load} disabled={loading}>
+              <button className="dashboard-refresh" type="button" onClick={load} disabled={loading || actionsLoading}>
                 <RotateCw size={16} aria-hidden="true" /> Actualizar
               </button>
-              <span className="dashboard-refresh-status" role="status">{loading && summary ? "Actualizando datos" : ""}</span>
+              <span className="dashboard-refresh-status" role="status">{(loading || actionsLoading) && summary ? "Actualizando datos" : ""}</span>
             </div>
           </header>
 
@@ -87,6 +107,7 @@ function Dashboard() {
             <>
               <nav className="dashboard-page-nav" aria-label="Secciones del panel">
                 <a href="#portfolio-summary">Panorama</a>
+                <a href="#portfolio-commitments">Compromisos</a>
                 <a href="#portfolio-analysis">Estado y riesgo</a>
                 <a href="#portfolio-priorities">Por atender</a>
               </nav>
@@ -131,6 +152,31 @@ function Dashboard() {
                   <Link to="/auditorias-activas"><Activity size={17} aria-hidden="true" />Auditorías activas y riesgos</Link>
                   <Link to="/trimestres"><ArrowRight size={17} aria-hidden="true" />Plan trimestral</Link>
                 </nav>
+              </section>
+
+              <section id="portfolio-commitments" className="dashboard-panel dashboard-commitments" aria-labelledby="dashboard-commitments-title">
+                <div className="dashboard-panel-heading">
+                  <div><span className="eyebrow">SEGUIMIENTO HUMANO</span><h2 id="dashboard-commitments-title">Compromisos del portafolio</h2></div>
+                  <Link to="/notificaciones">Abrir Pendientes <ArrowRight size={15} aria-hidden="true" /></Link>
+                </div>
+                {actionsLoading ? <p className="dashboard-commitment-state" role="status">Consultando compromisos registrados…</p>
+                  : actionsError ? <p className="dashboard-commitment-state" role="alert">No se pudieron consultar los compromisos: {actionsError}. Los indicadores de seguimiento no están disponibles.</p>
+                    : <>
+                      <div className="dashboard-commitment-metrics" aria-label="Resumen de compromisos">
+                        <div><strong>{myActions.length}</strong><span>Asignados a mi cuenta</span></div>
+                        <div><strong>{overdueActions.length}</strong><span>Vencidos de mis asignaciones</span></div>
+                        <div><strong>{activeActions.length}</strong><span>Abiertos en mi alcance</span></div>
+                      </div>
+                      {nextActions.length ? <div className="dashboard-commitment-list">
+                        <h3>Próximos a atender</h3>
+                        <ul>{nextActions.map((action) => <li key={action.id}>
+                          <div><b>{action.title}</b><span>{ACTION_SOURCE[action.sourceType]} · {action.sourceTitle} · {ACTION_STATUS[action.status] || action.status}</span></div>
+                          <time dateTime={action.dueDate} className={action.dueDate < localToday() ? "is-overdue" : ""}>
+                            {action.dueDate < localToday() ? "Venció" : "Vence"} {actionDate(action.dueDate)}
+                          </time>
+                        </li>)}</ul>
+                      </div> : <p className="dashboard-commitment-state">No tienes compromisos abiertos asignados en este momento.</p>}
+                    </>}
               </section>
 
               <div id="portfolio-analysis" className="dashboard-insight-row">
