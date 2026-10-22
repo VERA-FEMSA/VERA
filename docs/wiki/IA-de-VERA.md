@@ -9,7 +9,7 @@ El asistente de HU-34 ayuda a consultar auditorías, riesgos, controles, hallazg
 | Preguntar a VERA | Respuesta y registros citados o relacionados; enlaces internos construidos por el servidor. | Una cita confirma que la fuente pertenece al catálogo visible, no que toda la frase generada sea correcta. |
 | Indicadores exactos | Conteos calculados por VERA para preguntas reconocidas; no llama a Azure. | Los filtros no reconocidos pasan a la ruta generativa y no deben fingir un conteo exacto. |
 | Briefing de auditoría | Estado, riesgos, controles, hallazgos y pendientes autorizados; posible próximo paso en borrador. | La sugerencia es separada de los hechos calculados. |
-| Consulta de evidencias | Fragmentos de PDF/TXT indexados y búsqueda opcional de archivos visibles. | No busca todo archivo existente; los límites de indexación se informan. |
+| Consulta de evidencias | Fragmentos de PDF/TXT/CSV indexados y búsqueda opcional de archivos visibles. | No busca todo archivo existente; CSV se limita a 1 000 filas y las respuestas requieren revisar el archivo original. |
 | OCR de imagen | Extracción iniciada explícitamente para formatos admitidos cuando hay despliegue Azure compatible con visión. | Un PDF escaneado no se procesa como imagen en el alcance documentado. |
 | Borrador de propuesta | Texto sugerido a partir de un riesgo visible para roles que pueden proponer. | Requiere revisión humana; no crea ni aprueba la propuesta. |
 

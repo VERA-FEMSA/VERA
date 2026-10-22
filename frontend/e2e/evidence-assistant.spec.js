@@ -75,3 +75,30 @@ test("Evidencias IA: OCR de imagen es explícito y después permite consultar fr
   await dialog.getByRole("button", { name: "Consultar archivo" }).click();
   await expect(dialog.getByText("Control revisado mensualmente.")).toBeVisible();
 });
+
+test("Evidencias IA: CSV ofrece consulta con fila y encabezados citados", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  const evidence = { id: "EVD-CSV", title: "Matriz de controles", description: "Resultados del periodo.",
+    evidenceType: "REPORT", entityType: "RISK", entityId: "RSK-CSV", entityTitle: "Riesgo operativo",
+    author: { name: "Auditoría" }, createdAt: "2026-10-22T10:00:00.000Z",
+    file: { mime: "text/csv", size: 120 } };
+  await page.route("**/api/risks**", (route) => route.fulfill({ json: { risks: [] } }));
+  await page.route("**/api/controls**", (route) => route.fulfill({ json: { controls: [] } }));
+  await page.route("**/api/planning**", (route) => route.fulfill({ json: { proposals: [] } }));
+  await page.route("**/api/evidence/**", (route) => {
+    if (new URL(route.request().url()).pathname.endsWith("/ask")) return route.fulfill({ json: {
+      answer: "El control de acceso figura como aprobado.", mode: "generated",
+      asOf: "2026-10-22T12:00:00.000Z", coverage: { indexedChunks: 2, includedChunks: 1, partial: true },
+      citations: [{ sourceId: "evidence:EVD-CSV:chunk:0", evidenceId: evidence.id, title: evidence.title,
+        pageNumber: null, excerpt: "Fila 2: Control: Acceso; Estado: Aprobado",
+        path: "/evidencias#evidence-EVD-CSV" }] } });
+    return route.fulfill({ json: { evidence: [evidence] } });
+  });
+  await page.goto("/evidencias");
+  await page.getByRole("button", { name: "Consultar contenido con IA" }).click();
+  const dialog = page.getByRole("dialog", { name: "Preguntar sobre Matriz de controles" });
+  await dialog.getByLabel("Pregunta sobre el contenido").fill("¿Qué estado tiene Acceso?");
+  await dialog.getByRole("button", { name: "Consultar archivo" }).click();
+  await expect(dialog.getByText("Fila 2: Control: Acceso; Estado: Aprobado")).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Matriz de controles" })).toHaveAttribute("href", "/evidencias#evidence-EVD-CSV");
+});

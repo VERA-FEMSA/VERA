@@ -77,3 +77,26 @@ test("Feedback: Supabase write sends only metadata and reads a bounded window", 
     }
   }
 });
+
+test("Feedback: fallos del almacén no convierten una valoración en éxito", async (t) => {
+  const previous = { mode: process.env.VERA_USER_STORE, url: process.env.SUPABASE_URL,
+    key: process.env.SUPABASE_SECRET_KEY, fetch: global.fetch };
+  t.after(() => {
+    global.fetch = previous.fetch;
+    for (const [name, value] of [["VERA_USER_STORE", previous.mode], ["SUPABASE_URL", previous.url],
+      ["SUPABASE_SECRET_KEY", previous.key]]) {
+      if (value === undefined) delete process.env[name]; else process.env[name] = value;
+    }
+  });
+  process.env.VERA_USER_STORE = "supabase";
+  process.env.SUPABASE_URL = "https://supabase.example";
+  process.env.SUPABASE_SECRET_KEY = "sb_secret_test";
+  const rating = { interactionId: "b0060eed-751e-4912-af92-c44d7d5355cf", channel: "ask",
+    mode: "generated", rating: "helpful" };
+  global.fetch = async () => new Response("error no JSON", { status: 500 });
+  await assert.rejects(() => feedback.save(rating), (error) => error.status === 503);
+  global.fetch = async () => Response.json({ code: "23505" }, { status: 409 });
+  await assert.rejects(() => feedback.save(rating), (error) => error.status === 409);
+  global.fetch = async () => Response.json({ malformed: true });
+  await assert.rejects(() => feedback.summary(), (error) => error.status === 503);
+});

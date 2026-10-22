@@ -49,6 +49,22 @@ test("Evidencias IA: extrae UTF-8 y páginas PDF sin superar los límites", asyn
   assert.equal((await extractEvidenceText(Buffer.from("imagen"), "image/png")).status, "unsupported");
 });
 
+test("Evidencias IA: interpreta CSV UTF-8 con encabezados, comillas y límites", async () => {
+  const csv = Buffer.from('\uFEFFControl,Resultado,Responsable\r\n"Acceso, privilegiado","Aprobado; sin excepción",Ana\r\nInventario,Pendiente,Luis\r\n');
+  const parsed = await extractEvidenceText(csv, "text/csv");
+  assert.equal(parsed.status, "ready");
+  assert.equal(parsed.truncated, false);
+  assert.match(parsed.chunks[0].content, /Fila 2: Control: Acceso, privilegiado/);
+  assert.match(parsed.chunks[0].content, /Resultado: Aprobado; sin excepción/);
+  assert.match(parsed.chunks[1].content, /Fila 3: Control: Inventario/);
+  assert.equal(parsed.chunks[0].pageNumber, null);
+  await assert.rejects(() => extractEvidenceText(Buffer.from("A,B\n1"), "text/csv"), /Invalid Record Length|mismo número/);
+  await assert.rejects(() => extractEvidenceText(Buffer.from([0xff, 0xfe]), "text/csv"));
+  const long = await extractEvidenceText(Buffer.from(`Campo,Estado\n${"a,ok\n".repeat(1001)}`), "text/csv");
+  assert.equal(long.truncated, true);
+  assert.ok(long.chunks.every((item) => item.content.length <= 800));
+});
+
 test("Evidencias IA: recupera solo fragmentos relevantes y exige una cita del archivo", async () => {
   const id = "EVD-TEST-CONTENT-1";
   await evidenceTextIndex.replace(id, [
