@@ -1,0 +1,37 @@
+.action-queue { margin: 28px 0 36px; padding: 24px; border: 1px solid var(--vera-border); border-radius: 16px; background: var(--vera-surface); color: var(--vera-text-strong); }
+.action-queue-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.action-queue-heading h2 { margin: 5px 0; font-size: 23px; }
+.action-queue-heading p, .action-form p, .action-card p, .action-queue-footnote { color: var(--vera-text-muted); }
+.action-queue-heading p { margin: 0; font-size: 13px; }
+.action-queue .primary-action, .action-queue .secondary-action { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.action-queue-summary { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
+.action-queue-summary span { padding: 9px 13px; border: 1px solid var(--vera-border); border-radius: 9px; background: var(--vera-accent-soft); color: var(--vera-text-muted); font-size: 12px; }
+.action-queue-summary b { margin-right: 4px; color: var(--vera-text-strong); font-size: 17px; }
+.action-queue-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.action-queue-tabs button { padding: 8px 13px; border: 1px solid var(--vera-border); border-radius: 8px; background: var(--vera-surface); color: var(--vera-text-muted); cursor: pointer; font: inherit; font-size: 12px; }
+.action-queue-tabs button[aria-pressed="true"] { border-color: var(--vera-accent); background: var(--vera-accent-soft); color: var(--vera-accent); font-weight: 700; }
+.action-queue-empty { padding: 20px; border: 1px dashed var(--vera-border); border-radius: 10px; color: var(--vera-text-muted); font-size: 13px; }
+.action-queue-list { display: grid; gap: 10px; }
+.action-card { padding: 18px; border: 1px solid var(--vera-border); border-radius: 10px; background: var(--vera-surface); }
+.action-card-top, .action-card-meta, .action-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.action-card-top { justify-content: space-between; color: var(--vera-text-muted); font-size: 11px; }
+.action-card-top span, .action-card-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.action-card h3 { margin: 10px 0 5px; font-size: 16px; }
+.action-card p { margin: 0; font-size: 12px; line-height: 1.55; }
+.action-card-meta { margin: 13px 0; color: var(--vera-text-muted); font-size: 11px; }
+.action-card-meta b { color: var(--vera-text-strong); }
+.action-card-actions { gap: 8px; }
+.action-card-actions a, .action-card-actions button { padding: 7px 10px; border: 1px solid var(--vera-border); border-radius: 7px; background: var(--vera-surface); color: var(--vera-accent); cursor: pointer; font: inherit; font-size: 11px; text-decoration: none; }
+.action-status { padding: 5px 8px; border-radius: 20px; background: var(--vera-accent-soft); color: var(--vera-accent); font-size: 10px; }
+.action-status-done { background: var(--vera-success-soft); color: var(--vera-success); }
+.action-status-cancelled { background: var(--vera-danger-soft); color: var(--vera-danger); }
+.action-form, .action-edit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; margin: 16px 0; padding: 19px; border: 1px solid var(--vera-border); border-radius: 11px; background: var(--vera-accent-soft); }
+.action-form h3, .action-form p, .action-form-full, .action-form-actions, .action-edit h4, .action-edit > div { grid-column: 1 / -1; }
+.action-form h3, .action-form p, .action-edit h4 { margin: 0; }
+.action-form p { font-size: 12px; }
+.action-form label, .action-edit label { display: grid; gap: 6px; color: var(--vera-text-strong); font-size: 12px; font-weight: 700; }
+.action-form input, .action-form select, .action-form textarea, .action-edit select, .action-edit textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--vera-border); border-radius: 7px; background: var(--vera-surface); color: var(--vera-text-strong); font: inherit; font-weight: 400; }
+.action-form-actions, .action-edit > div { display: flex; justify-content: flex-end; gap: 8px; }
+.action-queue-footnote { display: flex; align-items: center; gap: 6px; margin: 15px 0 0; font-size: 11px; }
+.action-queue :is(button, a, input, select, textarea):focus-visible { outline: 3px solid var(--vera-accent); outline-offset: 2px; }
+@media (max-width: 700px) { .action-queue { padding: 16px; }.action-queue-heading { flex-direction: column; }.action-form, .action-edit { grid-template-columns: 1fr; }.action-form h3, .action-form p, .action-form-full, .action-form-actions, .action-edit h4, .action-edit > div { grid-column: auto; } }

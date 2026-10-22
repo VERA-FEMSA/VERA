@@ -9,6 +9,7 @@ router.use(verifyToken);
 router.use((req, res, next) => { res.set("Cache-Control", "no-store"); next(); });
 
 router.get("/", async (req, res) => res.json({ actions: await actions.listActions(req.user, req.query) }));
+router.get("/sources", async (req, res) => res.json({ sources: await actions.listSources(req.user) }));
 router.get("/assignees", async (req, res) => res.json({ assignees: await actions.listAssignees(
   req.user, String(req.query.sourceType ?? "").trim(), String(req.query.sourceId ?? "").trim()
 ) }));

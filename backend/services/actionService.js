@@ -79,23 +79,36 @@ const dateIsValid = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value) &&
   !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)) &&
   new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value;
 
-const listActions = async (user, { sourceType, sourceId } = {}) => {
-  if (sourceType || sourceId) assertSourceInput(sourceType, sourceId);
-  if (sourceType) await requiredSource(user, sourceType, sourceId);
-  const actions = await actionRepository.getAll();
-  if (sourceType) return actions.filter((action) => action.sourceType === sourceType && action.sourceId === sourceId);
-  if (!Object.values(ROLES).includes(user.role)) return [];
+const visibleCollections = async (user) => {
+  if (!Object.values(ROLES).includes(user.role)) return { AUDIT: [], RISK: [], CONTROL: [], FINDING: [] };
   const [audits, risks, controls, findings] = await Promise.all([
     planningRepository.getAll(), riskRepository.getAll(), controlRepository.getAll(), findingRepository.getAll()
   ]);
   const visibleRisks = risks.filter((risk) => user.role !== ROLES.AUDITOR || risk.ownerId === user.id);
   const riskIds = new Set(visibleRisks.map((risk) => risk.id));
-  const sourceIds = {
-    AUDIT: new Set(audits.filter((audit) => user.role !== ROLES.AUDITOR || audit.responsibleId === user.id).map((audit) => audit.id)),
-    RISK: riskIds,
-    CONTROL: new Set(controls.filter((control) => user.role !== ROLES.AUDITOR || control.riskIds?.some((id) => riskIds.has(id))).map((control) => control.id)),
-    FINDING: new Set(findings.filter((finding) => user.role !== ROLES.AUDITOR || riskIds.has(finding.riskId)).map((finding) => finding.id))
+  return {
+    AUDIT: audits.filter((audit) => user.role !== ROLES.AUDITOR || audit.responsibleId === user.id),
+    RISK: visibleRisks,
+    CONTROL: controls.filter((control) => user.role !== ROLES.AUDITOR || control.riskIds?.some((id) => riskIds.has(id))),
+    FINDING: findings.filter((finding) => user.role !== ROLES.AUDITOR || riskIds.has(finding.riskId))
   };
+};
+
+const listSources = async (user) => {
+  const groups = await visibleCollections(user);
+  return Object.entries(groups).flatMap(([sourceType, items]) => items.map((item) => ({
+    sourceType, sourceId: item.id, title: item.title
+  })));
+};
+
+const listActions = async (user, { sourceType, sourceId } = {}) => {
+  if (sourceType || sourceId) assertSourceInput(sourceType, sourceId);
+  if (sourceType) await requiredSource(user, sourceType, sourceId);
+  const actions = await actionRepository.getAll();
+  if (sourceType) return actions.filter((action) => action.sourceType === sourceType && action.sourceId === sourceId);
+  const groups = await visibleCollections(user);
+  const sourceIds = Object.fromEntries(Object.entries(groups).map(([type, items]) =>
+    [type, new Set(items.map((item) => item.id))]));
   return actions.filter((action) => sourceIds[action.sourceType]?.has(action.sourceId));
 };
 
@@ -195,4 +208,4 @@ const reassign = async (user, id, body) => {
   return updated;
 };
 
-module.exports = { ActionError, listActions, getAction, listAssignees, createAction, changeStatus, reassign };
+module.exports = { ActionError, listActions, listSources, getAction, listAssignees, createAction, changeStatus, reassign };
