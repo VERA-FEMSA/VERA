@@ -679,7 +679,7 @@
   padding: 32px clamp(22px, 3.2vw, 50px) 56px;
 }
 
-.role-dashboard :is(#portfolio-summary, #portfolio-analysis, #portfolio-priorities) { scroll-margin-top: 86px; }
+.role-dashboard :is(#portfolio-summary, #portfolio-commitments, #portfolio-analysis, #portfolio-priorities) { scroll-margin-top: 86px; }
 
 .role-dashboard .dashboard-hero {
   position: relative;
@@ -795,6 +795,22 @@
 .role-dashboard .kpi-row strong { margin: 0 0 4px; color: var(--vera-text-strong); font-size: clamp(31px, 3vw, 42px); line-height: 1; font-variant-numeric: tabular-nums; }
 .role-dashboard .kpi-row p { color: var(--vera-text-muted); font-size: 12px; line-height: 1.35; }
 
+.role-dashboard .dashboard-commitments { margin-top: 18px; }
+.dashboard-commitment-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.dashboard-commitment-metrics > div { display: grid; gap: 3px; padding: 15px 17px; border: 1px solid var(--vera-border-soft); border-radius: 10px; background: var(--vera-surface-soft); }
+.dashboard-commitment-metrics strong { color: var(--vera-text-strong); font-size: 28px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.dashboard-commitment-metrics span { color: var(--vera-text-muted); font-size: 12px; line-height: 1.4; }
+.dashboard-commitment-list { margin-top: 19px; }
+.dashboard-commitment-list h3 { margin: 0 0 5px; color: var(--vera-text-strong); font-size: 14px; }
+.dashboard-commitment-list ul { margin: 0; padding: 0; list-style: none; }
+.dashboard-commitment-list li { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-top: 1px solid var(--vera-border-soft); }
+.dashboard-commitment-list li > div { display: grid; min-width: 0; gap: 3px; }
+.dashboard-commitment-list b { overflow-wrap: anywhere; color: var(--vera-text-strong); font-size: 13px; }
+.dashboard-commitment-list li span, .dashboard-commitment-list time { color: var(--vera-text-muted); font-size: 12px; line-height: 1.4; }
+.dashboard-commitment-list time { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+.dashboard-commitment-list time.is-overdue { color: var(--vera-danger); font-weight: 700; }
+.dashboard-commitment-state { margin: 3px 0 0; color: var(--vera-text-muted); font-size: 13px; line-height: 1.5; }
+
 .role-dashboard .dashboard-insight-row {
   grid-template-columns: minmax(0, 1.618fr) minmax(320px, 1fr);
   align-items: stretch;
@@ -899,4 +915,6 @@
   .status-distribution-legend { grid-template-columns: 1fr; }
   .role-dashboard .dashboard-panel { padding: 18px; }
   .role-dashboard .dashboard-panel-heading { flex-wrap: wrap; }
+  .dashboard-commitment-metrics { grid-template-columns: 1fr; }
+  .dashboard-commitment-list li { align-items: flex-start; flex-direction: column; gap: 4px; }
 }
