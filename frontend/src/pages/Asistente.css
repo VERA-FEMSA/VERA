@@ -19,6 +19,12 @@
 .assistant-memory ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .assistant-memory li { display: grid; gap: 6px; padding: 8px; border: 1px solid light-dark(#d9e4e6, var(--vera-border)); border-radius: 8px; overflow-wrap: anywhere; font-size: 12px; }
 .assistant-memory .assistant-history-edit { display: grid; }
+.assistant-attachments { display: grid; gap: 8px; padding: 10px; border: 1px solid light-dark(#d9e4e6, var(--vera-border)); border-radius: 10px; background: light-dark(#f7faf9, var(--vera-surface)); }
+.assistant-attachments label { font-size: 12px; font-weight: 700; color: light-dark(#243844, var(--vera-accent)); }
+.assistant-attachments input,.assistant-attachments select { min-width: 0; max-width: 100%; padding: 8px; border: 1px solid light-dark(#cbd9dc, var(--vera-border)); border-radius: 8px; background: light-dark(#fff, var(--vera-surface)); color: light-dark(#243844, var(--vera-accent)); font: inherit; font-size: 12px; }
+.assistant-attachments ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.assistant-attachments li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; overflow-wrap: anywhere; }
+.assistant-attachments li span { flex: 1; min-width: 120px; }
 .assistant-history small,.assistant-history-confirm span { font-size: 11px; color: light-dark(#607680, var(--vera-text-muted)); }
 .assistant-history .assistant-error,.assistant-history .assistant-state { margin: 0; }
 .assistant-welcome { margin: auto; max-width: 630px; text-align: center; color: light-dark(#2f6670, var(--vera-accent)); }

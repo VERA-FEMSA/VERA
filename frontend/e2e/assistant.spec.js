@@ -1,10 +1,68 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { Buffer } from "node:buffer";
 import { useSession } from "./fixtures.js";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/assistant/brief", (route) => route.fulfill({ json: { role: "AUDITOR", signals: [] } }));
   await page.route("**/api/assistant/insights", (route) => route.fulfill({ json: { insights: [], partial: false } }));
+});
+
+test("Copiloto: adjunta un documento privado y lo consulta con cita", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "read-only", conversations: true, attachments: true
+  } }));
+  const threadId = "11111111-1111-4111-8111-111111111111";
+  const fileId = "22222222-2222-4222-8222-222222222222";
+  let thread = null;
+  let file = null;
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") {
+      return route.fulfill({ json: { conversations: thread ? [thread] : [] } });
+    }
+    if (path.endsWith("/conversations") && method === "POST") {
+      thread = { id: threadId, title: "Nueva conversación", focus: null, messages: [], version: 1 };
+      return route.fulfill({ status: 201, json: { conversation: thread } });
+    }
+    if (path.endsWith(`/${threadId}`) && method === "GET") {
+      return route.fulfill({ json: { conversation: { ...thread, stale: false } } });
+    }
+    if (path.endsWith("/attachments") && method === "GET") {
+      return route.fulfill({ json: { attachments: file ? [file] : [] } });
+    }
+    if (path.endsWith("/attachments") && method === "POST") {
+      file = { id: fileId, name: "nota.txt", mime: "text/plain", size: 28, status: "ready",
+        truncated: false, chunks: 1 };
+      return route.fulfill({ status: 201, json: { attachment: file } });
+    }
+    if (path.endsWith(`/${threadId}/ask`) && method === "POST") {
+      expect(route.request().postDataJSON().attachmentId).toBe(fileId);
+      const userMessage = { id: "user-1", role: "user", text: "¿Qué dice proveedor X?",
+        attachmentName: file.name };
+      const message = { id: "assistant-1", role: "assistant", text: "El proveedor X tiene riesgo alto.",
+        mode: "attachment-text", citations: [{ sourceId: `attachment:${fileId}:chunk:0`,
+          attachmentId: fileId, type: "Archivo adjunto", title: file.name,
+          excerpt: "El proveedor X tiene riesgo alto." }], references: [] };
+      thread.messages = [userMessage, message]; thread.version += 1;
+      return route.fulfill({ json: { version: thread.version, userMessage, message } });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Adjuntar archivo privado").setInputFiles({
+    name: "nota.txt", mimeType: "text/plain", buffer: Buffer.from("El proveedor X tiene riesgo alto.")
+  });
+  await expect(page.getByLabel("Consultar archivo")).toHaveValue(fileId);
+  await page.getByLabel("Tu pregunta").fill("¿Qué dice proveedor X?");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("El proveedor X tiene riesgo alto.", { exact: true }).first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("Archivo consultado: nota.txt")).toBeVisible();
+  const access = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(access.violations.map(({ id }) => id)).toEqual([]);
 });
 
 test("Copiloto: memoria visible, editable, pausada y borrable", async ({ page }) => {
