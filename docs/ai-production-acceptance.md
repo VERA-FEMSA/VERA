@@ -65,4 +65,6 @@ Esta verificación no certifica exactitud general del modelo, ausencia completa 
 
 ## Estado comprobado
 
+El [corte de aceptación del 21 de octubre de 2026](testing/production-acceptance-2026-10-21.md) añade una sesión real de Auditor con respuesta de Azure OpenAI, tres escenarios de modelo real y pruebas de lectura de los cinco roles. En esa cuenta no había riesgos visibles: la calidad factual con citas y la lectura de archivos privados siguen pendientes, tal como marca el script con `SKIP`.
+
 El 16 de octubre de 2026, después de fusionar el PR #75 y sincronizar el fork, Vercel marcó `READY` el commit `b755ffbb5ae415fb99a91ddfaeb48193571eb119`. La ejecución **pública** del script devolvió HTTP 200 para la portada y HTTP 401 para el asistente sin sesión. La parte autenticada, el briefing y la consulta de archivos privados siguen pendientes de cuentas activas de VERA con datos de prueba conocidos.

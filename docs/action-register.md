@@ -1,5 +1,7 @@
 # Registro de acciones de seguimiento
 
+La [aceptación puntual en Production del 21 de octubre de 2026](testing/production-acceptance-2026-10-21.md) registró una acción sintética, su aviso próximo, la lectura en otra sesión y el cierre; también comprobó el rechazo HTTP 404 para una cuenta sin visibilidad. El registro de prueba quedó terminado en la bitácora.
+
 Una acción representa un compromiso humano relacionado con una auditoría, un riesgo, un control o un hallazgo. Es diferente de una notificación derivada: **leída** describe si alguien abrió un aviso; **terminada** es una transición explícita de la acción con una explicación y un actor. La IA no crea ni cierra acciones.
 
 ## Contrato y permisos

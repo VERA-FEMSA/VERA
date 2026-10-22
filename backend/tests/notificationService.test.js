@@ -34,3 +34,27 @@ test("auditor notifications are scoped to assignments and classify overdue/due-s
     ["AUDIT_FOLLOW_UP:AUD-LATER", "LOW"]
   ]);
 });
+
+test("action reminders follow the assigned user's local calendar and active state", () => {
+  const actions = [
+    { id: "ACT-LATE", assigneeId: 5, status: "OPEN", dueDate: "2026-10-07", title: "Vencida", sourceTitle: "Auditoría", createdAt: "2026-10-01T00:00:00Z" },
+    { id: "ACT-TODAY", assigneeId: 5, status: "IN_PROGRESS", dueDate: "2026-10-08", title: "Hoy", sourceTitle: "Riesgo", createdAt: "2026-10-02T00:00:00Z" },
+    { id: "ACT-SEVEN", assigneeId: 5, status: "OPEN", dueDate: "2026-10-15", title: "Siete días", sourceTitle: "Control", createdAt: "2026-10-03T00:00:00Z" },
+    { id: "ACT-LATER", assigneeId: 5, status: "OPEN", dueDate: "2026-10-16", title: "Después", sourceTitle: "Control" },
+    { id: "ACT-DONE", assigneeId: 5, status: "DONE", dueDate: "2026-10-07", title: "Cerrada", sourceTitle: "Control" },
+    { id: "ACT-OTHER", assigneeId: 6, status: "OPEN", dueDate: "2026-10-07", title: "Ajena", sourceTitle: "Control" }
+  ];
+  const notifications = buildNotifications({ proposals: [], actions, user: { id: 5, role: "AUDITOR" },
+    now: Date.parse("2026-10-09T01:00:00Z"), offsetMinutes: 360 });
+  assert.deepEqual(notifications.map(({ id, priority }) => [id, priority]), [
+    ["ACTION_OVERDUE:ACT-LATE", "HIGH"],
+    ["ACTION_DUE_SOON:ACT-SEVEN", "MEDIUM"],
+    ["ACTION_DUE_SOON:ACT-TODAY", "MEDIUM"]
+  ]);
+  assert.equal(notifications[0].path, "/notificaciones?actionId=ACT-LATE");
+  assert.equal(notifications[0].dueAt, "2026-10-07");
+  const nextDay = buildNotifications({ proposals: [], actions, user: { id: 5, role: "AUDITOR" },
+    now: Date.parse("2026-10-09T06:00:00Z"), offsetMinutes: 360 });
+  assert.ok(nextDay.some(({ id }) => id === "ACTION_OVERDUE:ACT-TODAY"));
+  assert.ok(!nextDay.some(({ id }) => id === "ACTION_DUE_SOON:ACT-TODAY"));
+});
