@@ -48,7 +48,7 @@ Los escenarios automatizados de API y navegador cubren contexto, permisos, memor
 ## Publicación y operación
 
 1. Revisar el PR y sus controles de calidad antes de fusionar con `main`.
-2. Sincronizar el fork `CarlosSanchezGutierrez/VERA` con el `main` del equipo, revisar el SHA desplegado en `salva-ventures/vera` y confirmar estado `READY`. Un merge en el repositorio del equipo no sincroniza automáticamente el fork.
+2. Revisar el SHA de `main` en `VERA-GRC-IRM/VERA` y confirmar que el despliegue conectado de Vercel terminó correctamente para ese mismo commit. El dominio público vigente es [www.vera-digital-systems.com](https://www.vera-digital-systems.com/); el fork personal ya no es un paso del despliegue.
 3. Comprobar con cuentas reales por rol que el panel no muestre registros ajenos, que cada enlace abra un expediente visible y que el modelo admita ausencia de datos. Evitar capturas con información sensible.
 4. Medir duración, 429/5xx, tokens y gasto. Si el proveedor presenta errores, cambiar `VERA_AI_ENABLED=false` en Production y redesplegar.
 
