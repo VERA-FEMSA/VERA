@@ -18,10 +18,11 @@ function ActionQueue({ revision = 0 }) {
   const [query] = useSearchParams();
   const [actions, setActions] = useState([]);
   const [sources, setSources] = useState([]);
-  const [assignees, setAssignees] = useState([]);
+  const [assigneeResult, setAssigneeResult] = useState({ key: "", items: [] });
   const [editAssignees, setEditAssignees] = useState([]);
-  const [form, setForm] = useState(initialForm);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState(() => ({ ...initialForm, sourceKey: query.get("sourceType") && query.get("sourceId")
+    ? `${query.get("sourceType")}:${query.get("sourceId")}` : "" }));
+  const [createOpen, setCreateOpen] = useState(() => Boolean(query.get("sourceType") && query.get("sourceId")));
   const [view, setView] = useState("MINE");
   const [editing, setEditing] = useState(null);
   const [editMode, setEditMode] = useState("STATUS");
@@ -56,24 +57,16 @@ function ActionQueue({ revision = 0 }) {
   }, [revision]);
 
   useEffect(() => {
-    const sourceType = query.get("sourceType");
-    const sourceId = query.get("sourceId");
-    if (canCreate && sourceType && sourceId && sources.some((item) => item.sourceType === sourceType && item.sourceId === sourceId)) {
-      setForm((current) => ({ ...current, sourceKey: `${sourceType}:${sourceId}` }));
-      setCreateOpen(true);
-    }
-  }, [canCreate, query, sources]);
-
-  useEffect(() => {
     const source = sources.find((item) => `${item.sourceType}:${item.sourceId}` === form.sourceKey);
-    if (!source) { setAssignees([]); return; }
+    if (!source) return;
     let cancelled = false;
     getActionAssignees(source.sourceType, source.sourceId)
-      .then((result) => { if (!cancelled) setAssignees(result.assignees); })
-      .catch((cause) => { if (!cancelled) { setAssignees([]); setError(cause.message); } });
+      .then((result) => { if (!cancelled) setAssigneeResult({ key: form.sourceKey, items: result.assignees }); })
+      .catch((cause) => { if (!cancelled) { setAssigneeResult({ key: form.sourceKey, items: [] }); setError(cause.message); } });
     return () => { cancelled = true; };
   }, [form.sourceKey, sources]);
 
+  const assignees = assigneeResult.key === form.sourceKey ? assigneeResult.items : [];
   const active = actions.filter((item) => !["DONE", "CANCELLED"].includes(item.status));
   const mine = active.filter((item) => item.assigneeId === user?.id);
   const overdue = mine.filter((item) => item.dueDate < new Date().toISOString().slice(0, 10));
@@ -130,7 +123,7 @@ function ActionQueue({ revision = 0 }) {
     </div>
     <div className="action-queue-summary"><span><b>{mine.length}</b> Asignadas a mí</span><span><b>{overdue.length}</b> Vencidas</span><span><b>{active.length}</b> Abiertas visibles</span></div>
     {error && <p role="alert" className="notification-error">{error}</p>}
-    {createOpen && <form className="action-form" onSubmit={submitCreate}>
+    {canCreate && createOpen && <form className="action-form" onSubmit={submitCreate}>
       <h3>Registrar compromiso</h3><p>Elige un registro existente y una persona que pueda verlo. La acción quedará en la bitácora.</p>
       <label>Registro relacionado<select required value={form.sourceKey} onChange={(event) => setForm({ ...form, sourceKey: event.target.value, assigneeId: "" })}><option value="">Seleccionar registro</option>{sources.map((item) => <option key={`${item.sourceType}:${item.sourceId}`} value={`${item.sourceType}:${item.sourceId}`}>{SOURCE[item.sourceType]} · {item.title} ({item.sourceId})</option>)}</select></label>
       <label>Título<input required minLength={3} maxLength={140} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
