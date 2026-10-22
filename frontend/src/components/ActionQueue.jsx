@@ -9,6 +9,15 @@ const SOURCE = { AUDIT: "Auditoría", RISK: "Riesgo", CONTROL: "Control", FINDIN
 const STATUS = { OPEN: "Abierta", IN_PROGRESS: "En curso", DONE: "Terminada", CANCELLED: "Cancelada" };
 const NEXT = { OPEN: ["IN_PROGRESS", "DONE", "CANCELLED"], IN_PROGRESS: ["OPEN", "DONE", "CANCELLED"], DONE: ["OPEN"], CANCELLED: ["OPEN"] };
 const formatDate = (value) => value ? new Date(`${value.slice(0, 10)}T00:00:00`).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) : "Sin fecha";
+const formatMoment = (value) => value && !Number.isNaN(Date.parse(value))
+  ? new Date(value).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }) : "Fecha no disponible";
+const historyLabel = (entry) => entry.type === "CREATED" ? "Acción registrada"
+  : entry.type === "STATUS_CHANGED" ? `Estado: ${STATUS[entry.from] || entry.from} → ${STATUS[entry.to] || entry.to}`
+    : entry.type === "REASSIGNED" ? `Responsable: ${entry.fromName || `cuenta #${entry.fromId}`} → ${entry.toName || `cuenta #${entry.toId}`}`
+      : "Cambio registrado";
+const actorLabel = (action, entry) => entry.actorName ||
+  (entry.type === "CREATED" && action.createdBy?.id === entry.actorId ? action.createdBy.name : null) ||
+  `Cuenta #${entry.actorId}`;
 const sourcePath = (action) => action.sourceType === "AUDIT"
   ? `/auditorias?auditId=${encodeURIComponent(action.sourceId)}`
   : action.sourceType === "RISK" ? `/riesgos#risk-${encodeURIComponent(action.sourceId)}`
@@ -17,6 +26,7 @@ const initialForm = { sourceKey: "", title: "", rationale: "", dueDate: "", assi
 
 function ActionQueue({ revision = 0 }) {
   const [query] = useSearchParams();
+  const focusedActionId = query.get("actionId");
   const [actions, setActions] = useState([]);
   const [sources, setSources] = useState([]);
   const [assigneeResult, setAssigneeResult] = useState({ key: "", items: [] });
@@ -33,29 +43,44 @@ function ActionQueue({ revision = 0 }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
   const user = useMemo(() => { try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; } }, []);
   const manager = !user?.roleTour && ["SUPER_ADMIN", "GERENTE"].includes(user?.role);
   const canCreate = !user?.roleTour && ["SUPER_ADMIN", "GERENTE", "AUDITOR", "JEFATURA"].includes(user?.role);
 
   const reload = async () => {
-    const [actionResult, sourceResult] = await Promise.all([getActions(), getActionSources()]);
+    const actionResult = await getActions();
     setActions(actionResult.actions);
-    setSources(sourceResult.sources);
+    setLoadError("");
   };
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getActions(), getActionSources()])
-      .then(([actionResult, sourceResult]) => {
-        if (cancelled) return;
-        setActions(actionResult.actions);
-        setSources(sourceResult.sources);
-        setError("");
-      })
-      .catch((cause) => { if (!cancelled) setError(cause.message); })
+    getActions()
+      .then((result) => { if (!cancelled) { setActions(result.actions); setLoadError(""); } })
+      .catch((cause) => { if (!cancelled) setLoadError(cause.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
+    getActionSources()
+      .then((result) => { if (!cancelled) setSources(result.sources); })
+      .catch((cause) => { if (!cancelled && canCreate) setError(`No se pudieron cargar los registros para nuevas acciones: ${cause.message}`); });
     return () => { cancelled = true; };
-  }, [revision]);
+  }, [revision, canCreate]);
+
+  useEffect(() => {
+    if (loading || loadError || !focusedActionId) return undefined;
+    const selected = actions.find((action) => action.id === focusedActionId);
+    if (!selected) return undefined;
+    setView(["DONE", "CANCELLED"].includes(selected.status) ? "CLOSED"
+      : selected.assigneeId === user?.id ? "MINE" : "OPEN");
+    const frame = requestAnimationFrame(() => {
+      const card = document.getElementById(`action-${selected.id}`);
+      card?.scrollIntoView({ block: "center" });
+      card?.focus();
+      const history = card?.querySelector(".action-history");
+      if (history) history.open = true;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [actions, focusedActionId, loading, loadError, user?.id]);
 
   useEffect(() => {
     const source = sources.find((item) => `${item.sourceType}:${item.sourceId}` === form.sourceKey);
@@ -122,8 +147,11 @@ function ActionQueue({ revision = 0 }) {
     <div className="action-queue-heading"><div><span className="eyebrow">SEGUIMIENTO CON RESPONSABLE</span><h2 id="action-queue-title">Acciones registradas</h2><p>Compromisos con fecha y estado propios. Leer un aviso no termina una acción.</p></div>
       {canCreate && <button type="button" className="primary-action" onClick={() => setCreateOpen((open) => !open)} aria-expanded={createOpen}><Plus size={16} /> Nueva acción</button>}
     </div>
-    <div className="action-queue-summary"><span><b>{mine.length}</b> Asignadas a mí</span><span><b>{overdue.length}</b> Vencidas</span><span><b>{active.length}</b> Abiertas visibles</span></div>
+    <div className="action-queue-summary"><span><b>{loadError ? "—" : mine.length}</b> Asignadas a mí</span><span><b>{loadError ? "—" : overdue.length}</b> Vencidas</span><span><b>{loadError ? "—" : active.length}</b> Abiertas visibles</span></div>
+    {loadError && <p role="alert" className="notification-error">No se pudieron consultar las acciones: {loadError}. Los conteos no están disponibles.</p>}
     {error && <p role="alert" className="notification-error">{error}</p>}
+    {!loading && !loadError && focusedActionId && !actions.some((action) => action.id === focusedActionId) &&
+      <p role="status" className="action-queue-empty">El compromiso solicitado no está disponible para esta cuenta.</p>}
     {canCreate && createOpen && <form className="action-form" onSubmit={submitCreate}>
       <h3>Registrar compromiso</h3><p>Elige un registro existente y una persona que pueda verlo. La acción quedará en la bitácora.</p>
       <label>Registro relacionado<select required value={form.sourceKey} onChange={(event) => setForm({ ...form, sourceKey: event.target.value, assigneeId: "" })}><option value="">Seleccionar registro</option>{sources.map((item) => <option key={`${item.sourceType}:${item.sourceId}`} value={`${item.sourceType}:${item.sourceId}`}>{SOURCE[item.sourceType]} · {item.title} ({item.sourceId})</option>)}</select></label>
@@ -134,11 +162,18 @@ function ActionQueue({ revision = 0 }) {
       <div className="action-form-actions"><button type="button" className="secondary-action" onClick={() => setCreateOpen(false)}>Cancelar</button><button type="submit" className="primary-action" disabled={saving || !assignees.length}>{saving ? "Guardando…" : "Registrar acción"}</button></div>
     </form>}
     <div className="action-queue-tabs" role="group" aria-label="Filtrar acciones"><button type="button" aria-pressed={view === "MINE"} onClick={() => setView("MINE")}>Mis acciones</button><button type="button" aria-pressed={view === "OPEN"} onClick={() => setView("OPEN")}>Abiertas visibles</button><button type="button" aria-pressed={view === "CLOSED"} onClick={() => setView("CLOSED")}>Finalizadas</button></div>
-    {loading ? <p className="action-queue-empty" role="status">Consultando acciones…</p> : visible.length === 0 ? <p className="action-queue-empty">No hay acciones en esta vista.</p> : <div className="action-queue-list">{visible.map((action) => <article className="action-card" key={action.id}>
+    {loading ? <p className="action-queue-empty" role="status">Consultando acciones…</p> : loadError ? null : visible.length === 0 ? <p className="action-queue-empty">No hay acciones en esta vista.</p> : <div className="action-queue-list">{visible.map((action) => <article className="action-card" id={`action-${action.id}`} tabIndex={-1} key={action.id}>
       <div className="action-card-top"><span><ClipboardCheck size={17} aria-hidden="true" /> {SOURCE[action.sourceType]} · {action.sourceTitle}</span><strong className={`action-status action-status-${action.status.toLowerCase()}`}>{STATUS[action.status]}</strong></div>
       <h3>{action.title}</h3><p>{action.rationale}</p>
       <div className="action-card-meta"><span>Responsable: <b>{action.assigneeName}</b></span><span><CalendarClock size={14} aria-hidden="true" /> Fecha objetivo: <b>{formatDate(action.dueDate)}</b></span><span>{action.history.length} evento{action.history.length === 1 ? "" : "s"}</span></div>
       <div className="action-card-actions"><Link to={sourcePath(action)}>{action.sourceType === "FINDING" ? "Ver auditorías" : "Abrir registro"}</Link>{(manager || (canCreate && action.assigneeId === user?.id)) && <button type="button" onClick={() => openEdit(action, "STATUS")}>Cambiar estado</button>}{manager && <button type="button" onClick={() => openEdit(action, "ASSIGNEE")}>Reasignar</button>}</div>
+      <details className="action-history"><summary>Ver bitácora · {action.history.length} evento{action.history.length === 1 ? "" : "s"}</summary>
+        <ol>{[...action.history].reverse().map((entry, index) => <li key={`${entry.at}-${entry.type}-${index}`}>
+          <div><strong>{historyLabel(entry)}</strong><time dateTime={entry.at}>{formatMoment(entry.at)}</time></div>
+          <span>Por {actorLabel(action, entry)}</span>
+          {entry.note && <p>{entry.note}</p>}
+        </li>)}</ol>
+      </details>
       {editing === action.id && <form className="action-edit" onSubmit={(event) => submitEdit(event, action)}><h4>{editMode === "STATUS" ? "Actualizar estado" : "Cambiar responsable"}</h4>
         {editMode === "STATUS" ? <label>Nuevo estado<select value={nextStatus} onChange={(event) => setNextStatus(event.target.value)}>{NEXT[action.status]?.map((status) => <option key={status} value={status}>{STATUS[status]}</option>)}</select></label>
           : <label>Nuevo responsable<select required value={nextAssignee} onChange={(event) => setNextAssignee(event.target.value)}><option value="">Seleccionar responsable</option>{editAssignees.map((person) => <option key={person.id} value={person.id}>{person.name} · {person.role}</option>)}</select></label>}
