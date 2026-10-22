@@ -51,7 +51,7 @@ Cada PR debe incluir solo pruebas de comportamiento que correspondan a funciones
 
 El control obligatorio `Quality gates (Node.js 22)` exige cobertura backend mínima de **90 % de líneas, 75 % de ramas y 90 % de funciones**. Los pisos se fijaron por debajo de la línea base de CI observada el 17 de octubre de 2026 (96.46 %, 82.58 % y 95.77 %, respectivamente) y de una ejecución local con Node 25 (94.41 %, 78.39 % y 94.43 %). La instrumentación produce cifras distintas entre versiones; se comparan tendencias del mismo runtime de CI. Si falta la medición, el control falla. Todo cambio debe conservar pruebas de los caminos afectados aunque supere los pisos globales; el frontend no tiene una métrica de cobertura equivalente en este reporte.
 
-El mismo control ejecuta los 20 escenarios sintéticos de IA sin red ni llamadas a Azure. El workflow manual de evaluación conserva el informe detallado independiente. Ninguna de estas pruebas demuestra la calidad de las respuestas del modelo desplegado, la persistencia ni los permisos de producción.
+El mismo control ejecuta los 26 escenarios sintéticos de IA sin red ni llamadas a Azure. El workflow manual de evaluación conserva el informe detallado independiente. Ninguna de estas pruebas demuestra la calidad de las respuestas del modelo desplegado, la persistencia ni los permisos de producción.
 
 ## Prioridad y criterios no funcionales
 
