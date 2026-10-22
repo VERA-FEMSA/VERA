@@ -42,7 +42,7 @@ const list = async (user, conversationId) => {
   if (remote()) {
     const rows = await request("GET", { select: "id,conversation_id,name,file,status,truncated,chunks,created_at",
       ...ownerQuery(user), conversation_id: `eq.${conversationId}`, order: "created_at.desc",
-      limit: String(MAX_PER_CONVERSATION) });
+      limit: "100" });
     if (!Array.isArray(rows)) throw new AttachmentStorageError("Los adjuntos privados devolvieron datos inválidos.");
     return rows.map(publicRow);
   }

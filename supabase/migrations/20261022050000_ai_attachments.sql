@@ -35,3 +35,23 @@ revoke all on function public.vera_ai_check_attachment_owner() from public, anon
 drop trigger if exists vera_ai_attachments_owner on public.vera_ai_attachments;
 create trigger vera_ai_attachments_owner before insert or update of conversation_id, owner_id, owner_role
   on public.vera_ai_attachments for each row execute function public.vera_ai_check_attachment_owner();
+
+-- Serialize inserts for one owner so concurrent uploads cannot bypass the
+-- application-side quotas and leave files outside the bounded cleanup list.
+create or replace function public.vera_ai_check_attachment_quota()
+returns trigger language plpgsql as $$
+begin
+  perform pg_advisory_xact_lock(hashtext(new.owner_id::text || ':' || new.owner_role));
+  if (select count(*) from public.vera_ai_attachments a
+      where a.owner_id = new.owner_id and a.owner_role = new.owner_role) >= 20
+     or (select count(*) from public.vera_ai_attachments a
+      where a.conversation_id = new.conversation_id) >= 2 then
+    raise exception 'assistant attachment quota exceeded' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.vera_ai_check_attachment_quota() from public, anon, authenticated;
+drop trigger if exists vera_ai_attachments_quota on public.vera_ai_attachments;
+create trigger vera_ai_attachments_quota before insert
+  on public.vera_ai_attachments for each row execute function public.vera_ai_check_attachment_quota();
