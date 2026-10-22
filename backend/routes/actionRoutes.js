@@ -13,6 +13,7 @@ router.get("/sources", async (req, res) => res.json({ sources: await actions.lis
 router.get("/assignees", async (req, res) => res.json({ assignees: await actions.listAssignees(
   req.user, String(req.query.sourceType ?? "").trim(), String(req.query.sourceId ?? "").trim()
 ) }));
+router.get("/for-audit/:auditId", async (req, res) => res.json(await actions.listActionsForAudit(req.user, req.params.auditId)));
 router.get("/:id", async (req, res) => res.json({ action: await actions.getAction(req.user, req.params.id) }));
 router.post("/", allowRoles(...RECORD_CREATE_ROLES), async (req, res) =>
   res.status(201).json({ action: await actions.createAction(req.user, req.body || {}) }));

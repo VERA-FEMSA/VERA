@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CalendarClock, ClipboardCheck, Plus, RefreshCw } from "lucide-react";
 import { changeActionStatus, createAction, getActionAssignees, getActionSources, getActions, reassignAction } from "../services/actionService";
+import { localToday } from "../utils/localDate";
 import "./ActionQueue.css";
 
 const SOURCE = { AUDIT: "Auditoría", RISK: "Riesgo", CONTROL: "Control", FINDING: "Hallazgo" };
@@ -11,7 +12,7 @@ const formatDate = (value) => value ? new Date(`${value.slice(0, 10)}T00:00:00`)
 const sourcePath = (action) => action.sourceType === "AUDIT"
   ? `/auditorias?auditId=${encodeURIComponent(action.sourceId)}`
   : action.sourceType === "RISK" ? `/riesgos#risk-${encodeURIComponent(action.sourceId)}`
-    : action.sourceType === "CONTROL" ? `/controles#control-${encodeURIComponent(action.sourceId)}` : "/controles";
+    : action.sourceType === "CONTROL" ? `/controles#control-${encodeURIComponent(action.sourceId)}` : "/auditorias-activas";
 const initialForm = { sourceKey: "", title: "", rationale: "", dueDate: "", assigneeId: "" };
 
 function ActionQueue({ revision = 0 }) {
@@ -69,7 +70,7 @@ function ActionQueue({ revision = 0 }) {
   const assignees = assigneeResult.key === form.sourceKey ? assigneeResult.items : [];
   const active = actions.filter((item) => !["DONE", "CANCELLED"].includes(item.status));
   const mine = active.filter((item) => item.assigneeId === user?.id);
-  const overdue = mine.filter((item) => item.dueDate < new Date().toISOString().slice(0, 10));
+  const overdue = mine.filter((item) => item.dueDate < localToday());
   const visible = view === "MINE" ? mine : view === "OPEN" ? active : actions.filter((item) => ["DONE", "CANCELLED"].includes(item.status));
 
   const submitCreate = async (event) => {
@@ -137,7 +138,7 @@ function ActionQueue({ revision = 0 }) {
       <div className="action-card-top"><span><ClipboardCheck size={17} aria-hidden="true" /> {SOURCE[action.sourceType]} · {action.sourceTitle}</span><strong className={`action-status action-status-${action.status.toLowerCase()}`}>{STATUS[action.status]}</strong></div>
       <h3>{action.title}</h3><p>{action.rationale}</p>
       <div className="action-card-meta"><span>Responsable: <b>{action.assigneeName}</b></span><span><CalendarClock size={14} aria-hidden="true" /> Fecha objetivo: <b>{formatDate(action.dueDate)}</b></span><span>{action.history.length} evento{action.history.length === 1 ? "" : "s"}</span></div>
-      <div className="action-card-actions"><Link to={sourcePath(action)}>Abrir registro</Link>{(manager || (canCreate && action.assigneeId === user?.id)) && <button type="button" onClick={() => openEdit(action, "STATUS")}>Cambiar estado</button>}{manager && <button type="button" onClick={() => openEdit(action, "ASSIGNEE")}>Reasignar</button>}</div>
+      <div className="action-card-actions"><Link to={sourcePath(action)}>{action.sourceType === "FINDING" ? "Ver auditorías" : "Abrir registro"}</Link>{(manager || (canCreate && action.assigneeId === user?.id)) && <button type="button" onClick={() => openEdit(action, "STATUS")}>Cambiar estado</button>}{manager && <button type="button" onClick={() => openEdit(action, "ASSIGNEE")}>Reasignar</button>}</div>
       {editing === action.id && <form className="action-edit" onSubmit={(event) => submitEdit(event, action)}><h4>{editMode === "STATUS" ? "Actualizar estado" : "Cambiar responsable"}</h4>
         {editMode === "STATUS" ? <label>Nuevo estado<select value={nextStatus} onChange={(event) => setNextStatus(event.target.value)}>{NEXT[action.status]?.map((status) => <option key={status} value={status}>{STATUS[status]}</option>)}</select></label>
           : <label>Nuevo responsable<select required value={nextAssignee} onChange={(event) => setNextAssignee(event.target.value)}><option value="">Seleccionar responsable</option>{editAssignees.map((person) => <option key={person.id} value={person.id}>{person.name} · {person.role}</option>)}</select></label>}
