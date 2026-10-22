@@ -128,7 +128,8 @@ function AuditoriasActivas() {
   };
 
   const currentContext = auditContext?.audit.id === selectedAudit?.id ? auditContext : null;
-  const currentContextError = !currentContext && contextError?.id === selectedAudit?.id ? contextError.message : "";
+  const currentContextError = !currentContext && contextError && contextError.id === selectedAudit?.id
+    ? contextError.message : "";
   const linkedRisks = currentContext?.groups.risks || [];
   const linkedControls = currentContext?.groups.controls || [];
   const linkedEvidence = currentContext?.groups.evidence || [];
