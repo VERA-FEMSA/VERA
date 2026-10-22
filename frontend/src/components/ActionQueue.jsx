@@ -34,7 +34,7 @@ function ActionQueue({ revision = 0 }) {
   const [form, setForm] = useState(() => ({ ...initialForm, sourceKey: query.get("sourceType") && query.get("sourceId")
     ? `${query.get("sourceType")}:${query.get("sourceId")}` : "" }));
   const [createOpen, setCreateOpen] = useState(() => Boolean(query.get("sourceType") && query.get("sourceId")));
-  const [view, setView] = useState("MINE");
+  const [view, setView] = useState(null);
   const [editing, setEditing] = useState(null);
   const [editMode, setEditMode] = useState("STATUS");
   const [nextStatus, setNextStatus] = useState("");
@@ -70,8 +70,6 @@ function ActionQueue({ revision = 0 }) {
     if (loading || loadError || !focusedActionId) return undefined;
     const selected = actions.find((action) => action.id === focusedActionId);
     if (!selected) return undefined;
-    setView(["DONE", "CANCELLED"].includes(selected.status) ? "CLOSED"
-      : selected.assigneeId === user?.id ? "MINE" : "OPEN");
     const frame = requestAnimationFrame(() => {
       const card = document.getElementById(`action-${selected.id}`);
       card?.scrollIntoView({ block: "center" });
@@ -80,7 +78,7 @@ function ActionQueue({ revision = 0 }) {
       if (history) history.open = true;
     });
     return () => cancelAnimationFrame(frame);
-  }, [actions, focusedActionId, loading, loadError, user?.id]);
+  }, [actions, focusedActionId, loading, loadError]);
 
   useEffect(() => {
     const source = sources.find((item) => `${item.sourceType}:${item.sourceId}` === form.sourceKey);
@@ -96,7 +94,11 @@ function ActionQueue({ revision = 0 }) {
   const active = actions.filter((item) => !["DONE", "CANCELLED"].includes(item.status));
   const mine = active.filter((item) => item.assigneeId === user?.id);
   const overdue = mine.filter((item) => item.dueDate < localToday());
-  const visible = view === "MINE" ? mine : view === "OPEN" ? active : actions.filter((item) => ["DONE", "CANCELLED"].includes(item.status));
+  const selectedAction = actions.find((item) => item.id === focusedActionId);
+  const focusedView = selectedAction && (["DONE", "CANCELLED"].includes(selectedAction.status) ? "CLOSED"
+    : selectedAction.assigneeId === user?.id ? "MINE" : "OPEN");
+  const activeView = view ?? focusedView ?? "MINE";
+  const visible = activeView === "MINE" ? mine : activeView === "OPEN" ? active : actions.filter((item) => ["DONE", "CANCELLED"].includes(item.status));
 
   const submitCreate = async (event) => {
     event.preventDefault();
@@ -161,7 +163,7 @@ function ActionQueue({ revision = 0 }) {
       <label className="action-form-full">Motivo<textarea required minLength={10} maxLength={1000} rows={3} value={form.rationale} onChange={(event) => setForm({ ...form, rationale: event.target.value })} /></label>
       <div className="action-form-actions"><button type="button" className="secondary-action" onClick={() => setCreateOpen(false)}>Cancelar</button><button type="submit" className="primary-action" disabled={saving || !assignees.length}>{saving ? "Guardando…" : "Registrar acción"}</button></div>
     </form>}
-    <div className="action-queue-tabs" role="group" aria-label="Filtrar acciones"><button type="button" aria-pressed={view === "MINE"} onClick={() => setView("MINE")}>Mis acciones</button><button type="button" aria-pressed={view === "OPEN"} onClick={() => setView("OPEN")}>Abiertas visibles</button><button type="button" aria-pressed={view === "CLOSED"} onClick={() => setView("CLOSED")}>Finalizadas</button></div>
+    <div className="action-queue-tabs" role="group" aria-label="Filtrar acciones"><button type="button" aria-pressed={activeView === "MINE"} onClick={() => setView("MINE")}>Mis acciones</button><button type="button" aria-pressed={activeView === "OPEN"} onClick={() => setView("OPEN")}>Abiertas visibles</button><button type="button" aria-pressed={activeView === "CLOSED"} onClick={() => setView("CLOSED")}>Finalizadas</button></div>
     {loading ? <p className="action-queue-empty" role="status">Consultando acciones…</p> : loadError ? null : visible.length === 0 ? <p className="action-queue-empty">No hay acciones en esta vista.</p> : <div className="action-queue-list">{visible.map((action) => <article className="action-card" id={`action-${action.id}`} tabIndex={-1} key={action.id}>
       <div className="action-card-top"><span><ClipboardCheck size={17} aria-hidden="true" /> {SOURCE[action.sourceType]} · {action.sourceTitle}</span><strong className={`action-status action-status-${action.status.toLowerCase()}`}>{STATUS[action.status]}</strong></div>
       <h3>{action.title}</h3><p>{action.rationale}</p>
