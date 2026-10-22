@@ -37,4 +37,5 @@ export const useSession = async (page, role = "DIRECTOR", id = 2) => {
 
 export const stubDashboard = async (page, role = "DIRECTOR") => {
   await page.route("**/api/dashboard", (route) => route.fulfill({ json: dashboardSummary(role) }));
+  await page.route("**/api/actions", (route) => route.fulfill({ json: { actions: [] } }));
 };

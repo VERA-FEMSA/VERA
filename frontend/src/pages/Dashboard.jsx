@@ -33,6 +33,10 @@ function Dashboard() {
   const [revision, setRevision] = useState(0);
   const [statusView, setStatusView] = useState("bars");
   const [riskView, setRiskView] = useState("matrix");
+  const [period, setPeriod] = useState("all");
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [semester, setSemester] = useState(1);
+  const [quarter, setQuarter] = useState("Q1");
 
   const load = () => {
     setLoading(true);
@@ -42,12 +46,12 @@ function Dashboard() {
 
   useEffect(() => {
     let cancelled = false;
-    getDashboardSummary()
+    getDashboardSummary({ period, year, semester, quarter })
       .then((data) => { if (!cancelled) { setSummary(data); setError(""); } })
       .catch((loadError) => { if (!cancelled) setError(loadError.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [revision]);
+  }, [revision, period, year, semester, quarter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,8 +122,29 @@ function Dashboard() {
               <section id="portfolio-summary" className="dashboard-overview-section" aria-labelledby="dashboard-overview-title">
                 <div className="dashboard-section-heading">
                   <div><span className="dashboard-section-kicker">VISTA GENERAL</span><h2 id="dashboard-overview-title">Indicadores del portafolio</h2></div>
-                  <span>Según el alcance de tu rol</span>
+                  <div className="dashboard-period-controls" role="group" aria-label="Periodo de indicadores">
+                    <label>Periodo
+                      <select value={period} onChange={(event) => setPeriod(event.target.value)}>
+                        <option value="all">Todos</option><option value="year">Anual</option>
+                        <option value="semester">Semestral</option><option value="quarter">Trimestral</option>
+                      </select>
+                    </label>
+                    {period !== "all" && <label>Año
+                      <input type="number" min="2000" max="2100" value={year} onChange={(event) => setYear(event.target.value)} />
+                    </label>}
+                    {period === "semester" && <label>Semestre
+                      <select value={semester} onChange={(event) => setSemester(Number(event.target.value))}>
+                        <option value={1}>Enero–junio</option><option value={2}>Julio–diciembre</option>
+                      </select>
+                    </label>}
+                    {period === "quarter" && <label>Trimestre
+                      <select value={quarter} onChange={(event) => setQuarter(event.target.value)}>
+                        {["Q1", "Q2", "Q3", "Q4"].map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>}
+                  </div>
                 </div>
+                <p className="dashboard-period-caption">Indicadores, estados, matriz y prioridades del periodo seleccionado. Los compromisos personales conservan su propio calendario.</p>
                 <div className="kpi-grid">
                   <article className="kpi-card">
                     <span className="kpi-label">REGISTROS VISIBLES</span>
