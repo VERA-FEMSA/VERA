@@ -7,6 +7,10 @@ const { answerAssistant } = require("../services/assistantAnswerService");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
+const attachments = require("../repositories/assistantAttachmentRepository");
+const evidenceStorage = require("../services/evidenceStorage");
+const { extractEvidenceText, SEARCHABLE_MIME } = require("../services/evidenceTextExtraction");
+const { askAttachment, IMAGE_MIME } = require("../services/assistantAttachmentService");
 const { currentScope } = require("../services/assistantConversationScope");
 const { buildAuditDossier } = require("../services/assistantDossierService");
 const { searchAssistantEvidence } = require("../services/assistantEvidenceSearchService");
@@ -29,7 +33,8 @@ router.get("/status", (req, res) => {
       ...(process.env.VERA_AI_CONVERSATIONS_ENABLED === "true" && !req.user.roleTour
         ? { conversations: true,
           ...(process.env.VERA_AI_PROJECTS_ENABLED === "true" ? { projects: true } : {}),
-          ...(process.env.VERA_AI_MEMORY_ENABLED === "true" ? { memory: true } : {}) } : {}) });
+          ...(process.env.VERA_AI_MEMORY_ENABLED === "true" ? { memory: true } : {}),
+          ...(process.env.VERA_AI_ATTACHMENTS_ENABLED === "true" ? { attachments: true } : {}) } : {}) });
   } catch {
     res.json({ available: false, reason: "invalid-configuration", mode: "read-only" });
   }
@@ -46,8 +51,11 @@ const projectEnabled = (req, res, next) => process.env.VERA_AI_PROJECTS_ENABLED 
 const memoryEnabled = (req, res, next) => process.env.VERA_AI_MEMORY_ENABLED === "true"
   ? conversationEnabled(req, res, next)
   : res.status(503).json({ message: "La memoria privada aún no está habilitada." });
+const attachmentEnabled = (req, res, next) => process.env.VERA_AI_ATTACHMENTS_ENABLED === "true"
+  ? conversationEnabled(req, res, next)
+  : res.status(503).json({ message: "Los archivos privados del chat aún no están habilitados." });
 const conversationError = (res, error) => {
-  if ([400, 404, 409, 503].includes(error.status)) return res.status(error.status).json({ message: error.message });
+  if ([400, 404, 409, 415, 422, 429, 503, 504].includes(error.status)) return res.status(error.status).json({ message: error.message });
   return res.status(502).json({ message: "No se pudo consultar el historial privado." });
 };
 const focusFrom = (value) => {
@@ -67,6 +75,87 @@ const projectIdFrom = (value) => {
   }
   return value;
 };
+const validUuid = (value) => typeof value === "string" &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
+router.get("/conversations/:id/attachments", attachmentEnabled, async (req, res) => {
+  try {
+    if (!await conversations.get(req.user, req.params.id)) {
+      return res.status(404).json({ message: "Conversación no disponible." });
+    }
+    return res.json({ attachments: await attachments.list(req.user, req.params.id) });
+  } catch (error) { return conversationError(res, error); }
+});
+
+router.post("/conversations/:id/attachments", attachmentEnabled,
+  rateLimit({ windowMs: 15 * 60 * 1000, limit: 4, keyGenerator: (req) => String(req.user.id),
+    standardHeaders: "draft-8", legacyHeaders: false }),
+  express.raw({ type: () => true, limit: "2mb" }), async (req, res) => {
+    const mime = String(req.headers["content-type"] || "").split(";")[0].toLowerCase();
+    let name;
+    try { name = decodeURIComponent(String(req.headers["x-file-name"] || "")); }
+    catch { return res.status(400).json({ message: "El nombre del archivo no es válido." }); }
+    name = name.replace(/[\\/\x00-\x1f\x7f]/g, "").trim();
+    if (!name || name.length > 120 || !Buffer.isBuffer(req.body) || req.body.length === 0 ||
+        req.body.length > 2 * 1024 * 1024 || !(SEARCHABLE_MIME.has(mime) || IMAGE_MIME.has(mime))) {
+      return res.status(400).json({ message: "Adjunta un PDF, DOCX, TXT, CSV, PNG, JPEG o WebP de hasta 2 MB." });
+    }
+    try {
+      if (!await conversations.get(req.user, req.params.id)) {
+        return res.status(404).json({ message: "Conversación no disponible." });
+      }
+      if ((process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production") &&
+          process.env.VERA_EVIDENCE_COMMENT_STORE !== "supabase") {
+        return res.status(503).json({ message: "Los archivos requieren almacenamiento privado persistente." });
+      }
+      if ((await attachments.list(req.user, req.params.id)).length >= attachments.MAX_PER_CONVERSATION ||
+          await attachments.countForUser(req.user) >= attachments.MAX_PER_USER) {
+        return res.status(409).json({ message: "Alcanzaste el límite de archivos del chat." });
+      }
+      let extracted = { chunks: [], status: "ready", truncated: false };
+      if (SEARCHABLE_MIME.has(mime)) {
+        try { extracted = await extractEvidenceText(req.body, mime); }
+        catch { return res.status(422).json({ message: "No se pudo extraer texto de este archivo." }); }
+      }
+      const file = await evidenceStorage.upload({ entityType: "ai", entityId: req.params.id,
+        mime, bytes: req.body });
+      try {
+        const saved = await attachments.create(req.user, req.params.id,
+          { name, file, chunks: extracted.chunks, status: extracted.status, truncated: extracted.truncated });
+        console.info(JSON.stringify({ event: "VERA_AI_ATTACHMENT", role: req.user.role,
+          mime, bytes: file.size, chunks: extracted.chunks.length }));
+        return res.status(201).json({ attachment: saved });
+      } catch (error) {
+        try { await evidenceStorage.remove(file); } catch { /* Cleanup may require operator review. */ }
+        throw error;
+      }
+    } catch (error) { return conversationError(res, error); }
+  });
+
+router.get("/conversations/:id/attachments/:attachmentId/download", attachmentEnabled, async (req, res) => {
+  try {
+    if (!await conversations.get(req.user, req.params.id)) {
+      return res.status(404).json({ message: "Conversación no disponible." });
+    }
+    const row = await attachments.get(req.user, req.params.id, req.params.attachmentId);
+    if (!row) return res.status(404).json({ message: "Archivo no disponible." });
+    const url = await evidenceStorage.signedDownloadUrl(row.file);
+    return res.json({ url, expiresIn: 60 });
+  } catch (error) { return conversationError(res, error); }
+});
+
+router.delete("/conversations/:id/attachments/:attachmentId", attachmentEnabled, async (req, res) => {
+  try {
+    if (!await conversations.get(req.user, req.params.id)) {
+      return res.status(404).json({ message: "Conversación no disponible." });
+    }
+    const row = await attachments.get(req.user, req.params.id, req.params.attachmentId);
+    if (!row) return res.status(404).json({ message: "Archivo no disponible." });
+    await evidenceStorage.remove(row.file);
+    await attachments.remove(req.user, req.params.id, row.id);
+    return res.status(204).end();
+  } catch (error) { return conversationError(res, error); }
+});
 
 router.get("/memories", memoryEnabled, async (req, res) => {
   try { return res.json({ memories: await memory.list(req.user) }); }
@@ -214,9 +303,17 @@ router.patch("/conversations/:id/project", projectEnabled, async (req, res) => {
 
 router.delete("/conversations/:id", conversationEnabled, async (req, res) => {
   try {
-    if (!await conversations.remove(req.user, req.params.id)) {
+    if (!await conversations.get(req.user, req.params.id)) {
       return res.status(404).json({ message: "Conversación no disponible." });
     }
+    if (process.env.VERA_AI_ATTACHMENTS_ENABLED === "true") {
+      for (const row of await attachments.list(req.user, req.params.id)) {
+        const stored = await attachments.get(req.user, req.params.id, row.id);
+        await evidenceStorage.remove(stored.file);
+        await attachments.remove(req.user, req.params.id, row.id);
+      }
+    }
+    await conversations.remove(req.user, req.params.id);
     return res.status(204).end();
   } catch (error) { return conversationError(res, error); }
 });
@@ -226,9 +323,12 @@ router.post("/conversations/:id/ask", conversationEnabled,
     standardHeaders: "draft-8", legacyHeaders: false }), async (req, res) => {
     const question = req.body?.question;
     const withEvidence = req.body?.withEvidence === true;
+    const attachmentId = req.body?.attachmentId ?? null;
     if (typeof question !== "string" || question.trim().length < 3 ||
         question.length > (withEvidence ? 500 : 800) ||
-        (req.body?.withEvidence !== undefined && typeof req.body.withEvidence !== "boolean")) {
+        (req.body?.withEvidence !== undefined && typeof req.body.withEvidence !== "boolean") ||
+        (attachmentId !== null && (!validUuid(attachmentId) || withEvidence ||
+          process.env.VERA_AI_ATTACHMENTS_ENABLED !== "true"))) {
       return res.status(400).json({ message: "Escribe una pregunta válida para esta conversación." });
     }
     const startedAt = Date.now();
@@ -239,14 +339,18 @@ router.post("/conversations/:id/ask", conversationEnabled,
       if (scopeHash !== thread.scopeHash) return res.status(409).json({
         message: "Cambió el alcance de tus expedientes. Inicia una conversación nueva." });
       const history = thread.messages.slice(-6).map(({ role, text }) => ({ role, text: text.slice(0, 800) }));
-      const result = await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence);
+      const attached = attachmentId ? await attachments.get(req.user, thread.id, attachmentId) : null;
+      if (attachmentId && !attached) return res.status(404).json({ message: "Archivo no disponible." });
+      const result = attached ? await askAttachment(attached, question.trim())
+        : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence);
       const currentUser = await userRepository.findById(req.user.id);
       if (currentUser?.status !== "ACTIVE" || currentUser.role !== req.user.role ||
           await currentScope(req.user, thread.focus) !== scopeHash) {
         return res.status(409).json({ message: "Cambió tu acceso. Inicia una conversación nueva." });
       }
       const durationMs = Date.now() - startedAt;
-      const userMessage = { id: randomUUID(), role: "user", text: question.trim(), asOf: new Date().toISOString() };
+      const userMessage = { id: randomUUID(), role: "user", text: question.trim(), asOf: new Date().toISOString(),
+        ...(attached ? { attachmentId: attached.id, attachmentName: attached.name } : {}) };
       const assistantMessage = { id: randomUUID(), role: "assistant", text: result.answer.slice(0, 4000),
         mode: result.mode, metric: result.metric || null, citations: (result.citations || []).slice(0, 8),
         references: (result.references || []).slice(0, 15), coverage: result.coverage || null,

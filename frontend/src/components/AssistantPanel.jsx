@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Bot, FileText, Pencil, RotateCcw, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
-import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantConversation, deleteAssistantProject, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantConversations, listAssistantProjects, moveAssistantConversation, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject } from "../services/assistantService";
+import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantAttachment, deleteAssistantConversation, deleteAssistantProject, getAssistantAttachmentDownload, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantAttachments, listAssistantConversations, listAssistantProjects, moveAssistantConversation, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject, uploadAssistantAttachment } from "../services/assistantService";
 import { AssistantConversationContext } from "../contexts/AssistantConversationContext";
 import AssistantMemoryPanel from "./AssistantMemoryPanel";
 import "../pages/Asistente.css";
@@ -51,6 +51,11 @@ function AssistantPanel({ focus = null }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [projectMode, setProjectMode] = useState(false);
   const [memoryMode, setMemoryMode] = useState(false);
+  const [attachmentMode, setAttachmentMode] = useState(false);
+  const [attachmentList, setAttachmentList] = useState([]);
+  const [selectedAttachmentId, setSelectedAttachmentId] = useState(null);
+  const [attachmentBusy, setAttachmentBusy] = useState(false);
+  const [attachmentError, setAttachmentError] = useState("");
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [projectForm, setProjectForm] = useState(null);
@@ -63,7 +68,8 @@ function AssistantPanel({ focus = null }) {
     getAssistantStatus().then((result) => {
       if (active) { setAvailable(result.available); setReason(result.reason);
         setPersistent(Boolean(result.conversations)); setHistoryBusy(Boolean(result.conversations));
-        setProjectMode(Boolean(result.projects)); setMemoryMode(Boolean(result.memory)); }
+        setProjectMode(Boolean(result.projects)); setMemoryMode(Boolean(result.memory));
+        setAttachmentMode(Boolean(result.attachments)); }
     }).catch((cause) => { if (active) { setAvailable(false); setError(cause.message); } });
     getAssistantBrief().then((result) => { if (active) setBrief(result.signals || []); })
       .catch(() => { /* Las prioridades no bloquean las preguntas. */ });
@@ -93,13 +99,26 @@ function AssistantPanel({ focus = null }) {
     return () => { active = false; };
   }, [persistent, projectMode, conversationKey, updateConversation, focusType, focusId]);
 
+  useEffect(() => {
+    if (attachmentBusy) return undefined;
+    if (!attachmentMode || !thread?.id) return undefined;
+    let active = true;
+    listAssistantAttachments(thread.id).then((items) => { if (active) {
+      setAttachmentList(items);
+      setSelectedAttachmentId((current) => items.some((item) => item.id === current) ? current : null);
+    } })
+      .catch((cause) => { if (active) setAttachmentError(cause.message); });
+    return () => { active = false; };
+  }, [attachmentMode, thread?.id, attachmentBusy]);
+
   const visibleThreads = projectMode
     ? threadList.filter((item) => (item.projectId || null) === selectedProjectId) : threadList;
+  const visibleAttachments = thread ? attachmentList : [];
 
   const chooseProject = async (id) => {
     const projectId = id || null;
     setSelectedProjectId(projectId); setProjectForm(null); setConfirmDeleteProject(false);
-    setThread(null); setMessages([]); setHistoryStale(false);
+    setThread(null); setMessages([]); setHistoryStale(false); setSelectedAttachmentId(null);
     const first = threadList.find((item) => (item.projectId || null) === projectId);
     if (first) await openThread(first.id);
   };
@@ -114,7 +133,7 @@ function AssistantPanel({ focus = null }) {
         : await updateAssistantProject(projectForm.id, projectName.trim(), projectDescription.trim(), projectForm.version);
       setProjects((items) => projectForm === "new" ? [saved, ...items]
         : items.map((item) => item.id === saved.id ? saved : item));
-      if (projectForm === "new") { setSelectedProjectId(saved.id); setThread(null); setMessages([]); }
+      if (projectForm === "new") { setSelectedProjectId(saved.id); setThread(null); setMessages([]); setSelectedAttachmentId(null); }
       setProjectForm(null); setProjectName(""); setProjectDescription("");
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
@@ -129,7 +148,7 @@ function AssistantPanel({ focus = null }) {
       const items = await listAssistantConversations();
       setThreadList(items.filter((item) => focusType
         ? item.focus?.type === focusType && item.focus?.id === focusId : !item.focus));
-      setSelectedProjectId(null); setThread(null); setMessages([]); setHistoryStale(false);
+      setSelectedProjectId(null); setThread(null); setMessages([]); setHistoryStale(false); setSelectedAttachmentId(null);
       setConfirmDeleteProject(false);
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
@@ -140,13 +159,14 @@ function AssistantPanel({ focus = null }) {
     setHistoryBusy(true); setHistoryError("");
     try {
       const updated = await moveAssistantConversation(thread.id, event.target.value || null, thread.version);
-      setThread(null); setMessages([]);
+      setThread(null); setMessages([]); setSelectedAttachmentId(null);
       setThreadList((items) => items.map((item) => item.id === updated.id ? updated : item));
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
   };
 
   const openThread = async (id) => {
+    setSelectedAttachmentId(null);
     setHistoryBusy(true); setHistoryError(""); setConfirmDelete(false); setEditingTitle(false);
     try {
       const opened = await getAssistantConversation(id);
@@ -158,6 +178,7 @@ function AssistantPanel({ focus = null }) {
 
   const newThread = async () => {
     if (historyBusy || busy) return;
+    setSelectedAttachmentId(null);
     setHistoryBusy(true); setHistoryError(""); setConfirmDelete(false); setEditingTitle(false);
     try {
       const created = await createAssistantConversation(focus ? { type: focus.type, id: focus.id } : null,
@@ -187,9 +208,50 @@ function AssistantPanel({ focus = null }) {
     try {
       await deleteAssistantConversation(thread.id);
       setThreadList((items) => items.filter((item) => item.id !== thread.id));
-      setThread(null); setMessages([]); setHistoryStale(false); setConfirmDelete(false);
+      setThread(null); setMessages([]); setHistoryStale(false); setConfirmDelete(false); setSelectedAttachmentId(null);
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
+  };
+
+  const uploadFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || attachmentBusy || historyBusy || busy) return;
+    if (file.size > 2 * 1024 * 1024 || file.size === 0) {
+      setAttachmentError("El archivo debe tener entre 1 byte y 2 MB."); return;
+    }
+    setAttachmentBusy(true); setAttachmentError("");
+    try {
+      const active = thread || await createAssistantConversation(focus ? { type: focus.type, id: focus.id } : null,
+        selectedProjectId);
+      if (!thread) { setThread(active); setThreadList((items) => [active, ...items]); setMessages([]); }
+      const attached = await uploadAssistantAttachment(active.id, file);
+      setAttachmentList((items) => [attached, ...items]);
+      setSelectedAttachmentId(attached.id); setWithEvidence(false);
+    } catch (cause) { setAttachmentError(cause.message); }
+    finally { setAttachmentBusy(false); }
+  };
+
+  const downloadFile = async (attachmentId) => {
+    if (!thread) return;
+    setAttachmentError("");
+    try {
+      const url = await getAssistantAttachmentDownload(thread.id, attachmentId);
+      const link = document.createElement("a");
+      link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer";
+      document.body.appendChild(link); link.click(); link.remove();
+    } catch (cause) { setAttachmentError(cause.message); }
+  };
+
+  const removeFile = async (attachmentId) => {
+    if (!thread || attachmentBusy) return;
+    setAttachmentBusy(true); setAttachmentError("");
+    try {
+      await deleteAssistantAttachment(thread.id, attachmentId);
+      setAttachmentList((items) => items.filter((item) => item.id !== attachmentId));
+      if (selectedAttachmentId === attachmentId) setSelectedAttachmentId(null);
+    } catch (cause) { setAttachmentError(cause.message); }
+    finally { setAttachmentBusy(false); }
   };
 
   const submit = async (event) => {
@@ -205,7 +267,8 @@ function AssistantPanel({ focus = null }) {
       if (persistent) {
         const active = thread || await createAssistantConversation(selectedFocus, selectedProjectId);
         if (!thread) { setThread(active); setThreadList((items) => [active, ...items]); }
-        const saved = await askAssistantConversation(active.id, value, withEvidence);
+        const saved = await askAssistantConversation(active.id, value, withEvidence,
+          thread ? selectedAttachmentId : null);
         setMessages((current) => [...current, saved.userMessage, saved.message]);
         setThread((item) => ({ ...item, version: saved.version, updatedAt: new Date().toISOString() }));
         return;
@@ -321,6 +384,26 @@ function AssistantPanel({ focus = null }) {
       {confirmDelete && <div className="assistant-history-confirm" role="group" aria-label="Confirmar eliminación">
         <span>¿Eliminar esta conversación de forma permanente?</span><button type="button" onClick={removeThread}>Sí, eliminar</button>
         <button type="button" onClick={() => setConfirmDelete(false)}>Cancelar</button></div>}
+      {attachmentMode && <section className="assistant-attachments" aria-label="Archivos de esta conversación">
+        <label htmlFor="assistant-attachment-file">Adjuntar archivo privado</label>
+        <input id="assistant-attachment-file" type="file" accept=".pdf,.docx,.txt,.csv,.png,.jpg,.jpeg,.webp"
+          disabled={historyBusy || busy || attachmentBusy || visibleAttachments.length >= 2 || historyStale}
+          onChange={uploadFile} />
+        <small>Hasta 2 archivos por conversación, 2 MB cada uno. PDF, DOCX, TXT, CSV o imagen. No adjuntes claves.</small>
+        {visibleAttachments.length > 0 && <><label htmlFor="assistant-attachment-choice">Consultar archivo</label>
+          <select id="assistant-attachment-choice" value={selectedAttachmentId || ""}
+            onChange={(event) => { setSelectedAttachmentId(event.target.value || null); if (event.target.value) setWithEvidence(false); }}>
+            <option value="">Ninguno: consultar VERA</option>
+            {visibleAttachments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+          <ul>{visibleAttachments.map((item) => <li key={item.id}>
+            <span>{item.name} · {(item.size / 1024).toFixed(0)} KB{item.truncated ? " · lectura parcial" : ""}</span>
+            <button type="button" onClick={() => downloadFile(item.id)}>Abrir original</button>
+            <button type="button" disabled={attachmentBusy || busy} onClick={() => removeFile(item.id)}>Quitar</button>
+          </li>)}</ul></>}
+        {attachmentBusy && <small role="status">Procesando archivo privado...</small>}
+        {attachmentError && <p className="assistant-error" role="alert">{attachmentError}</p>}
+      </section>}
       {historyBusy && <small role="status">Cargando historial...</small>}
       {historyError && <p className="assistant-error" role="alert">{historyError}</p>}
       {historyStale && <p className="assistant-state" role="status">Cambió tu alcance de datos. Por protección, esta conversación ya no muestra respuestas anteriores. Inicia una conversación nueva.</p>}
@@ -362,12 +445,15 @@ function AssistantPanel({ focus = null }) {
     {!focus && messages.length === 0 && insights?.insights?.length > 0 && <section className="assistant-insights" aria-label="Prioridades explicables"><h3>Qué revisar primero</h3><p>Orden orientativo calculado desde tus registros visibles. Confirma cada dato antes de decidir; no representa riesgo residual.</p><ol>{insights.insights.map((item) => <li key={item.key}><Link to={item.source.path}><strong>{item.title}</strong><ArrowRight size={13} aria-hidden="true" /></Link><span>{item.reason}</span><small>{item.factors.join(" · ")}</small></li>)}</ol>{insights.partial && <small>Se muestran {insights.totalShown} de {insights.evaluated} señales; abre los módulos para revisar las demás.</small>}</section>}
     <div className="assistant-messages" aria-live="polite">{messages.map((message) => <article key={message.id} className={`assistant-message ${message.role}`}>
       <strong>{message.role === "user" ? "Tú" : "Asistente VERA"}</strong><p>{message.text}</p>
-      {message.role === "assistant" && <><small className="assistant-answer-note">{message.mode === "computed" ? "Dato calculado desde registros autorizados" : message.mode === "document-search" ? "Respuesta con fragmentos de evidencias · comprueba el archivo" : ["no-match", "uncited"].includes(message.mode) ? "Sin respuesta documental respaldada" : "Respuesta generada · comprueba el expediente"}{Number.isFinite(message.durationMs) ? ` · ${(message.durationMs / 1000).toFixed(1)} s` : ""}</small>
+      {message.role === "user" && message.attachmentName && <small className="assistant-answer-note">Archivo consultado: {message.attachmentName}</small>}
+      {message.role === "assistant" && <><small className="assistant-answer-note">{message.mode === "computed" ? "Dato calculado desde registros autorizados" : message.mode?.startsWith("attachment-") ? "Respuesta sobre un archivo privado · comprueba el original" : message.mode === "document-search" ? "Respuesta con fragmentos de evidencias · comprueba el archivo" : ["no-match", "uncited"].includes(message.mode) ? "Sin respuesta documental respaldada" : "Respuesta generada · comprueba el expediente"}{Number.isFinite(message.durationMs) ? ` · ${(message.durationMs / 1000).toFixed(1)} s` : ""}</small>
         {message.asOf && <time className="assistant-answer-note" dateTime={message.asOf}>Datos consultados: {new Date(message.asOf).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}</time>}
         {message.coverage?.indexedOnly && <small className="assistant-answer-note">Se buscaron fragmentos ya indexados en {message.coverage.searchedFiles} de {message.coverage.visibleFiles} archivos visibles. Los archivos antiguos pueden requerir una consulta individual para indexarse.</small>}
         {message.mode !== "computed" && message.coverage?.partial && <small className="assistant-answer-note">{message.coverage.indexedOnly ? "La cantidad de archivos superó el límite de esta búsqueda; el resultado puede ser parcial." : "Se consultó una muestra de expedientes visibles; los conteos abarcan el total de tu alcance."}</small>}
         {message.metric && <div className="assistant-citations"><b>Indicador calculado</b><ul><li><Link to={message.metric.path}>{message.metric.label}: {message.metric.count} <ArrowRight size={13} aria-hidden="true" /></Link></li></ul></div>}
-        {message.citations?.length > 0 && <div className="assistant-citations"><b>Registros citados</b><small>Campos consultados al responder; abre el expediente para ver su estado actual.</small><ul>{message.citations.map((item) => <li key={item.sourceId}><Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link>{item.facts?.length > 0 && <span className="assistant-source-facts">{item.facts.map((fact) => `${fact.label}: ${fact.value}`).join(" · ")}</span>}{item.excerpt && <span className="assistant-source-facts">{item.pageNumber ? `Página ${item.pageNumber} · ` : ""}{item.excerpt}</span>}</li>)}</ul></div>}
+        {message.citations?.length > 0 && <div className="assistant-citations"><b>Registros citados</b><small>Campos consultados al responder; abre el expediente o archivo para ver su estado actual.</small><ul>{message.citations.map((item) => <li key={item.sourceId}>{item.attachmentId
+          ? <button type="button" onClick={() => downloadFile(item.attachmentId)}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></button>
+          : <Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link>}{item.facts?.length > 0 && <span className="assistant-source-facts">{item.facts.map((fact) => `${fact.label}: ${fact.value}`).join(" · ")}</span>}{item.excerpt && <span className="assistant-source-facts">{item.pageNumber ? `Página ${item.pageNumber} · ` : ""}{item.excerpt}</span>}</li>)}</ul></div>}
         {message.citations?.length === 0 && message.mode !== "computed" && <small className="assistant-answer-note">Sin registros citados en esta respuesta.</small>}
         {message.references?.length > 0 && <details><summary>Registros relacionados ({message.references.length})</summary><ul>{message.references.map((item) => <li key={item.sourceId || `${item.type}:${item.id}`}><Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link></li>)}</ul></details>}
         {message.feedbackToken && !message.feedbackRating && <div className="assistant-feedback" aria-label="Valora esta respuesta"><span>¿Te sirvió?</span><button type="button" onClick={() => rateResponse(message, "helpful")} disabled={Boolean(feedbackBusyId)} aria-label="Me sirvió esta respuesta"><ThumbsUp size={14} aria-hidden="true" /> Sí</button><button type="button" onClick={() => rateResponse(message, "unhelpful")} disabled={Boolean(feedbackBusyId)} aria-label="No me sirvió esta respuesta"><ThumbsDown size={14} aria-hidden="true" /> No</button></div>}
@@ -376,7 +462,7 @@ function AssistantPanel({ focus = null }) {
     {busy && <p className="assistant-state" role="status">Consultando información autorizada...</p>}
     {error && <p className="assistant-error" role="alert">{error}</p>}
     {!persistent && messages.length > 0 && <button className="assistant-clear" type="button" onClick={() => { setMessages([]); setError(""); }}><RotateCcw size={14} aria-hidden="true" /> Nueva conversación</button>}
-    <form className="assistant-form" onSubmit={submit}><label htmlFor="assistant-question">Tu pregunta</label><label className="assistant-search-option"><input type="checkbox" checked={withEvidence} onChange={(event) => setWithEvidence(event.target.checked)} disabled={!available || busy} /> Buscar también en textos de evidencias visibles</label><div><textarea id="assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={withEvidence ? 500 : 800} rows={3} placeholder="Escribe una pregunta sobre VERA..." disabled={!available || busy || historyBusy || Boolean(historyError) || historyStale} /><button type="submit" disabled={!available || busy || historyBusy || Boolean(historyError) || historyStale || question.trim().length < 3 || question.trim().length > (withEvidence ? 500 : 800)} aria-label="Enviar pregunta"><Send size={19} aria-hidden="true" /></button></div><small>{question.length}/{withEvidence ? 500 : 800} caracteres · No escribas contraseñas ni claves.</small></form>
+    <form className="assistant-form" onSubmit={submit}><label htmlFor="assistant-question">Tu pregunta</label><label className="assistant-search-option"><input type="checkbox" checked={withEvidence} onChange={(event) => setWithEvidence(event.target.checked)} disabled={!available || busy || Boolean(selectedAttachmentId)} /> Buscar también en textos de evidencias visibles</label><div><textarea id="assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={withEvidence ? 500 : 800} rows={3} placeholder={selectedAttachmentId ? "Pregunta sobre el archivo seleccionado..." : "Escribe una pregunta sobre VERA..."} disabled={!available || busy || historyBusy || attachmentBusy || Boolean(historyError) || historyStale} /><button type="submit" disabled={!available || busy || historyBusy || attachmentBusy || Boolean(historyError) || historyStale || question.trim().length < 3 || question.trim().length > (withEvidence ? 500 : 800)} aria-label="Enviar pregunta"><Send size={19} aria-hidden="true" /></button></div><small>{question.length}/{withEvidence ? 500 : 800} caracteres · No escribas contraseñas ni claves.</small></form>
   </section>;
 }
 

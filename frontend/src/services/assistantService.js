@@ -74,10 +74,27 @@ export const updateAssistantMemory = async (id, content, enabled, version) =>
 export const deleteAssistantMemory = async (id) => memoryRequest(`/${encodeURIComponent(id)}`, {
   method: "DELETE"
 });
-export const askAssistantConversation = async (id, question, withEvidence = false) =>
+export const askAssistantConversation = async (id, question, withEvidence = false, attachmentId = null) =>
   conversationRequest(`/${encodeURIComponent(id)}/ask`, {
-    method: "POST", body: JSON.stringify({ question, withEvidence })
+    method: "POST", body: JSON.stringify({ question, withEvidence, attachmentId })
   });
+export const listAssistantAttachments = async (id) =>
+  (await conversationRequest(`/${encodeURIComponent(id)}/attachments`)).attachments;
+export const uploadAssistantAttachment = async (id, file) => {
+  const response = await fetch(`/api/assistant/conversations/${encodeURIComponent(id)}/attachments`, {
+    method: "POST", headers: { ...headers(), "Content-Type": file.type,
+      "X-File-Name": encodeURIComponent(file.name) }, body: file, cache: "no-store"
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "No se pudo adjuntar el archivo privado.");
+  return data.attachment;
+};
+export const deleteAssistantAttachment = async (id, attachmentId) =>
+  conversationRequest(`/${encodeURIComponent(id)}/attachments/${encodeURIComponent(attachmentId)}`, {
+    method: "DELETE"
+  });
+export const getAssistantAttachmentDownload = async (id, attachmentId) =>
+  (await conversationRequest(`/${encodeURIComponent(id)}/attachments/${encodeURIComponent(attachmentId)}/download`)).url;
 
 export const getAssistantBrief = async () => {
   const response = await fetch("/api/assistant/brief", { headers: headers() });
