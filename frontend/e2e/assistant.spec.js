@@ -189,6 +189,7 @@ test("Copiloto: reabre, renombra y elimina un historial privado persistente", as
   } }));
   const id = "11111111-1111-4111-8111-111111111111";
   let thread = null;
+  let stale = false;
   await page.route("**/api/assistant/conversations**", (route) => {
     const path = new URL(route.request().url()).pathname;
     const method = route.request().method();
@@ -204,12 +205,13 @@ test("Copiloto: reabre, renombra y elimina un historial privado persistente", as
       const question = route.request().postDataJSON().question;
       const userMessage = { id: "user-1", role: "user", text: question };
       const message = { id: "assistant-1", role: "assistant", text: "Riesgos altos en tu alcance: 2.",
-        mode: "computed", citations: [], references: [], asOf: "2026-10-22T18:00:00.000Z" };
+        mode: "computed", citations: [], references: [], asOf: "2026-10-22T18:00:00.000Z",
+        feedbackToken: "not-for-export" };
       thread.messages = [userMessage, message]; thread.version += 1;
       return route.fulfill({ json: { conversationId: id, version: thread.version, userMessage, message } });
     }
     if (path.endsWith(`/${id}`) && method === "GET") {
-      return route.fulfill({ json: { conversation: { ...thread, stale: false } } });
+      return route.fulfill({ json: { conversation: { ...thread, messages: stale ? [] : thread.messages, stale } } });
     }
     if (path.endsWith(`/${id}`) && method === "PATCH") {
       thread.title = route.request().postDataJSON().title; thread.version += 1;
@@ -230,10 +232,28 @@ test("Copiloto: reabre, renombra y elimina un historial privado persistente", as
   const access = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(access.violations.map(({ id }) => id)).toEqual([]);
   await page.getByRole("button", { name: "Renombrar conversación" }).click();
-  await page.getByLabel("Nuevo nombre").fill("Riesgos del periodo");
+  await page.getByLabel("Nuevo nombre").fill("Riesgos del período");
   await page.getByRole("button", { name: "Guardar", exact: true }).click();
   await expect(page.getByLabel("Conversaciones privadas")).toHaveValue(id);
-  await expect(page.getByRole("option", { name: "Riesgos del periodo" })).toBeAttached();
+  await page.getByLabel("Buscar conversaciones por título").fill("periodo");
+  await expect(page.getByRole("option", { name: "Riesgos del período" })).toBeAttached();
+  await page.getByLabel("Buscar conversaciones por título").fill("inexistente");
+  await expect(page.getByText("0 de 1 conversaciones")).toBeVisible();
+  await page.getByLabel("Buscar conversaciones por título").clear();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exportar conversación privada" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe(`vera-conversacion-${id}.json`);
+  const chunks = [];
+  for await (const chunk of await download.createReadStream()) chunks.push(chunk);
+  const exported = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  expect(exported.conversation.title).toBe("Riesgos del período");
+  expect(exported.messages.map((item) => item.role)).toEqual(["user", "assistant"]);
+  expect(exported.messages[1].feedbackToken).toBeUndefined();
+  stale = true;
+  await page.getByRole("button", { name: "Exportar conversación privada" }).click();
+  await expect(page.getByRole("button", { name: "Exportar conversación privada" })).toBeDisabled();
+  await expect(page.getByText(/Cambió tu alcance de datos/).first()).toBeVisible();
   await page.getByRole("button", { name: "Eliminar conversación" }).click();
   await page.getByRole("button", { name: "Sí, eliminar" }).click();
   await expect(page.getByText("Riesgos altos en tu alcance: 2.")).toHaveCount(0);

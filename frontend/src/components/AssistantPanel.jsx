@@ -49,6 +49,8 @@ function AssistantPanel({ focus = null }) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [threadQuery, setThreadQuery] = useState("");
+  const [exportBusy, setExportBusy] = useState(false);
   const [projectMode, setProjectMode] = useState(false);
   const [memoryMode, setMemoryMode] = useState(false);
   const [attachmentMode, setAttachmentMode] = useState(false);
@@ -112,13 +114,17 @@ function AssistantPanel({ focus = null }) {
     return () => { active = false; };
   }, [attachmentMode, thread?.id, attachmentBusy]);
 
-  const visibleThreads = projectMode
+  const projectThreads = projectMode
     ? threadList.filter((item) => (item.projectId || null) === selectedProjectId) : threadList;
+  const normalizedQuery = threadQuery.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es");
+  const visibleThreads = normalizedQuery ? projectThreads.filter((item) =>
+    item.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es").includes(normalizedQuery))
+    : projectThreads;
   const visibleAttachments = thread ? attachmentList : [];
 
   const chooseProject = async (id) => {
     const projectId = id || null;
-    setSelectedProjectId(projectId); setProjectForm(null); setConfirmDeleteProject(false);
+    setSelectedProjectId(projectId); setProjectForm(null); setConfirmDeleteProject(false); setThreadQuery("");
     setThread(null); setMessages([]); setHistoryStale(false); setSelectedAttachmentId(null);
     const first = threadList.find((item) => (item.projectId || null) === projectId);
     if (first) await openThread(first.id);
@@ -213,6 +219,40 @@ function AssistantPanel({ focus = null }) {
       setThread(null); setMessages([]); setHistoryStale(false); setConfirmDelete(false); setSelectedAttachmentId(null);
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
+  };
+
+  const exportThread = async () => {
+    if (!thread || historyBusy || busy || exportBusy || historyStale) return;
+    setExportBusy(true); setHistoryError("");
+    try {
+      // Refresh ownership and scope immediately before disclosing a local copy.
+      const current = await getAssistantConversation(thread.id);
+      if (current.stale) {
+        setHistoryStale(true); setMessages([]);
+        setHistoryError("Cambió tu alcance de datos. Inicia una conversación nueva.");
+        return;
+      }
+      const copy = {
+        format: "vera-ai-conversation-v1", exportedAt: new Date().toISOString(),
+        conversation: { id: current.id, title: current.title, focus: current.focus,
+          projectId: current.projectId, createdAt: current.createdAt, updatedAt: current.updatedAt },
+        messages: (current.messages || []).map((message) => ({
+          role: message.role, text: message.text, asOf: message.asOf,
+          ...(message.role === "user" ? { attachmentName: message.attachmentName || null } : {
+            mode: message.mode, metric: message.metric, citations: message.citations || [],
+            references: message.references || [], coverage: message.coverage || null,
+            durationMs: message.durationMs
+          })
+        }))
+      };
+      const url = URL.createObjectURL(new Blob([JSON.stringify(copy, null, 2)],
+        { type: "application/json;charset=utf-8" }));
+      const link = document.createElement("a");
+      link.href = url; link.download = `vera-conversacion-${current.id}.json`;
+      document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (cause) { setHistoryError(cause.message); }
+    finally { setExportBusy(false); }
   };
 
   const uploadFile = async (event) => {
@@ -369,8 +409,13 @@ function AssistantPanel({ focus = null }) {
           <button type="button" onClick={() => setConfirmDeleteProject(false)}>Cancelar</button>
         </div>}
       </div>}
+      <div className="assistant-history-main"><label htmlFor="assistant-thread-query">Buscar conversaciones por título</label>
+        <input id="assistant-thread-query" type="search" value={threadQuery} maxLength={80}
+          onChange={(event) => setThreadQuery(event.target.value)} placeholder="Buscar en este proyecto" />
+        <small role="status">{visibleThreads.length} de {projectThreads.length} conversaciones</small></div>
       <div className="assistant-history-main"><label htmlFor="assistant-thread">Conversaciones privadas</label>
-        <select id="assistant-thread" value={thread?.id || ""} disabled={historyBusy || busy || !visibleThreads.length}
+        <select id="assistant-thread" value={visibleThreads.some((item) => item.id === thread?.id) ? thread.id : ""}
+          disabled={historyBusy || busy || !visibleThreads.length}
           onChange={(event) => openThread(event.target.value)}><option value="">Selecciona una conversación</option>
           {visibleThreads.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
         <button type="button" onClick={newThread} disabled={historyBusy || busy}>Nueva conversación</button></div>
@@ -382,8 +427,11 @@ function AssistantPanel({ focus = null }) {
       {thread && <div className="assistant-history-actions"><button type="button" onClick={() => {
         setDraftTitle(thread.title); setEditingTitle(true); setConfirmDelete(false);
       }} disabled={historyBusy || busy} aria-label="Renombrar conversación"><Pencil size={15} aria-hidden="true" /> Renombrar</button>
+        <button type="button" onClick={exportThread} disabled={historyBusy || busy || exportBusy || historyStale}
+          aria-label="Exportar conversación privada">{exportBusy ? "Preparando exportación..." : "Exportar JSON"}</button>
         <button type="button" onClick={() => { setConfirmDelete(true); setEditingTitle(false); }}
           disabled={historyBusy || busy} aria-label="Eliminar conversación"><Trash2 size={15} aria-hidden="true" /> Eliminar</button></div>}
+      {thread && <small>La exportación contiene texto y fuentes privadas de esta conversación; los archivos adjuntos se descargan por separado.</small>}
       {editingTitle && <form className="assistant-history-edit" onSubmit={renameThread}><label htmlFor="assistant-thread-title">Nuevo nombre</label>
         <input id="assistant-thread-title" value={draftTitle} maxLength={80} onChange={(event) => setDraftTitle(event.target.value)} />
         <button type="submit" disabled={!draftTitle.trim() || historyBusy}>Guardar</button>
