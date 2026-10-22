@@ -773,6 +773,15 @@
 .dashboard-overview-section { margin-top: 25px; }
 .dashboard-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
 .dashboard-section-heading > span { color: var(--vera-text-muted); font-size: 12px; }
+.dashboard-period-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.dashboard-period-controls label { display: grid; gap: 3px; color: var(--vera-text-muted); font-size: 12px; }
+.dashboard-period-controls select, .dashboard-period-controls input {
+  min-height: 36px; max-width: 145px; padding: 6px 9px; border: 1px solid var(--vera-border);
+  border-radius: 8px; background: var(--vera-surface); color: var(--vera-text-strong); font: inherit;
+}
+.dashboard-period-controls input { max-width: 92px; }
+.dashboard-period-controls :is(select, input):focus-visible { outline: 2px solid var(--vera-accent); outline-offset: 2px; }
+.dashboard-period-caption { margin: -5px 0 14px; color: var(--vera-text-muted); font-size: 12px; }
 .role-dashboard .kpi-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .role-dashboard .kpi-card {
   position: relative;

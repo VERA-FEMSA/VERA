@@ -1,6 +1,13 @@
-export const getDashboardSummary = async () => {
+export const getDashboardSummary = async ({ period = "all", year, semester, quarter } = {}) => {
   const token = localStorage.getItem("token");
-  const response = await fetch("/api/dashboard", {
+  const params = new URLSearchParams();
+  if (period !== "all") {
+    params.set("period", period);
+    params.set("year", String(year));
+    if (period === "semester") params.set("semester", String(semester));
+    if (period === "quarter") params.set("quarter", quarter);
+  }
+  const response = await fetch(`/api/dashboard${params.size ? `?${params}` : ""}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   const data = await response.json();

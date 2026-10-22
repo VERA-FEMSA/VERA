@@ -55,6 +55,25 @@ test("HU-07: dashboard data is authenticated and scoped according to the user's 
   assert.equal(auditorDashboard.metrics.active, 1);
   assert.equal(auditorDashboard.riskMatrix.flat().reduce((sum, cell) => sum + cell.count, 0), 1);
 
+  const quarterResponse = await fetch(`${baseUrl}/api/dashboard?period=quarter&year=2026&quarter=Q2`, json(tokenFor(5)));
+  assert.equal(quarterResponse.status, 200);
+  const quarterDashboard = await quarterResponse.json();
+  assert.deepEqual(quarterDashboard.selectedPeriod, { period: "quarter", year: 2026, quarter: "Q2" });
+  assert.equal(quarterDashboard.metrics.total, 1);
+  assert.equal(quarterDashboard.metrics.active, 1);
+  assert.equal(quarterDashboard.riskMatrix.flat().reduce((sum, cell) => sum + cell.count, 0), 1);
+  const emptyQuarter = await fetch(`${baseUrl}/api/dashboard?period=quarter&year=2026&quarter=Q3`, json(tokenFor(5)));
+  assert.equal((await emptyQuarter.json()).metrics.total, 0);
+  const firstSemester = await fetch(`${baseUrl}/api/dashboard?period=semester&year=2026&semester=1`, json(tokenFor(5)));
+  assert.equal((await firstSemester.json()).metrics.total, 1);
+  const secondSemester = await fetch(`${baseUrl}/api/dashboard?period=semester&year=2026&semester=2`, json(tokenFor(5)));
+  assert.equal((await secondSemester.json()).metrics.total, 0);
+  const nextYear = await fetch(`${baseUrl}/api/dashboard?period=year&year=2027`, json(tokenFor(5)));
+  assert.equal((await nextYear.json()).metrics.total, 0);
+  for (const invalid of ["period=quarter&year=2026&quarter=Q5", "period=semester&year=2026&semester=3", "period=year&year=not-a-year"]) {
+    assert.equal((await fetch(`${baseUrl}/api/dashboard?${invalid}`, json(tokenFor(5)))).status, 400);
+  }
+
   const auditorPlanningResponse = await fetch(`${baseUrl}/api/planning`, json(tokenFor(5)));
   const auditorPlanning = await auditorPlanningResponse.json();
   assert.ok(auditorPlanning.proposals.every((item) => item.responsibleId === 5));

@@ -29,11 +29,19 @@ const dashboardCopy = {
   }
 };
 
-const getDashboardForUser = (user, proposals, findings = []) => {
+const inPeriod = (proposal, selectedPeriod) => {
+  if (selectedPeriod.period === "all") return true;
+  if (Number(proposal.year) !== selectedPeriod.year) return false;
+  if (selectedPeriod.period === "year") return true;
+  if (selectedPeriod.period === "quarter") return proposal.quarter === selectedPeriod.quarter;
+  return (selectedPeriod.semester === 1 ? ["Q1", "Q2"] : ["Q3", "Q4"]).includes(proposal.quarter);
+};
+
+const getDashboardForUser = (user, proposals, findings = [], selectedPeriod = { period: "all" }) => {
   const isAuditor = user.role === "AUDITOR";
   const visibleProposals = isAuditor
-    ? proposals.filter((proposal) => proposal.responsibleId === user.id)
-    : proposals;
+    ? proposals.filter((proposal) => proposal.responsibleId === user.id && inPeriod(proposal, selectedPeriod))
+    : proposals.filter((proposal) => inPeriod(proposal, selectedPeriod));
   const activeAudits = visibleProposals.filter((proposal) => proposal.status === "ACTIVE");
   const visibleAuditIds = new Set(visibleProposals.map((proposal) => proposal.id));
   const openFindings = findings.filter((finding) => finding.status === "OPEN" && visibleAuditIds.has(finding.auditId));
@@ -68,6 +76,7 @@ const getDashboardForUser = (user, proposals, findings = []) => {
   return {
     role: user.role,
     ...heading,
+    selectedPeriod,
     metrics: {
       total: visibleProposals.length,
       pending: visibleProposals.filter((proposal) => proposal.status === "OPEN").length,

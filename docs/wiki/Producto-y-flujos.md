@@ -18,9 +18,9 @@ Este es el flujo implementado a nivel de aplicación; la [matriz de aceptación]
 
 | Vista | Pregunta que responde |
 | --- | --- |
-| Panel de portafolio | ¿Qué indicadores y decisiones requieren mi atención? |
+| Panel de portafolio | ¿Qué indicadores y decisiones requieren mi atención por año, semestre o trimestre? |
 | Planificación | ¿Qué propuestas están abiertas, aprobadas o rechazadas? |
-| Auditorías activas y búsqueda | ¿Qué auditorías están en curso y dónde se concentran los riesgos? |
+| Auditorías activas, búsqueda y reporte | ¿Qué auditorías están en curso, dónde se concentran los riesgos y qué datos autorizados puedo exportar? |
 | Riesgos y controles | ¿Qué se evaluó, qué medidas existen y qué hallazgos surgieron? |
 | Evidencias y actividad | ¿Qué sustento y cambios tiene cada expediente? |
 | Pendientes | ¿Qué tareas visibles siguen abiertas para mí? |

@@ -107,7 +107,7 @@ La disponibilidad de 99.5% requiere una ventana de medición mensual; RTO de 4 h
 | TC-38 | RNF-17: política mínima de longitud, mayúsculas, minúsculas y números | Unit/API | Alta | 2 | Cubierto por unitarias: frontera de ocho caracteres y cada categoría requerida |
 | TC-39 | RF-02: administrador edita rol y deshabilita usuario | API/E2E | Alta | 2 | Cubierto por API: cambio de rol/estado, actor sin permiso y sesión anterior invalidada/reactivada |
 | TC-40 | RF-05: panel con gráficas, métricas y acciones | API/E2E | Media | 5 | Parcial: métricas, roles y matriz cubiertos por unitarias/API; PR-6 verifica visualización y acciones director/auditor con respuestas API ficticias |
-| TC-41 | RF-06: total por trimestre seleccionado | Unit/API/E2E | Media | 5 | Bloqueado parcialmente: la UI no ofrece selector de periodo ni conteo anual/semestral/trimestral hoy |
+| TC-41 | RF-06: total por trimestre seleccionado | Unit/API/E2E | Media | 5 | Cubierto por API/E2E: selección anual, semestral y trimestral con recálculo de indicadores; falta dictamen desplegado |
 | TC-42 | RF-07: auditorías activas pendientes | API/UI | Alta | 3 | Parcial: endpoint y alcance por rol probados; falta UI y casos de filtrado/orden |
 | TC-43 | RF-08: matriz de riesgo del panel | Unit/API/UI | Alta | 5 | Parcial: nueve celdas, conteos activos y permisos cubiertos por unitarias/API; render y presencia de nueve celdas verificados en Chromium |
 | TC-44 | RF-16: riesgo válido ligado a auditoría | API | Alta | 3 | Cubierto por API: registro ligado a una auditoría válida y rechazo de vínculo inexistente |
