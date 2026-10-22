@@ -25,6 +25,7 @@ import Controles from "./pages/Controles";
 import Notificaciones from "./pages/Notificaciones";
 import ActividadReciente from "./pages/ActividadReciente";
 import Asistente from "./pages/Asistente";
+import AiQuality from "./pages/AiQuality";
 import Evidencias from "./pages/Evidencias";
 import Trimestres, { TrimestreDetalle } from "./pages/Trimestres";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -126,6 +127,7 @@ function App() {
         <Route path="/notificaciones" element={<ProtectedRoute><Notificaciones /></ProtectedRoute>} />
         <Route path="/actividad" element={<ProtectedRoute><ActividadReciente /></ProtectedRoute>} />
         <Route path="/asistente" element={<ProtectedRoute><Asistente /></ProtectedRoute>} />
+        <Route path="/calidad-ia" element={<ProtectedRoute allowedRoles={["SUPER_ADMIN"]}><AiQuality /></ProtectedRoute>} />
         <Route path="/evidencias" element={<ProtectedRoute><Evidencias /></ProtectedRoute>} />
 
         <Route
