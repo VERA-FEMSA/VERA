@@ -1,5 +1,5 @@
 const PAGE_SIZE = 1000;
-const TABLES = new Set(["vera_risks", "vera_controls", "vera_findings", "vera_evidence", "vera_audit_comments", "vera_notification_reads"]);
+const TABLES = new Set(["vera_risks", "vera_controls", "vera_findings", "vera_evidence", "vera_audit_comments", "vera_notification_reads", "vera_actions"]);
 
 class DomainStorageError extends Error {
   constructor(message, status = 503) {
@@ -67,7 +67,7 @@ const createStore = (table) => {
     const rows = await request("POST", { select: "payload,version" }, { id: payload.id, payload, ...extraColumns });
     return unpack(rows[0]);
   };
-  const mutate = async (id, changes, expectedVersion) => {
+  const mutate = async (id, changes, expectedVersion, extraColumns = {}) => {
     const current = await findById(id);
     if (!current) return null;
     if (expectedVersion !== undefined && current.storageVersion !== expectedVersion) {
@@ -77,7 +77,7 @@ const createStore = (table) => {
     const next = { ...payload, ...changes, updatedAt: new Date().toISOString() };
     const rows = await request("PATCH", {
       select: "payload,version", id: `eq.${id}`, version: `eq.${current.storageVersion}`
-    }, { payload: next, version: current.storageVersion + 1, updated_at: new Date().toISOString() });
+    }, { payload: next, version: current.storageVersion + 1, updated_at: new Date().toISOString(), ...extraColumns });
     if (!rows.length) throw new DomainStorageError("El registro cambió mientras lo editabas. Actualiza y vuelve a intentar.", 409);
     return unpack(rows[0]);
   };

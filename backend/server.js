@@ -16,6 +16,7 @@ const riskRoutes = require("./routes/riskRoutes");
 const controlRoutes = require("./routes/controlRoutes");
 const findingRoutes = require("./routes/findingRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const actionRoutes = require("./routes/actionRoutes");
 const evidenceRoutes = require("./routes/evidenceRoutes");
 const assistantRoutes = require("./routes/assistantRoutes");
 
@@ -45,6 +46,7 @@ app.use("/api/risks", riskRoutes);
 app.use("/api/controls", controlRoutes);
 app.use("/api/findings", findingRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/actions", actionRoutes);
 app.use("/api/evidence", evidenceRoutes);
 app.use("/api/assistant", assistantRoutes);
 
@@ -61,6 +63,7 @@ app.use((error, req, res, next) => {
   if (error.userStorage) return res.status(error.status).json({ message: error.message });
   if (error.roleRequestStorage) return res.status(error.status).json({ message: error.message });
   if (error.domainStorage) return res.status(error.status).json({ message: error.message });
+  if (error.action) return res.status(error.status).json({ message: error.message });
   if (error.auditStorage) return res.status(error.status).json({ message: error.message });
   next(error);
 });
