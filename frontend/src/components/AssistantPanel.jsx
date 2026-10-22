@@ -61,6 +61,7 @@ function AssistantPanel({ focus = null }) {
   const [projectForm, setProjectForm] = useState(null);
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
+  const [projectInstructions, setProjectInstructions] = useState("");
   const [confirmDeleteProject, setConfirmDeleteProject] = useState(false);
 
   useEffect(() => {
@@ -129,12 +130,13 @@ function AssistantPanel({ focus = null }) {
     setHistoryBusy(true); setHistoryError("");
     try {
       const saved = projectForm === "new"
-        ? await createAssistantProject(projectName.trim(), projectDescription.trim())
-        : await updateAssistantProject(projectForm.id, projectName.trim(), projectDescription.trim(), projectForm.version);
+        ? await createAssistantProject(projectName.trim(), projectDescription.trim(), projectInstructions.trim())
+        : await updateAssistantProject(projectForm.id, projectName.trim(), projectDescription.trim(),
+          projectInstructions.trim(), projectForm.version);
       setProjects((items) => projectForm === "new" ? [saved, ...items]
         : items.map((item) => item.id === saved.id ? saved : item));
       if (projectForm === "new") { setSelectedProjectId(saved.id); setThread(null); setMessages([]); setSelectedAttachmentId(null); }
-      setProjectForm(null); setProjectName(""); setProjectDescription("");
+      setProjectForm(null); setProjectName(""); setProjectDescription(""); setProjectInstructions("");
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
   };
@@ -336,13 +338,14 @@ function AssistantPanel({ focus = null }) {
             {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
           <button type="button" disabled={historyBusy || busy} onClick={() => {
-            setProjectForm("new"); setProjectName(""); setProjectDescription("");
+            setProjectForm("new"); setProjectName(""); setProjectDescription(""); setProjectInstructions("");
           }}>Nuevo proyecto</button></div>
         {selectedProjectId && <div className="assistant-history-actions">
           <button type="button" disabled={historyBusy || busy} onClick={() => {
             const current = projects.find((item) => item.id === selectedProjectId);
             if (!current) return;
             setProjectForm(current); setProjectName(current.name); setProjectDescription(current.description);
+            setProjectInstructions(current.instructions || "");
           }}>Editar proyecto</button>
           <button type="button" disabled={historyBusy || busy} onClick={() => setConfirmDeleteProject(true)}>Eliminar proyecto</button>
         </div>}
@@ -353,6 +356,10 @@ function AssistantPanel({ focus = null }) {
           <label htmlFor="assistant-project-description">Descripción opcional</label>
           <textarea id="assistant-project-description" value={projectDescription} maxLength={500} rows={2}
             onChange={(event) => setProjectDescription(event.target.value)} />
+          <label htmlFor="assistant-project-instructions">Preferencias para respuestas de este proyecto (opcional)</label>
+          <textarea id="assistant-project-instructions" value={projectInstructions} maxLength={800} rows={3}
+            onChange={(event) => setProjectInstructions(event.target.value)} />
+          <small>Solo formato o enfoque. No añadas hechos, permisos ni claves; los expedientes autorizados siguen siendo la fuente.</small>
           <button type="submit" disabled={!projectName.trim() || historyBusy}>Guardar proyecto</button>
           <button type="button" onClick={() => setProjectForm(null)}>Cancelar</button>
         </form>}

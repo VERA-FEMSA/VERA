@@ -125,6 +125,10 @@ test("Copiloto: proyectos privados agrupan hilos y borrarlos conserva el histori
       project = { id: projectId, ...route.request().postDataJSON(), version: 1 };
       return route.fulfill({ status: 201, json: { project } });
     }
+    if (method === "PATCH") {
+      project = { ...project, ...route.request().postDataJSON(), version: project.version + 1 };
+      return route.fulfill({ json: { project } });
+    }
     if (method === "DELETE") {
       project = null;
       if (thread) { thread.projectId = null; thread.version += 1; }
@@ -151,6 +155,7 @@ test("Copiloto: proyectos privados agrupan hilos y borrarlos conserva el histori
   await page.goto("/asistente");
   await page.getByRole("button", { name: "Nuevo proyecto" }).click();
   await page.getByLabel("Nombre del proyecto").fill("Auditoría anual");
+  await page.getByLabel("Preferencias para respuestas de este proyecto (opcional)").fill("Responde en tres puntos");
   await page.getByRole("button", { name: "Guardar proyecto" }).click();
   await expect(page.getByLabel("Proyecto", { exact: true })).toHaveValue(projectId);
   await page.getByRole("button", { name: "Nueva conversación" }).click();
@@ -158,6 +163,17 @@ test("Copiloto: proyectos privados agrupan hilos y borrarlos conserva el histori
   await page.reload();
   await page.getByLabel("Proyecto", { exact: true }).selectOption(projectId);
   await expect(page.getByRole("option", { name: "Nueva conversación" })).toBeAttached();
+  await page.getByRole("button", { name: "Editar proyecto" }).click();
+  await expect(page.getByLabel("Preferencias para respuestas de este proyecto (opcional)"))
+    .toHaveValue("Responde en tres puntos");
+  await page.getByLabel("Preferencias para respuestas de este proyecto (opcional)").fill("Cita primero las fuentes");
+  await page.getByRole("button", { name: "Guardar proyecto" }).click();
+  await page.reload();
+  await page.getByLabel("Proyecto", { exact: true }).selectOption(projectId);
+  await page.getByRole("button", { name: "Editar proyecto" }).click();
+  await expect(page.getByLabel("Preferencias para respuestas de este proyecto (opcional)"))
+    .toHaveValue("Cita primero las fuentes");
+  await page.getByRole("button", { name: "Cancelar" }).click();
   await page.getByRole("button", { name: "Eliminar proyecto" }).click();
   await page.getByRole("button", { name: "Sí, eliminar proyecto" }).click();
   await expect(page.getByLabel("Proyecto", { exact: true })).toHaveValue("");

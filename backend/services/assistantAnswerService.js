@@ -4,7 +4,8 @@ const { askAzureOpenAi, readiness } = require("./azureOpenAiService");
 const { searchAssistantEvidence } = require("./assistantEvidenceSearchService");
 const assistantMemory = require("../repositories/assistantMemoryRepository");
 
-const answerAssistant = async (user, question, history = [], focus = null, withEvidence = false) => {
+const answerAssistant = async (user, question, history = [], focus = null, withEvidence = false,
+  projectInstructions = "") => {
   if (!readiness().available) {
     const error = new Error("El asistente requiere Azure OpenAI y almacenes persistentes en producción.");
     error.status = 503;
@@ -31,7 +32,8 @@ const answerAssistant = async (user, question, history = [], focus = null, withE
   }
   const memory = process.env.VERA_AI_MEMORY_ENABLED === "true" && !user.roleTour
     ? (await assistantMemory.list(user)).filter((item) => item.enabled).map((item) => item.content) : [];
-  const { answer, sourceIds, usage } = await askAzureOpenAi({ question, context, history, memory });
+  const { answer, sourceIds, usage } = await askAzureOpenAi({ question, context, history, memory,
+    projectInstructions });
   const citations = sourceIds.map((id) => sourceCatalog.find((item) => item.sourceId === id)).filter(Boolean);
   return { answer, mode: "generated", citations, references, coverage, asOf, usage };
 };
