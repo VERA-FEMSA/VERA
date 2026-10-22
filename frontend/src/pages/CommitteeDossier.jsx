@@ -3,9 +3,12 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Printer, RefreshCw } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { getAuditContext } from "../services/planningService";
+import { getAuditActions } from "../services/actionService";
 import "./CommitteeDossier.css";
 
 const STATUS = { OPEN: "Propuesta abierta", APPROVED: "Aprobada", ACTIVE: "En curso", CLOSED: "Cerrada", REJECTED: "Rechazada" };
+const ACTION_STATUS = { OPEN: "Abierta", IN_PROGRESS: "En curso", DONE: "Terminada", CANCELLED: "Cancelada" };
+const ACTION_SOURCE = { AUDIT: "Auditoría", RISK: "Riesgo", CONTROL: "Control", FINDING: "Hallazgo" };
 const date = (value) => value && !Number.isNaN(Date.parse(value))
   ? new Date(value).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }) : "Sin dato";
 const value = (item) => item === null || item === undefined || item === "" ? "Sin dato" : item;
@@ -29,6 +32,10 @@ function CommitteeDossier() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
+  const [actions, setActions] = useState([]);
+  const [actionsAsOf, setActionsAsOf] = useState(null);
+  const [actionsLoading, setActionsLoading] = useState(true);
+  const [actionsError, setActionsError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -39,11 +46,26 @@ function CommitteeDossier() {
     return () => { cancelled = true; };
   }, [auditId, revision]);
 
-  const refresh = () => { setLoading(true); setError(""); setRevision((current) => current + 1); };
+  useEffect(() => {
+    let cancelled = false;
+    getAuditActions(auditId)
+      .then((result) => { if (!cancelled) { setActions(result.actions); setActionsAsOf(result.asOf); setActionsError(""); } })
+      .catch((cause) => { if (!cancelled) { setActions([]); setActionsAsOf(null); setActionsError(cause.message); } })
+      .finally(() => { if (!cancelled) setActionsLoading(false); });
+    return () => { cancelled = true; };
+  }, [auditId, revision]);
+
+  const refresh = () => { setLoading(true); setActionsLoading(true); setError(""); setActionsError(""); setRevision((current) => current + 1); };
   const auditPath = context?.audit.status && context.audit.status !== "ACTIVE"
     ? `/auditorias?auditId=${encodeURIComponent(auditId)}`
     : `/auditorias-activas/${encodeURIComponent(auditId)}`;
   const facts = context ? dossierFacts(context) : null;
+  const openActions = actions.filter((item) => ["OPEN", "IN_PROGRESS"].includes(item.status));
+  const overdueActions = openActions.filter((item) => item.dueDate < new Date().toISOString().slice(0, 10));
+  const doneActions = actions.filter((item) => item.status === "DONE");
+  let user = null;
+  try { user = JSON.parse(localStorage.getItem("user") || "null"); } catch { /* Sin controles de edición. */ }
+  const canCreateAction = !user?.roleTour && ["SUPER_ADMIN", "GERENTE", "AUDITOR", "JEFATURA"].includes(user?.role);
 
   return <div className="dashboard-layout committee-layout">
     <Sidebar active="auditorias-activas" />
@@ -53,7 +75,7 @@ function CommitteeDossier() {
           <Link to={auditPath}><ArrowLeft size={16} aria-hidden="true" /> Volver al expediente</Link>
           <div>
             <button type="button" onClick={refresh} disabled={loading}><RefreshCw size={16} aria-hidden="true" /> Actualizar</button>
-            <button type="button" onClick={() => window.print()} disabled={!context || loading}><Printer size={16} aria-hidden="true" /> Imprimir o guardar PDF</button>
+            <button type="button" onClick={() => window.print()} disabled={!context || loading || actionsLoading}><Printer size={16} aria-hidden="true" /> Imprimir o guardar PDF</button>
           </div>
         </div>
 
@@ -73,6 +95,7 @@ function CommitteeDossier() {
             <span>Consulta: <b>{date(context.asOf)}</b></span>
             <span>Alcance: <b>{context.scope}</b></span>
             <span>Modo: <b>Solo lectura</b></span>
+            <span>Acciones consultadas: <b>{actionsAsOf ? date(actionsAsOf) : "No disponible"}</b></span>
           </div>
 
           <section className="committee-section" aria-labelledby="committee-profile">
@@ -100,7 +123,10 @@ function CommitteeDossier() {
                 [context.counts.controls, "Controles vinculados"],
                 [facts.withoutControl.length, "Riesgos sin control visible"],
                 [facts.openFindings.length, "Hallazgos abiertos"],
-                [context.counts.evidence, "Evidencias vinculadas"]
+                [context.counts.evidence, "Evidencias vinculadas"],
+                [actionsLoading || actionsError ? "—" : openActions.length, "Acciones abiertas"],
+                [actionsLoading || actionsError ? "—" : overdueActions.length, "Acciones vencidas"],
+                [actionsLoading || actionsError ? "—" : doneActions.length, "Acciones terminadas"]
               ].map(([number, label]) => <div key={label}><strong>{number}</strong><span>{label}</span></div>)}
             </div>
             <p className="committee-note">Los conteos describen registros visibles, no un dictamen de cobertura, eficacia ni riesgo residual.</p>
@@ -140,6 +166,19 @@ function CommitteeDossier() {
                 {items.length ? <ul>{items.map((item) => <li key={item.id}>{describe(item)}</li>)}</ul> : <p>Ningún registro visible en esta categoría.</p>}
               </section>)}
             </div>
+          </section>
+
+          <section className="committee-section" aria-labelledby="committee-actions">
+            <div className="committee-section-heading"><span>05 / SEGUIMIENTO</span><h2 id="committee-actions">Compromisos registrados</h2></div>
+            {actionsLoading ? <p className="committee-empty" role="status">Consultando acciones relacionadas…</p>
+              : actionsError ? <p className="committee-empty committee-error" role="alert">No se pudieron consultar las acciones: {actionsError}. Los conteos de acciones no están disponibles.</p>
+                : actions.length ? <div className="committee-table-wrap"><table className="committee-table">
+                  <caption>Acciones relacionadas con la auditoría y sus registros visibles</caption>
+                  <thead><tr><th scope="col">Compromiso y origen</th><th scope="col">Responsable</th><th scope="col">Estado</th><th scope="col">Fecha objetivo</th></tr></thead>
+                  <tbody>{actions.map((action) => <tr key={action.id}><th scope="row"><b>{action.title}</b><small>{ACTION_SOURCE[action.sourceType]} · {action.sourceTitle} · {action.sourceId}</small><small>Motivo: {action.rationale}</small></th><td>{action.assigneeName}</td><td>{ACTION_STATUS[action.status] || action.status}</td><td>{action.dueDate}</td></tr>)}</tbody>
+                </table></div> : <p className="committee-empty">No hay compromisos registrados para los registros visibles de este expediente.</p>}
+            {canCreateAction && <p className="committee-note committee-action-link"><Link to={`/notificaciones?sourceType=AUDIT&sourceId=${encodeURIComponent(auditId)}`}>Registrar una acción vinculada a esta auditoría</Link></p>}
+            <p className="committee-note">Las acciones relacionadas se muestran según los vínculos y permisos vigentes; una acción terminada refleja un cambio humano registrado, no una validación automática de cierre.</p>
           </section>
 
           <footer className="committee-footer">

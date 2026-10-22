@@ -13,6 +13,7 @@ const request = async (path = "", options = {}) => {
 };
 
 export const getActions = () => request();
+export const getAuditActions = (auditId) => request(`/for-audit/${encodeURIComponent(auditId)}`);
 export const getActionSources = () => request("/sources");
 export const getActionAssignees = (sourceType, sourceId) => request(
   `/assignees?sourceType=${encodeURIComponent(sourceType)}&sourceId=${encodeURIComponent(sourceId)}`

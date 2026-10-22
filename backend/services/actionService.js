@@ -5,6 +5,7 @@ const controlRepository = require("../repositories/controlRepository");
 const findingRepository = require("../repositories/findingRepository");
 const userRepository = require("../repositories/userRepository");
 const { logActivity } = require("./auditLogger");
+const { buildAuditContext } = require("./auditContextService");
 const { USER_STATUS } = require("../config/accountRules");
 const { ROLES, PLANNING_APPROVE_ROLES, RECORD_CREATE_ROLES } = require("../config/roles");
 
@@ -112,6 +113,24 @@ const listActions = async (user, { sourceType, sourceId } = {}) => {
   return actions.filter((action) => sourceIds[action.sourceType]?.has(action.sourceId));
 };
 
+const listActionsForAudit = async (user, auditId) => {
+  let context;
+  try { context = await buildAuditContext(user, auditId); }
+  catch (error) {
+    if ([400, 403, 404].includes(error.status)) throw new ActionError(error.message, error.status);
+    throw error;
+  }
+  const related = {
+    AUDIT: new Set([context.audit.id]),
+    RISK: new Set(context.groups.risks.map((item) => item.id)),
+    CONTROL: new Set(context.groups.controls.map((item) => item.id)),
+    FINDING: new Set(context.groups.findings.map((item) => item.id))
+  };
+  const actions = (await actionRepository.getAll()).filter((action) =>
+    related[action.sourceType]?.has(action.sourceId));
+  return { actions, asOf: new Date().toISOString(), scope: context.scope };
+};
+
 const getAction = async (user, id) => {
   if (!id || id.length > 80) throw new ActionError("Selecciona una acción válida.", 400);
   const action = await actionRepository.findById(id);
@@ -208,4 +227,4 @@ const reassign = async (user, id, body) => {
   return updated;
 };
 
-module.exports = { ActionError, listActions, listSources, getAction, listAssignees, createAction, changeStatus, reassign };
+module.exports = { ActionError, listActions, listActionsForAudit, listSources, getAction, listAssignees, createAction, changeStatus, reassign };
