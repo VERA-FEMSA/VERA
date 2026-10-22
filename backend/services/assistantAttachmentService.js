@@ -36,7 +36,9 @@ const askImage = async (row, question, { fetchImpl = fetch } = {}) => {
   if (typeof parsed?.answer !== "string" || !parsed.answer.trim() || typeof parsed.supported !== "boolean") {
     const error = new Error("El análisis de imagen no devolvió una respuesta utilizable."); error.status = 502; throw error;
   }
-  return { answer: parsed.answer.trim().slice(0, 4000), supported: parsed.supported, usage };
+  return { answer: parsed.supported ? parsed.answer.trim().slice(0, 4000)
+    : "No puedo sostener una respuesta con lo visible en esta imagen. Revisa el original o formula una pregunta más concreta.",
+  supported: parsed.supported, usage };
 };
 
 const askAttachment = async (row, question) => {

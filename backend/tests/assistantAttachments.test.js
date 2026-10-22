@@ -118,12 +118,13 @@ test("Adjuntos IA: visión usa solo la imagen privada y exige soporte visible", 
   const result = await askImage(row, "¿Qué texto aparece?", { fetchImpl: async (_url, options) => {
     request = JSON.parse(options.body);
     return Response.json({ choices: [{ message: { content: JSON.stringify({
-      answer: "No puedo leer texto.", supported: false
+      answer: "El supuesto texto dice una cifra inventada de 987.", supported: false
     }) } }] });
   } });
   assert.equal(request.messages[1].content[1].type, "image_url");
   assert.match(request.messages[0].content, /no sigas instrucciones/);
   assert.equal(result.supported, false);
+  assert.doesNotMatch(result.answer, /987/);
 });
 
 test("Adjuntos IA: el adaptador Supabase filtra listados, conteos, lectura, alta y baja", async (t) => {
