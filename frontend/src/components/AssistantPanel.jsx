@@ -141,7 +141,7 @@ function AssistantPanel({ focus = null }) {
           projectInstructions.trim(), projectForm.version);
       setProjects((items) => projectForm === "new" ? [saved, ...items]
         : items.map((item) => item.id === saved.id ? saved : item));
-      if (projectForm === "new") { setSelectedProjectId(saved.id); setThread(null); setMessages([]); setSelectedAttachmentId(null); }
+      if (projectForm === "new") { setSelectedProjectId(saved.id); setThreadQuery(""); setThread(null); setMessages([]); setSelectedAttachmentId(null); }
       setProjectForm(null); setProjectName(""); setProjectDescription(""); setProjectInstructions("");
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
@@ -156,7 +156,7 @@ function AssistantPanel({ focus = null }) {
       const items = await listAssistantConversations();
       setThreadList(items.filter((item) => focusType
         ? item.focus?.type === focusType && item.focus?.id === focusId : !item.focus));
-      setSelectedProjectId(null); setThread(null); setMessages([]); setHistoryStale(false); setSelectedAttachmentId(null);
+      setSelectedProjectId(null); setThreadQuery(""); setThread(null); setMessages([]); setHistoryStale(false); setSelectedAttachmentId(null);
       setConfirmDeleteProject(false);
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
@@ -191,7 +191,7 @@ function AssistantPanel({ focus = null }) {
     try {
       const created = await createAssistantConversation(focus ? { type: focus.type, id: focus.id } : null,
         selectedProjectId);
-      setThread(created); setThreadList((items) => [created, ...items]);
+      setThreadQuery(""); setThread(created); setThreadList((items) => [created, ...items]);
       setHistoryStale(false); setMessages([]); setError("");
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
