@@ -34,6 +34,36 @@ export const searchPlanningAudits = async (filters = {}) => {
   return data.audits;
 };
 
+const reportParams = (filters, format) => {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (String(value ?? "").trim()) params.set(key, String(value).trim());
+  });
+  if (format) params.set("format", format);
+  return params.toString();
+};
+
+export const getPortfolioReport = (filters = {}) => request(`/report?${reportParams(filters)}`);
+
+export const downloadPortfolioReport = async (filters = {}) => {
+  const response = await fetch(`${API_URL}/report?${reportParams(filters, "csv")}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || "No se pudo descargar el reporte.");
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "vera-reporte-portafolio.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
 export const getActiveAudits = async () => {
   const data = await request("/active");
   return data.audits;
