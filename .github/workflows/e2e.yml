@@ -36,8 +36,8 @@ jobs:
         run: npm ci
         working-directory: frontend
 
-      - name: Install browser binaries and system dependencies
-        run: npx playwright install --with-deps chromium firefox chrome msedge
+      - name: Install browser binaries
+        run: npx playwright install chromium firefox chrome msedge
         working-directory: frontend
 
       - name: Run browser, viewport and accessibility tests
