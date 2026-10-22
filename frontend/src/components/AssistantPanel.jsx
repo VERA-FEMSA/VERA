@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Bot, FileText, Pencil, RotateCcw, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
-import { askAssistant, askAssistantConversation, createAssistantConversation, deleteAssistantConversation, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantConversations, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback } from "../services/assistantService";
+import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantConversation, deleteAssistantProject, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantConversations, listAssistantProjects, moveAssistantConversation, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject } from "../services/assistantService";
 import { AssistantConversationContext } from "../contexts/AssistantConversationContext";
 import "../pages/Asistente.css";
 
@@ -48,12 +48,20 @@ function AssistantPanel({ focus = null }) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [projectMode, setProjectMode] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [projectForm, setProjectForm] = useState(null);
+  const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [confirmDeleteProject, setConfirmDeleteProject] = useState(false);
 
   useEffect(() => {
     let active = true;
     getAssistantStatus().then((result) => {
       if (active) { setAvailable(result.available); setReason(result.reason);
-        setPersistent(Boolean(result.conversations)); setHistoryBusy(Boolean(result.conversations)); }
+        setPersistent(Boolean(result.conversations)); setHistoryBusy(Boolean(result.conversations));
+        setProjectMode(Boolean(result.projects)); }
     }).catch((cause) => { if (active) { setAvailable(false); setError(cause.message); } });
     getAssistantBrief().then((result) => { if (active) setBrief(result.signals || []); })
       .catch(() => { /* Las prioridades no bloquean las preguntas. */ });
@@ -65,20 +73,76 @@ function AssistantPanel({ focus = null }) {
   useEffect(() => {
     if (!persistent) return undefined;
     let active = true;
-    listAssistantConversations().then(async (items) => {
+    Promise.all([listAssistantConversations(), projectMode ? listAssistantProjects() : Promise.resolve([])])
+      .then(async ([items, folders]) => {
       if (!active) return;
+      setProjects(folders);
       const scoped = items.filter((item) => focusType
         ? item.focus?.type === focusType && item.focus?.id === focusId : !item.focus);
       setThreadList(scoped);
-      if (!scoped.length) { setThread(null); updateConversation(conversationKey, []); return; }
-      const opened = await getAssistantConversation(scoped[0].id);
+      const first = scoped.find((item) => !projectMode || !item.projectId);
+      if (!first) { setThread(null); updateConversation(conversationKey, []); return; }
+      const opened = await getAssistantConversation(first.id);
       if (!active) return;
       setThread(opened); setHistoryStale(Boolean(opened.stale));
       updateConversation(conversationKey, opened.messages || []);
     }).catch((cause) => { if (active) setHistoryError(cause.message); })
       .finally(() => { if (active) setHistoryBusy(false); });
     return () => { active = false; };
-  }, [persistent, conversationKey, updateConversation, focusType, focusId]);
+  }, [persistent, projectMode, conversationKey, updateConversation, focusType, focusId]);
+
+  const visibleThreads = projectMode
+    ? threadList.filter((item) => (item.projectId || null) === selectedProjectId) : threadList;
+
+  const chooseProject = async (id) => {
+    const projectId = id || null;
+    setSelectedProjectId(projectId); setProjectForm(null); setConfirmDeleteProject(false);
+    setThread(null); setMessages([]); setHistoryStale(false);
+    const first = threadList.find((item) => (item.projectId || null) === projectId);
+    if (first) await openThread(first.id);
+  };
+
+  const saveProject = async (event) => {
+    event.preventDefault();
+    if (!projectName.trim() || historyBusy) return;
+    setHistoryBusy(true); setHistoryError("");
+    try {
+      const saved = projectForm === "new"
+        ? await createAssistantProject(projectName.trim(), projectDescription.trim())
+        : await updateAssistantProject(projectForm.id, projectName.trim(), projectDescription.trim(), projectForm.version);
+      setProjects((items) => projectForm === "new" ? [saved, ...items]
+        : items.map((item) => item.id === saved.id ? saved : item));
+      if (projectForm === "new") { setSelectedProjectId(saved.id); setThread(null); setMessages([]); }
+      setProjectForm(null); setProjectName(""); setProjectDescription("");
+    } catch (cause) { setHistoryError(cause.message); }
+    finally { setHistoryBusy(false); }
+  };
+
+  const removeProject = async () => {
+    if (!selectedProjectId || historyBusy) return;
+    setHistoryBusy(true); setHistoryError("");
+    try {
+      await deleteAssistantProject(selectedProjectId);
+      setProjects((items) => items.filter((item) => item.id !== selectedProjectId));
+      const items = await listAssistantConversations();
+      setThreadList(items.filter((item) => focusType
+        ? item.focus?.type === focusType && item.focus?.id === focusId : !item.focus));
+      setSelectedProjectId(null); setThread(null); setMessages([]); setHistoryStale(false);
+      setConfirmDeleteProject(false);
+    } catch (cause) { setHistoryError(cause.message); }
+    finally { setHistoryBusy(false); }
+  };
+
+  const moveThread = async (event) => {
+    if (!thread || historyBusy) return;
+    setHistoryBusy(true); setHistoryError("");
+    try {
+      const updated = await moveAssistantConversation(thread.id, event.target.value || null, thread.version);
+      setThread(null); setMessages([]);
+      setThreadList((items) => items.map((item) => item.id === updated.id ? updated : item));
+    } catch (cause) { setHistoryError(cause.message); }
+    finally { setHistoryBusy(false); }
+  };
 
   const openThread = async (id) => {
     setHistoryBusy(true); setHistoryError(""); setConfirmDelete(false); setEditingTitle(false);
@@ -94,7 +158,8 @@ function AssistantPanel({ focus = null }) {
     if (historyBusy || busy) return;
     setHistoryBusy(true); setHistoryError(""); setConfirmDelete(false); setEditingTitle(false);
     try {
-      const created = await createAssistantConversation(focus ? { type: focus.type, id: focus.id } : null);
+      const created = await createAssistantConversation(focus ? { type: focus.type, id: focus.id } : null,
+        selectedProjectId);
       setThread(created); setThreadList((items) => [created, ...items]);
       setHistoryStale(false); setMessages([]); setError("");
     } catch (cause) { setHistoryError(cause.message); }
@@ -136,7 +201,7 @@ function AssistantPanel({ focus = null }) {
     try {
       const selectedFocus = focus ? { type: focus.type, id: focus.id } : null;
       if (persistent) {
-        const active = thread || await createAssistantConversation(selectedFocus);
+        const active = thread || await createAssistantConversation(selectedFocus, selectedProjectId);
         if (!thread) { setThread(active); setThreadList((items) => [active, ...items]); }
         const saved = await askAssistantConversation(active.id, value, withEvidence);
         setMessages((current) => [...current, saved.userMessage, saved.message]);
@@ -197,11 +262,50 @@ function AssistantPanel({ focus = null }) {
 
   return <section className="assistant-chat" aria-label="Conversación con el asistente">
     {persistent && <div className="assistant-history" aria-label="Historial privado">
+      {projectMode && <div className="assistant-projects" aria-label="Proyectos privados">
+        <div className="assistant-history-main"><label htmlFor="assistant-project">Proyecto</label>
+          <select id="assistant-project" value={selectedProjectId || ""} disabled={historyBusy || busy}
+            onChange={(event) => chooseProject(event.target.value)}>
+            <option value="">Sin proyecto</option>
+            {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+          <button type="button" disabled={historyBusy || busy} onClick={() => {
+            setProjectForm("new"); setProjectName(""); setProjectDescription("");
+          }}>Nuevo proyecto</button></div>
+        {selectedProjectId && <div className="assistant-history-actions">
+          <button type="button" disabled={historyBusy || busy} onClick={() => {
+            const current = projects.find((item) => item.id === selectedProjectId);
+            if (!current) return;
+            setProjectForm(current); setProjectName(current.name); setProjectDescription(current.description);
+          }}>Editar proyecto</button>
+          <button type="button" disabled={historyBusy || busy} onClick={() => setConfirmDeleteProject(true)}>Eliminar proyecto</button>
+        </div>}
+        {projectForm && <form className="assistant-history-edit" onSubmit={saveProject}>
+          <label htmlFor="assistant-project-name">Nombre del proyecto</label>
+          <input id="assistant-project-name" value={projectName} maxLength={80}
+            onChange={(event) => setProjectName(event.target.value)} required />
+          <label htmlFor="assistant-project-description">Descripción opcional</label>
+          <textarea id="assistant-project-description" value={projectDescription} maxLength={500} rows={2}
+            onChange={(event) => setProjectDescription(event.target.value)} />
+          <button type="submit" disabled={!projectName.trim() || historyBusy}>Guardar proyecto</button>
+          <button type="button" onClick={() => setProjectForm(null)}>Cancelar</button>
+        </form>}
+        {confirmDeleteProject && <div className="assistant-history-confirm" role="group" aria-label="Confirmar eliminación del proyecto">
+          <span>Las conversaciones se conservarán sin proyecto. ¿Eliminar esta carpeta?</span>
+          <button type="button" onClick={removeProject}>Sí, eliminar proyecto</button>
+          <button type="button" onClick={() => setConfirmDeleteProject(false)}>Cancelar</button>
+        </div>}
+      </div>}
       <div className="assistant-history-main"><label htmlFor="assistant-thread">Conversaciones privadas</label>
-        <select id="assistant-thread" value={thread?.id || ""} disabled={historyBusy || busy || !threadList.length}
+        <select id="assistant-thread" value={thread?.id || ""} disabled={historyBusy || busy || !visibleThreads.length}
           onChange={(event) => openThread(event.target.value)}><option value="">Selecciona una conversación</option>
-          {threadList.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
+          {visibleThreads.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
         <button type="button" onClick={newThread} disabled={historyBusy || busy}>Nueva conversación</button></div>
+      {projectMode && thread && <div className="assistant-history-main"><label htmlFor="assistant-move-thread">Mover conversación a</label>
+        <select id="assistant-move-thread" value={thread.projectId || ""} disabled={historyBusy || busy}
+          onChange={moveThread}><option value="">Sin proyecto</option>
+          {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select></div>}
       {thread && <div className="assistant-history-actions"><button type="button" onClick={() => {
         setDraftTitle(thread.title); setEditingTitle(true); setConfirmDelete(false);
       }} disabled={historyBusy || busy} aria-label="Renombrar conversación"><Pencil size={15} aria-hidden="true" /> Renombrar</button>

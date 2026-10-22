@@ -5,6 +5,7 @@ const { buildAssistantContext } = require("../services/assistantContextService")
 const { readiness } = require("../services/azureOpenAiService");
 const { answerAssistant } = require("../services/assistantAnswerService");
 const conversations = require("../repositories/assistantConversationRepository");
+const projects = require("../repositories/assistantProjectRepository");
 const { currentScope } = require("../services/assistantConversationScope");
 const { buildAuditDossier } = require("../services/assistantDossierService");
 const { searchAssistantEvidence } = require("../services/assistantEvidenceSearchService");
@@ -25,7 +26,8 @@ router.get("/status", (req, res) => {
   try {
     res.json({ ...readiness(), mode: "read-only",
       ...(process.env.VERA_AI_CONVERSATIONS_ENABLED === "true" && !req.user.roleTour
-        ? { conversations: true } : {}) });
+        ? { conversations: true,
+          ...(process.env.VERA_AI_PROJECTS_ENABLED === "true" ? { projects: true } : {}) } : {}) });
   } catch {
     res.json({ available: false, reason: "invalid-configuration", mode: "read-only" });
   }
@@ -36,6 +38,9 @@ const conversationEnabled = (req, res, next) => {
   return process.env.VERA_AI_CONVERSATIONS_ENABLED === "true"
     ? next() : res.status(503).json({ message: "El historial privado aún no está habilitado." });
 };
+const projectEnabled = (req, res, next) => process.env.VERA_AI_PROJECTS_ENABLED === "true"
+  ? conversationEnabled(req, res, next)
+  : res.status(503).json({ message: "Los proyectos privados aún no están habilitados." });
 const conversationError = (res, error) => {
   if ([400, 404, 409, 503].includes(error.status)) return res.status(error.status).json({ message: error.message });
   return res.status(502).json({ message: "No se pudo consultar el historial privado." });
@@ -50,6 +55,57 @@ const focusFrom = (value) => {
   return { type: value.type, id: value.id };
 };
 
+const projectIdFrom = (value) => {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+    const error = new Error("Selecciona un proyecto válido."); error.status = 400; throw error;
+  }
+  return value;
+};
+
+router.get("/projects", projectEnabled, async (req, res) => {
+  try { return res.json({ projects: await projects.list(req.user) }); }
+  catch (error) { return conversationError(res, error); }
+});
+
+router.post("/projects", projectEnabled,
+  rateLimit({ windowMs: 15 * 60 * 1000, limit: 12, keyGenerator: (req) => String(req.user.id),
+    standardHeaders: "draft-8", legacyHeaders: false }), async (req, res) => {
+    const name = req.body?.name;
+    const description = req.body?.description ?? "";
+    if (typeof name !== "string" || !name.trim() || name.trim().length > 80 ||
+        typeof description !== "string" || description.length > 500) {
+      return res.status(400).json({ message: "El nombre o la descripción no son válidos." });
+    }
+    try { return res.status(201).json({ project: await projects.create(req.user, name.trim(), description.trim()) }); }
+    catch (error) { return conversationError(res, error); }
+  });
+
+router.patch("/projects/:id", projectEnabled, async (req, res) => {
+  const { name, description, version } = req.body || {};
+  if (typeof name !== "string" || !name.trim() || name.trim().length > 80 ||
+      typeof description !== "string" || description.length > 500 ||
+      !Number.isInteger(version) || version < 1) {
+    return res.status(400).json({ message: "El proyecto o la versión no son válidos." });
+  }
+  try {
+    const project = await projects.update(req.user, req.params.id, version,
+      { name: name.trim(), description: description.trim() });
+    if (!project) return res.status(404).json({ message: "Proyecto no disponible." });
+    return res.json({ project });
+  } catch (error) { return conversationError(res, error); }
+});
+
+router.delete("/projects/:id", projectEnabled, async (req, res) => {
+  try {
+    if (!await projects.remove(req.user, req.params.id)) {
+      return res.status(404).json({ message: "Proyecto no disponible." });
+    }
+    await conversations.unlinkProject(req.user, req.params.id);
+    return res.status(204).end();
+  } catch (error) { return conversationError(res, error); }
+});
+
 router.get("/conversations", conversationEnabled, async (req, res) => {
   try { return res.json({ conversations: await conversations.list(req.user) }); }
   catch (error) { return conversationError(res, error); }
@@ -60,8 +116,13 @@ router.post("/conversations", conversationEnabled,
     standardHeaders: "draft-8", legacyHeaders: false }), async (req, res) => {
     try {
       const focus = focusFrom(req.body?.focus);
+      const projectId = projectIdFrom(req.body?.projectId);
+      if (projectId && (process.env.VERA_AI_PROJECTS_ENABLED !== "true" ||
+          !await projects.get(req.user, projectId))) {
+        return res.status(404).json({ message: "Proyecto no disponible." });
+      }
       const scopeHash = await currentScope(req.user, focus);
-      const conversation = await conversations.create(req.user, focus, scopeHash);
+      const conversation = await conversations.create(req.user, focus, scopeHash, projectId);
       return res.status(201).json({ conversation: { ...conversation, scopeHash: undefined } });
     } catch (error) { return conversationError(res, error); }
   });
@@ -86,6 +147,22 @@ router.patch("/conversations/:id", conversationEnabled, async (req, res) => {
   }
   try {
     const conversation = await conversations.update(req.user, req.params.id, version, { title: title.trim() });
+    if (!conversation) return res.status(404).json({ message: "Conversación no disponible." });
+    return res.json({ conversation: { ...conversation, messages: undefined, scopeHash: undefined } });
+  } catch (error) { return conversationError(res, error); }
+});
+
+router.patch("/conversations/:id/project", projectEnabled, async (req, res) => {
+  if (!Number.isInteger(req.body?.version) || req.body.version < 1) {
+    return res.status(400).json({ message: "La versión no es válida." });
+  }
+  try {
+    const projectId = projectIdFrom(req.body?.projectId);
+    if (projectId && !await projects.get(req.user, projectId)) {
+      return res.status(404).json({ message: "Proyecto no disponible." });
+    }
+    const conversation = await conversations.update(req.user, req.params.id, req.body.version,
+      { project_id: projectId });
     if (!conversation) return res.status(404).json({ message: "Conversación no disponible." });
     return res.json({ conversation: { ...conversation, messages: undefined, scopeHash: undefined } });
   } catch (error) { return conversationError(res, error); }

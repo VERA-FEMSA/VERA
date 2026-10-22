@@ -20,14 +20,38 @@ const conversationRequest = async (path = "", options = {}) => {
 
 export const listAssistantConversations = async () => (await conversationRequest()).conversations;
 export const getAssistantConversation = async (id) => (await conversationRequest(`/${encodeURIComponent(id)}`)).conversation;
-export const createAssistantConversation = async (focus) => (await conversationRequest("", {
-  method: "POST", body: JSON.stringify({ focus })
+export const createAssistantConversation = async (focus, projectId = null) => (await conversationRequest("", {
+  method: "POST", body: JSON.stringify({ focus, projectId })
 })).conversation;
 export const renameAssistantConversation = async (id, title, version) =>
   (await conversationRequest(`/${encodeURIComponent(id)}`, {
     method: "PATCH", body: JSON.stringify({ title, version })
   })).conversation;
 export const deleteAssistantConversation = async (id) => conversationRequest(`/${encodeURIComponent(id)}`, {
+  method: "DELETE"
+});
+export const moveAssistantConversation = async (id, projectId, version) =>
+  (await conversationRequest(`/${encodeURIComponent(id)}/project`, {
+    method: "PATCH", body: JSON.stringify({ projectId, version })
+  })).conversation;
+const projectRequest = async (path = "", options = {}) => {
+  const response = await fetch(`/api/assistant/projects${path}`, {
+    ...options, headers: { ...headers(), ...(options.body ? { "Content-Type": "application/json" } : {}) },
+    cache: "no-store"
+  });
+  if (response.status === 204) return null;
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "No se pudo consultar tus proyectos privados.");
+  return data;
+};
+export const listAssistantProjects = async () => (await projectRequest()).projects;
+export const createAssistantProject = async (name, description = "") =>
+  (await projectRequest("", { method: "POST", body: JSON.stringify({ name, description }) })).project;
+export const updateAssistantProject = async (id, name, description, version) =>
+  (await projectRequest(`/${encodeURIComponent(id)}`, {
+    method: "PATCH", body: JSON.stringify({ name, description, version })
+  })).project;
+export const deleteAssistantProject = async (id) => projectRequest(`/${encodeURIComponent(id)}`, {
   method: "DELETE"
 });
 export const askAssistantConversation = async (id, question, withEvidence = false) =>

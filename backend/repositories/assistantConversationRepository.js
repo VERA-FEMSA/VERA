@@ -39,12 +39,13 @@ const request = async (method, query, body) => {
 const ownerQuery = (user) => ({ owner_id: `eq.${Number(user.id)}`, owner_role: `eq.${user.role}` });
 const publicRow = (row, includeMessages = false) => ({ id: row.id, title: row.title,
   focus: row.focus_type ? { type: row.focus_type, id: row.focus_id } : null,
+  projectId: row.project_id || null,
   createdAt: row.created_at, updatedAt: row.updated_at,
   version: row.version, ...(includeMessages ? { messages: row.messages, scopeHash: row.scope_hash } : {}) });
 
 const list = async (user) => {
   if (remote()) {
-    const rows = await request("GET", { select: "id,title,focus_type,focus_id,created_at,updated_at,version",
+    const rows = await request("GET", { select: "id,title,focus_type,focus_id,project_id,created_at,updated_at,version",
       ...ownerQuery(user), order: "updated_at.desc", limit: String(MAX_CONVERSATIONS) });
     if (!Array.isArray(rows)) throw new ConversationStorageError("El historial privado devolvió datos inválidos.");
     return rows.map((row) => publicRow(row));
@@ -66,13 +67,14 @@ const get = async (user, id) => {
     ? publicRow(row, true) : null;
 };
 
-const create = async (user, focus = null, scopeHash) => {
+const create = async (user, focus = null, scopeHash, projectId = null) => {
   if ((await list(user)).length >= MAX_CONVERSATIONS) {
     throw new ConversationStorageError("Alcanzaste el límite de conversaciones. Elimina una para continuar.", 409);
   }
   const now = new Date().toISOString();
   const row = { id: randomUUID(), owner_id: Number(user.id), owner_role: user.role,
     title: "Nueva conversación", focus_type: focus?.type || null, focus_id: focus?.id || null,
+    project_id: projectId,
     scope_hash: scopeHash, messages: [], version: 1, created_at: now, updated_at: now };
   if (remote()) {
     const rows = await request("POST", { select: "*" }, row);
@@ -112,4 +114,14 @@ const remove = async (user, id) => {
   return conversations.delete(id);
 };
 
-module.exports = { ConversationStorageError, MAX_CONVERSATIONS, list, get, create, update, remove };
+const unlinkProject = async (user, projectId) => {
+  if (remote()) return; // ON DELETE SET NULL handles the persistent adapter.
+  for (const [id, row] of conversations) {
+    if (row.owner_id === Number(user.id) && row.owner_role === user.role && row.project_id === projectId) {
+      conversations.set(id, { ...row, project_id: null, version: row.version + 1,
+        updated_at: new Date().toISOString() });
+    }
+  }
+};
+
+module.exports = { ConversationStorageError, MAX_CONVERSATIONS, list, get, create, update, remove, unlinkProject };
