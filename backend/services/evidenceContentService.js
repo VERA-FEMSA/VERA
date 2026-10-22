@@ -28,7 +28,7 @@ const indexFile = async (evidence, bytes) => {
 
 const askEvidenceContent = async (evidence, question, role, { ask = askAzureOpenAi } = {}) => {
   if (!evidence.file || !(SEARCHABLE_MIME.has(evidence.file.mime) || IMAGE_MIME.has(evidence.file.mime))) {
-    const error = new Error("Solo se puede consultar texto de PDF, TXT o imágenes privadas indexadas.");
+    const error = new Error("Solo se puede consultar texto de PDF, TXT, CSV o imágenes privadas indexadas.");
     error.status = 415;
     throw error;
   }
@@ -50,7 +50,7 @@ const askEvidenceContent = async (evidence, question, role, { ask = askAzureOpen
     chunks = await evidenceTextIndex.get(evidence.id);
   }
   const asOf = new Date().toISOString();
-  if (!chunks.length) return { answer: "No se encontró texto legible en este archivo; puede ser un PDF escaneado.",
+  if (!chunks.length) return { answer: "No se encontró texto legible en este archivo; puede ser un PDF escaneado o un CSV vacío.",
     mode: "no-text", citations: [], coverage: { indexedChunks: 0, includedChunks: 0, partial: false }, asOf, usage: null };
 
   const selected = selectChunks(chunks, question);

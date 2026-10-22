@@ -7,7 +7,8 @@ const MIME_EXTENSIONS = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
-  "text/plain": "txt"
+  "text/plain": "txt",
+  "text/csv": "csv"
 };
 
 class EvidenceStorageError extends Error {
@@ -46,7 +47,7 @@ const hasValidSignature = (bytes, mime) => {
   if (mime === "image/png") return data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
   if (mime === "image/jpeg") return data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
   if (mime === "image/webp") return data.subarray(0, 4).toString() === "RIFF" && data.subarray(8, 12).toString() === "WEBP";
-  if (mime === "text/plain") {
+  if (mime === "text/plain" || mime === "text/csv") {
     try { new TextDecoder("utf-8", { fatal: true }).decode(data); return !data.includes(0); } catch { return false; }
   }
   return false;
@@ -86,7 +87,7 @@ const remove = async (file) => {
 };
 
 const validFile = (file) => file && file.bucket === BUCKET &&
-  /^(risk|control|audit)\/[^/]+\/[0-9a-f-]{36}\.(pdf|png|jpg|webp|txt)$/.test(file.path) &&
+  /^(risk|control|audit)\/[^/]+\/[0-9a-f-]{36}\.(pdf|png|jpg|webp|txt|csv)$/.test(file.path) &&
   MIME_EXTENSIONS[file.mime] && file.path.endsWith(`.${MIME_EXTENSIONS[file.mime]}`);
 
 const downloadBytes = async (file) => {

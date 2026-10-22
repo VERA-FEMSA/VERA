@@ -17,7 +17,8 @@ export const getEvidence = async (filters = {}) => {
 export const createEvidence = async (evidence) => (await request("/", { method: "POST", body: JSON.stringify(evidence) })).evidence;
 
 export const uploadEvidenceFile = async (details, file) => {
-  const mime = file.type || ({ pdf: "application/pdf", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", txt: "text/plain" }[file.name.split(".").pop()?.toLowerCase()]);
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  const mime = extension === "csv" ? "text/csv" : file.type || ({ pdf: "application/pdf", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", txt: "text/plain" }[extension]);
   const params = new URLSearchParams({
     title: details.title, description: details.description, evidenceType: details.evidenceType,
     entityType: details.entityType, entityId: details.entityId

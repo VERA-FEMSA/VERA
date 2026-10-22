@@ -1,10 +1,13 @@
 const { MAX_BYTES } = require("./evidenceStorage");
 const path = require("node:path");
+const { parse } = require("csv-parse/sync");
 
 const MAX_PAGES = 30;
 const MAX_TEXT_CHARS = 40_000;
 const CHUNK_CHARS = 800;
-const SEARCHABLE_MIME = new Set(["text/plain", "application/pdf"]);
+const SEARCHABLE_MIME = new Set(["text/plain", "application/pdf", "text/csv"]);
+const MAX_CSV_ROWS = 1000;
+const MAX_CSV_COLUMNS = 50;
 
 const clean = (value) => String(value ?? "").replace(/\s+/gu, " ").trim();
 const makeChunks = (pages) => {
@@ -39,6 +42,23 @@ const extractEvidenceText = async (bytes, mime) => {
     const result = makeChunks([{ pageNumber: null, text: decoded }]);
     return { ...result, status: result.chunks.length ? "ready" : "no-text" };
   }
+  if (mime === "text/csv") {
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(data);
+    const rows = parse(decoded, { bom: true, skip_empty_lines: true, to: MAX_CSV_ROWS + 2,
+      max_record_size: 16_384 });
+    if (!rows.length) return { chunks: [], truncated: false, status: "no-text" };
+    const headers = rows[0];
+    if (!headers.length || headers.length > MAX_CSV_COLUMNS ||
+        rows.some((row) => row.length !== headers.length)) {
+      throw new Error("El CSV debe tener encabezados y el mismo número de columnas en cada fila.");
+    }
+    const selected = rows.slice(1, MAX_CSV_ROWS + 1);
+    const pages = selected.map((row, index) => ({ pageNumber: null,
+      text: `Fila ${index + 2}: ${row.map((value, column) => `${clean(headers[column]) || `Columna ${column + 1}`}: ${clean(value)}`).join("; ")}` }));
+    const result = makeChunks(pages);
+    return { ...result, truncated: result.truncated || rows.length > MAX_CSV_ROWS + 1,
+      status: result.chunks.length ? "ready" : "no-text" };
+  }
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const standardFontDataUrl = path.join(path.dirname(require.resolve("pdfjs-dist/package.json")),
     "standard_fonts").replace(/\\/g, "/") + "/";
@@ -66,4 +86,4 @@ const extractEvidenceText = async (bytes, mime) => {
   }
 };
 
-module.exports = { MAX_PAGES, MAX_TEXT_CHARS, SEARCHABLE_MIME, extractEvidenceText, makeChunks };
+module.exports = { MAX_PAGES, MAX_TEXT_CHARS, MAX_CSV_ROWS, SEARCHABLE_MIME, extractEvidenceText, makeChunks };
