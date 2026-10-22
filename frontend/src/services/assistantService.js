@@ -7,6 +7,34 @@ export const getAssistantStatus = async () => {
   return data;
 };
 
+const conversationRequest = async (path = "", options = {}) => {
+  const response = await fetch(`/api/assistant/conversations${path}`, {
+    ...options, headers: { ...headers(), ...(options.body ? { "Content-Type": "application/json" } : {}) },
+    cache: "no-store"
+  });
+  if (response.status === 204) return null;
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "No se pudo consultar el historial privado.");
+  return data;
+};
+
+export const listAssistantConversations = async () => (await conversationRequest()).conversations;
+export const getAssistantConversation = async (id) => (await conversationRequest(`/${encodeURIComponent(id)}`)).conversation;
+export const createAssistantConversation = async (focus) => (await conversationRequest("", {
+  method: "POST", body: JSON.stringify({ focus })
+})).conversation;
+export const renameAssistantConversation = async (id, title, version) =>
+  (await conversationRequest(`/${encodeURIComponent(id)}`, {
+    method: "PATCH", body: JSON.stringify({ title, version })
+  })).conversation;
+export const deleteAssistantConversation = async (id) => conversationRequest(`/${encodeURIComponent(id)}`, {
+  method: "DELETE"
+});
+export const askAssistantConversation = async (id, question, withEvidence = false) =>
+  conversationRequest(`/${encodeURIComponent(id)}/ask`, {
+    method: "POST", body: JSON.stringify({ question, withEvidence })
+  });
+
 export const getAssistantBrief = async () => {
   const response = await fetch("/api/assistant/brief", { headers: headers() });
   const data = await response.json();

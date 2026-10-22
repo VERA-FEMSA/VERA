@@ -7,6 +7,63 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/assistant/insights", (route) => route.fulfill({ json: { insights: [], partial: false } }));
 });
 
+test("Copiloto: reabre, renombra y elimina un historial privado persistente", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "read-only", conversations: true
+  } }));
+  const id = "11111111-1111-4111-8111-111111111111";
+  let thread = null;
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") {
+      return route.fulfill({ json: { conversations: thread ? [thread] : [] } });
+    }
+    if (path.endsWith("/conversations") && method === "POST") {
+      thread = { id, title: "Nueva conversación", focus: null, messages: [], version: 1,
+        createdAt: "2026-10-22T18:00:00.000Z", updatedAt: "2026-10-22T18:00:00.000Z" };
+      return route.fulfill({ status: 201, json: { conversation: thread } });
+    }
+    if (path.endsWith(`/${id}/ask`) && method === "POST") {
+      const question = route.request().postDataJSON().question;
+      const userMessage = { id: "user-1", role: "user", text: question };
+      const message = { id: "assistant-1", role: "assistant", text: "Riesgos altos en tu alcance: 2.",
+        mode: "computed", citations: [], references: [], asOf: "2026-10-22T18:00:00.000Z" };
+      thread.messages = [userMessage, message]; thread.version += 1;
+      return route.fulfill({ json: { conversationId: id, version: thread.version, userMessage, message } });
+    }
+    if (path.endsWith(`/${id}`) && method === "GET") {
+      return route.fulfill({ json: { conversation: { ...thread, stale: false } } });
+    }
+    if (path.endsWith(`/${id}`) && method === "PATCH") {
+      thread.title = route.request().postDataJSON().title; thread.version += 1;
+      return route.fulfill({ json: { conversation: thread } });
+    }
+    if (path.endsWith(`/${id}`) && method === "DELETE") {
+      thread = null; return route.fulfill({ status: 204, body: "" });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await expect(page.getByLabel("Conversaciones privadas")).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("¿Cuántos riesgos altos tengo?");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Riesgos altos en tu alcance: 2.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("Riesgos altos en tu alcance: 2.")).toBeVisible();
+  const access = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(access.violations.map(({ id }) => id)).toEqual([]);
+  await page.getByRole("button", { name: "Renombrar conversación" }).click();
+  await page.getByLabel("Nuevo nombre").fill("Riesgos del periodo");
+  await page.getByRole("button", { name: "Guardar", exact: true }).click();
+  await expect(page.getByLabel("Conversaciones privadas")).toHaveValue(id);
+  await expect(page.getByRole("option", { name: "Riesgos del periodo" })).toBeAttached();
+  await page.getByRole("button", { name: "Eliminar conversación" }).click();
+  await page.getByRole("button", { name: "Sí, eliminar" }).click();
+  await expect(page.getByText("Riesgos altos en tu alcance: 2.")).toHaveCount(0);
+});
+
 test("Copiloto: explica prioridades y enlaza solo registros visibles", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: false, mode: "read-only" } }));
