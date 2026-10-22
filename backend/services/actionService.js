@@ -157,6 +157,9 @@ const createAction = async (user, body) => {
   const sourceType = text(body.sourceType);
   const sourceId = text(body.sourceId);
   const source = await requiredSource(user, sourceType, sourceId);
+  if (sourceType === "FINDING" && source.status === "CLOSED") {
+    throw new ActionError("El hallazgo está cerrado; no se pueden añadir acciones.", 409);
+  }
   const title = text(body.title);
   const rationale = text(body.rationale);
   const dueDate = text(body.dueDate);
@@ -192,6 +195,12 @@ const changeStatus = async (user, id, body) => {
     throw new ActionError("Solo el responsable o quien dirige la planeación puede cambiar el estado.", 403);
   }
   const status = text(body.status);
+  if (action.sourceType === "FINDING" && status !== "DONE") {
+    const finding = await findingRepository.findById(action.sourceId);
+    if (finding?.status === "CLOSED") {
+      throw new ActionError("El hallazgo está cerrado; no se puede reabrir esta acción.", 409);
+    }
+  }
   const note = text(body.note);
   if (!STATUSES.includes(status) || !TRANSITIONS[action.status]?.includes(status)) {
     throw new ActionError("La transición de estado no está permitida.", 409);

@@ -10,4 +10,4 @@ const create = (data) => store.create({
   createdBy: { ...data.createdBy }
 }, { control_id: data.controlId, risk_id: data.riskId });
 
-module.exports = { getAll: store.getAll, create };
+module.exports = { getAll: store.getAll, findById: store.findById, create, mutate: store.mutate };

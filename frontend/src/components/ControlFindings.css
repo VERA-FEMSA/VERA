@@ -9,3 +9,6 @@
 .finding-modal { display: grid; gap: 14px; }
 .finding-modal label { display: grid; gap: 6px; }
 .finding-modal input, .finding-modal textarea, .finding-modal select { width: 100%; }
+.finding-followup { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.finding-followup small { margin: 0; }
+.finding-followup a { color: var(--vera-link, #13616c); font-weight: 650; }

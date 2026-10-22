@@ -26,6 +26,14 @@ test("Supabase HU-15 guarda relación control/riesgo y usa credencial solo de se
       rows.push(row);
       return Response.json([row], { status: 201 });
     }
+    if (options.method === "PATCH") {
+      const body = JSON.parse(options.body);
+      assert.equal(body.payload.status, "CLOSED");
+      assert.equal(body.version, 2);
+      const row = { payload: body.payload, version: body.version };
+      rows[0] = row;
+      return Response.json([row]);
+    }
     return Response.json(rows);
   };
   const created = await findings.create({
@@ -36,4 +44,10 @@ test("Supabase HU-15 guarda relación control/riesgo y usa credencial solo de se
   assert.match(created.id, /^FDG-[0-9a-f-]{36}$/);
   assert.equal(created.status, "OPEN");
   assert.equal((await findings.getAll())[0].evaluationVersion, 2);
+  const closed = await findings.mutate(created.id, {
+    status: "CLOSED", closureNote: "Se completó el plan de acción.", closedAt: new Date().toISOString()
+  }, created.storageVersion);
+  assert.equal(closed.status, "CLOSED");
+  assert.equal(closed.storageVersion, 2);
+  assert.equal((await findings.findById(created.id)).closureNote, "Se completó el plan de acción.");
 });
