@@ -2,6 +2,8 @@
 
 Esta página es un mapa de navegación, no un acta de aceptación. Los estados de Azure DevOps pueden describir gestión del trabajo, pero **no sustituyen** los criterios completos, la prueba del entorno ni la revisión del responsable. La [matriz de aceptación fechada](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/hu-acceptance-audit.md) conserva las brechas identificadas al 16 de octubre de 2026; algunos runbooks posteriores describen cambios de despliegue y deben leerse junto a esa fecha.
 
+El [corte funcional previo al siguiente sprint de IA](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/functional-readiness-cut.md) distingue capacidad implementada, decisiones de negocio pendientes y aceptación desplegada.
+
 | Dominio | HU relacionadas | Evidencia en `main` | Límite que debe revisarse |
 | --- | --- | --- | --- |
 | Panel y portafolio | HU-07 | [Servicio de dashboard](https://github.com/VERA-GRC-IRM/VERA/blob/main/backend/services/dashboardService.js), [pantalla](https://github.com/VERA-GRC-IRM/VERA/blob/main/frontend/src/pages/Dashboard.jsx), [guía del panel](https://github.com/VERA-GRC-IRM/VERA/blob/main/docs/portfolio-dashboard.md) | Contrastar indicadores con datos y cuentas del despliegue. |
