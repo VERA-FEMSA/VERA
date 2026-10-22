@@ -63,8 +63,8 @@ jobs:
           QUALITY_COMMIT: ${{ github.sha }}
         run: npm run quality
 
-      - name: Install Chrome, Edge, Firefox and Playwright dependencies
-        run: npx playwright install --with-deps chromium firefox chrome msedge
+      - name: Install Chrome, Edge and Firefox binaries
+        run: npx playwright install chromium firefox chrome msedge
         working-directory: frontend
 
       - name: Run browser, responsive and accessibility cases
