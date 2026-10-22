@@ -30,6 +30,12 @@ const makeChunks = (pages) => {
   return { chunks, truncated };
 };
 
+const makePdfChunks = (pages, totalPages) => {
+  const result = makeChunks(pages);
+  return { ...result, truncated: result.truncated || pages.length < totalPages,
+    status: result.chunks.length ? "ready" : "no-text" };
+};
+
 const extractEvidenceText = async (bytes, mime) => {
   if (!Buffer.isBuffer(bytes)) {
     throw new TypeError("El archivo debe ser un Buffer binario.");
@@ -86,12 +92,10 @@ const extractEvidenceText = async (bytes, mime) => {
       length += clean(text).length;
       page.cleanup();
     }
-    const result = makeChunks(pages);
-    return { ...result, truncated: result.truncated || document.numPages > limit,
-      status: result.chunks.length ? "ready" : "no-text" };
+    return makePdfChunks(pages, document.numPages);
   } finally {
     await task.destroy();
   }
 };
 
-module.exports = { MAX_PAGES, MAX_TEXT_CHARS, MAX_CSV_ROWS, SEARCHABLE_MIME, extractEvidenceText, makeChunks };
+module.exports = { MAX_PAGES, MAX_TEXT_CHARS, MAX_CSV_ROWS, SEARCHABLE_MIME, extractEvidenceText, makeChunks, makePdfChunks };
