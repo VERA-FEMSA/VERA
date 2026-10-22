@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CalendarClock, ClipboardCheck, Plus, RefreshCw } from "lucide-react";
 import { changeActionStatus, createAction, getActionAssignees, getActionSources, getActions, reassignAction } from "../services/actionService";
+import { localToday } from "../utils/localDate";
 import "./ActionQueue.css";
 
 const SOURCE = { AUDIT: "Auditoría", RISK: "Riesgo", CONTROL: "Control", FINDING: "Hallazgo" };
@@ -69,7 +70,7 @@ function ActionQueue({ revision = 0 }) {
   const assignees = assigneeResult.key === form.sourceKey ? assigneeResult.items : [];
   const active = actions.filter((item) => !["DONE", "CANCELLED"].includes(item.status));
   const mine = active.filter((item) => item.assigneeId === user?.id);
-  const overdue = mine.filter((item) => item.dueDate < new Date().toISOString().slice(0, 10));
+  const overdue = mine.filter((item) => item.dueDate < localToday());
   const visible = view === "MINE" ? mine : view === "OPEN" ? active : actions.filter((item) => ["DONE", "CANCELLED"].includes(item.status));
 
   const submitCreate = async (event) => {

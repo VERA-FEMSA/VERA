@@ -4,6 +4,7 @@ import { ArrowLeft, Printer, RefreshCw } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { getAuditContext } from "../services/planningService";
 import { getAuditActions } from "../services/actionService";
+import { localToday } from "../utils/localDate";
 import "./CommitteeDossier.css";
 
 const STATUS = { OPEN: "Propuesta abierta", APPROVED: "Aprobada", ACTIVE: "En curso", CLOSED: "Cerrada", REJECTED: "Rechazada" };
@@ -61,7 +62,7 @@ function CommitteeDossier() {
     : `/auditorias-activas/${encodeURIComponent(auditId)}`;
   const facts = context ? dossierFacts(context) : null;
   const openActions = actions.filter((item) => ["OPEN", "IN_PROGRESS"].includes(item.status));
-  const overdueActions = openActions.filter((item) => item.dueDate < new Date().toISOString().slice(0, 10));
+  const overdueActions = openActions.filter((item) => item.dueDate < localToday());
   const doneActions = actions.filter((item) => item.status === "DONE");
   let user = null;
   try { user = JSON.parse(localStorage.getItem("user") || "null"); } catch { /* Sin controles de edición. */ }

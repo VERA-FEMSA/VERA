@@ -23,3 +23,4 @@ La sección **Acciones registradas** de Pendientes separa compromisos persistent
 ## Ficha para comité
 
 `GET /api/actions/for-audit/:auditId` reutiliza el expediente autorizado para reunir acciones vinculadas a la auditoría y a sus riesgos, controles y hallazgos visibles. La ficha impresa muestra el compromiso, origen, responsable, estado y fecha objetivo, con conteos de abiertas, vencidas y terminadas. Si falla la lectura de acciones, la ficha conserva el expediente y presenta los conteos como no disponibles en vez de simular cero. El enlace de alta desde la ficha abre Pendientes con la auditoría preseleccionada; no modifica nada dentro del documento de solo lectura.
+El indicador «vencida» compara la fecha objetivo con el día local del navegador; la fecha queda almacenada como día de calendario, sin zona horaria implícita.
