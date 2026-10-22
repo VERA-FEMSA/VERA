@@ -18,6 +18,7 @@ import PrivacyNotice from "./pages/PrivacyNotice";
 import Auditoria from "./pages/Auditoria";
 import Planificacion from "./pages/Planificacion";
 import AuditoriasActivas from "./pages/AuditoriasActivas";
+import CommitteeDossier from "./pages/CommitteeDossier";
 import BuscarAuditorias from "./pages/BuscarAuditorias";
 import Riesgos from "./pages/Riesgos";
 import Controles from "./pages/Controles";
@@ -110,6 +111,7 @@ function App() {
           }
         />
         <Route path="/auditorias" element={<ProtectedRoute><BuscarAuditorias /></ProtectedRoute>} />
+        <Route path="/auditorias-activas/:auditId/comite" element={<ProtectedRoute><CommitteeDossier /></ProtectedRoute>} />
         <Route
           path="/auditorias-activas/:auditId"
           element={

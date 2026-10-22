@@ -345,6 +345,7 @@ function AuditoriasActivas() {
                       <h2 id="governance-title">{selectedAudit.title}</h2>
                       <span className="planning-id">{selectedAudit.id} · {selectedAudit.area}</span>
                       <button type="button" className="secondary-action" onClick={() => setAssistantFocus({ type: "audit", id: selectedAudit.id, title: selectedAudit.title })}><Bot size={15} aria-hidden="true" /> Analizar con IA</button>
+                      <button type="button" className="secondary-action" onClick={() => navigate(`/auditorias-activas/${encodeURIComponent(selectedAudit.id)}/comite`)}><FileText size={15} aria-hidden="true" /> Ficha para comité</button>
                     </div>
                     <div className="governance-progress">
                       <span>PROGRESO GENERAL</span>
