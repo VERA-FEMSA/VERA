@@ -1,11 +1,13 @@
 const { MAX_BYTES } = require("./evidenceStorage");
 const path = require("node:path");
 const { parse } = require("csv-parse/sync");
+const { extractDocxParagraphs } = require("./docxTextExtraction");
 
 const MAX_PAGES = 30;
 const MAX_TEXT_CHARS = 40_000;
 const CHUNK_CHARS = 800;
-const SEARCHABLE_MIME = new Set(["text/plain", "application/pdf", "text/csv"]);
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const SEARCHABLE_MIME = new Set(["text/plain", "application/pdf", "text/csv", DOCX_MIME]);
 const MAX_CSV_ROWS = 1000;
 const MAX_CSV_COLUMNS = 50;
 
@@ -57,6 +59,12 @@ const extractEvidenceText = async (bytes, mime) => {
       text: `Fila ${index + 2}: ${row.map((value, column) => `${clean(headers[column]) || `Columna ${column + 1}`}: ${clean(value)}`).join("; ")}` }));
     const result = makeChunks(pages);
     return { ...result, truncated: result.truncated || rows.length > MAX_CSV_ROWS + 1,
+      status: result.chunks.length ? "ready" : "no-text" };
+  }
+  if (mime === DOCX_MIME) {
+    const extracted = await extractDocxParagraphs(data);
+    const result = makeChunks(extracted.pages);
+    return { ...result, truncated: result.truncated || extracted.truncated,
       status: result.chunks.length ? "ready" : "no-text" };
   }
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");

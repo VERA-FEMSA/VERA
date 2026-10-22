@@ -102,3 +102,30 @@ test("Evidencias IA: CSV ofrece consulta con fila y encabezados citados", async 
   await expect(dialog.getByText("Fila 2: Control: Acceso; Estado: Aprobado")).toBeVisible();
   await expect(dialog.getByRole("link", { name: "Matriz de controles" })).toHaveAttribute("href", "/evidencias#evidence-EVD-CSV");
 });
+
+test("Evidencias IA: DOCX privado muestra texto citado sin prometer páginas", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  const evidence = { id: "EVD-DOCX", title: "Informe Word", description: "Revisión de controles.",
+    evidenceType: "DOCUMENT", entityType: "RISK", entityId: "RSK-DOCX", entityTitle: "Riesgo de acceso",
+    author: { name: "Auditoría" }, createdAt: "2026-10-22T10:00:00.000Z",
+    file: { mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", size: 1800 } };
+  await page.route("**/api/risks**", (route) => route.fulfill({ json: { risks: [] } }));
+  await page.route("**/api/controls**", (route) => route.fulfill({ json: { controls: [] } }));
+  await page.route("**/api/planning**", (route) => route.fulfill({ json: { proposals: [] } }));
+  await page.route("**/api/evidence/**", (route) => {
+    if (new URL(route.request().url()).pathname.endsWith("/ask")) return route.fulfill({ json: {
+      answer: "La revisión es trimestral.", mode: "generated", asOf: "2026-10-22T12:00:00.000Z",
+      coverage: { indexedChunks: 2, includedChunks: 1, partial: true },
+      citations: [{ sourceId: "evidence:EVD-DOCX:chunk:1", evidenceId: evidence.id, title: evidence.title,
+        pageNumber: null, excerpt: "Revisión trimestral sin excepción.",
+        path: "/evidencias#evidence-EVD-DOCX" }] } });
+    return route.fulfill({ json: { evidence: [evidence] } });
+  });
+  await page.goto("/evidencias");
+  await page.getByRole("button", { name: "Consultar contenido con IA" }).click();
+  const dialog = page.getByRole("dialog", { name: "Preguntar sobre Informe Word" });
+  await dialog.getByLabel("Pregunta sobre el contenido").fill("¿Cada cuándo se revisa?");
+  await dialog.getByRole("button", { name: "Consultar archivo" }).click();
+  await expect(dialog.getByText("Revisión trimestral sin excepción.")).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Informe Word" })).toHaveAttribute("href", "/evidencias#evidence-EVD-DOCX");
+});

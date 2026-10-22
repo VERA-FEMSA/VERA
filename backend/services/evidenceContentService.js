@@ -28,7 +28,7 @@ const indexFile = async (evidence, bytes) => {
 
 const askEvidenceContent = async (evidence, question, role, { ask = askAzureOpenAi } = {}) => {
   if (!evidence.file || !(SEARCHABLE_MIME.has(evidence.file.mime) || IMAGE_MIME.has(evidence.file.mime))) {
-    const error = new Error("Solo se puede consultar texto de PDF, TXT, CSV o imágenes privadas indexadas.");
+    const error = new Error("Solo se puede consultar texto de PDF, DOCX, TXT, CSV o imágenes privadas indexadas.");
     error.status = 415;
     throw error;
   }

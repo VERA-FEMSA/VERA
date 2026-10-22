@@ -1,6 +1,6 @@
 # Búsqueda de evidencias desde el copiloto
 
-El usuario puede marcar **Buscar también en textos de evidencias visibles** antes de enviar su pregunta. VERA combina registros de auditorías, riesgos, controles, hallazgos y pendientes que su rol puede leer con hasta cinco fragmentos PDF/TXT/CSV o imagen **ya indexada** coincidentes. Cada fragmento citado muestra el pasaje, la página cuando existe y un enlace a la evidencia. La respuesta es de solo lectura.
+El usuario puede marcar **Buscar también en textos de evidencias visibles** antes de enviar su pregunta. VERA combina registros de auditorías, riesgos, controles, hallazgos y pendientes que su rol puede leer con hasta cinco fragmentos PDF/DOCX/TXT/CSV o imagen **ya indexada** coincidentes. Cada fragmento citado muestra el pasaje, la página cuando existe y un enlace a la evidencia. La respuesta es de solo lectura.
 
 ## Alcance y autorización
 
@@ -18,7 +18,7 @@ Aplicar la migración aditiva `20261017010000_search_evidence_text_chunks.sql` a
 
 ## Comprobaciones
 
-- Cuenta autorizada: preguntar por una expresión presente en un PDF/TXT/CSV indexado y abrir el fragmento citado.
+- Cuenta autorizada: preguntar por una expresión presente en un PDF/DOCX/TXT/CSV indexado y abrir el fragmento citado.
 - Cuenta ajena: repetir con un archivo vinculado a una entidad fuera de su alcance; no debe figurar en la búsqueda ni llegar al modelo.
 - Pregunta sin coincidencia: mensaje de ausencia, sin inferir una respuesta.
 - Archivo previo sin índice, imagen sin OCR y PDF escaneado: explicar el alcance y usar la consulta individual cuando corresponda. El OCR de imagen requiere un clic explícito en Evidencias y un modelo Azure con visión.
