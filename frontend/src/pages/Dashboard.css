@@ -805,7 +805,9 @@
 .dashboard-commitment-list ul { margin: 0; padding: 0; list-style: none; }
 .dashboard-commitment-list li { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-top: 1px solid var(--vera-border-soft); }
 .dashboard-commitment-list li > div { display: grid; min-width: 0; gap: 3px; }
-.dashboard-commitment-list b { overflow-wrap: anywhere; color: var(--vera-text-strong); font-size: 13px; }
+.dashboard-commitment-list li a { width: fit-content; overflow-wrap: anywhere; color: var(--vera-accent); font-size: 13px; font-weight: 700; text-decoration: none; }
+.dashboard-commitment-list li a:hover { text-decoration: underline; }
+.dashboard-commitment-list li a:focus-visible { outline: 3px solid var(--vera-accent); outline-offset: 3px; }
 .dashboard-commitment-list li span, .dashboard-commitment-list time { color: var(--vera-text-muted); font-size: 12px; line-height: 1.4; }
 .dashboard-commitment-list time { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
 .dashboard-commitment-list time.is-overdue { color: var(--vera-danger); font-weight: 700; }

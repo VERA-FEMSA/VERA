@@ -172,7 +172,7 @@ const createAction = async (user, body) => {
     title, rationale, dueDate, assigneeId, assigneeName: assignee.name,
     status: "OPEN", createdBy: { id: user.id, name: user.name || user.username },
     createdAt: now, updatedAt: now, completedAt: null,
-    history: [{ type: "CREATED", actorId: user.id, at: now }]
+    history: [{ type: "CREATED", actorId: user.id, actorName: user.name || user.username, at: now }]
   });
   await logActivity({ actor: user, action: "FOLLOW_UP_ACTION_CREATED", details: {
     actionId: action.id, sourceType, sourceId, assigneeId
@@ -200,7 +200,8 @@ const changeStatus = async (user, id, body) => {
   const now = new Date().toISOString();
   const updated = await actionRepository.mutate(id, {
     status, completedAt: ["DONE", "CANCELLED"].includes(status) ? now : null,
-    history: [...action.history, { type: "STATUS_CHANGED", from: action.status, to: status, note, actorId: user.id, at: now }]
+    history: [...action.history, { type: "STATUS_CHANGED", from: action.status, to: status, note,
+      actorId: user.id, actorName: user.name || user.username, at: now }]
   }, assertVersion(body.version));
   await logActivity({ actor: user, action: "FOLLOW_UP_ACTION_STATUS_CHANGED", details: {
     actionId: id, sourceType: action.sourceType, sourceId: action.sourceId, from: action.status, to: status
@@ -219,7 +220,8 @@ const reassign = async (user, id, body) => {
   const now = new Date().toISOString();
   const updated = await actionRepository.mutate(id, {
     assigneeId, assigneeName: assignee.name,
-    history: [...action.history, { type: "REASSIGNED", fromId: action.assigneeId, toId: assigneeId, note, actorId: user.id, at: now }]
+    history: [...action.history, { type: "REASSIGNED", fromId: action.assigneeId, fromName: action.assigneeName,
+      toId: assigneeId, toName: assignee.name, note, actorId: user.id, actorName: user.name || user.username, at: now }]
   }, assertVersion(body.version));
   await logActivity({ actor: user, action: "FOLLOW_UP_ACTION_REASSIGNED", details: {
     actionId: id, sourceType: action.sourceType, sourceId: action.sourceId, fromId: action.assigneeId, toId: assigneeId

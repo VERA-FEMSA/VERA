@@ -170,7 +170,7 @@ function Dashboard() {
                       {nextActions.length ? <div className="dashboard-commitment-list">
                         <h3>Próximos a atender</h3>
                         <ul>{nextActions.map((action) => <li key={action.id}>
-                          <div><b>{action.title}</b><span>{ACTION_SOURCE[action.sourceType]} · {action.sourceTitle} · {ACTION_STATUS[action.status] || action.status}</span></div>
+                          <div><Link to={`/notificaciones?actionId=${encodeURIComponent(action.id)}`}>{action.title}</Link><span>{ACTION_SOURCE[action.sourceType]} · {action.sourceTitle} · {ACTION_STATUS[action.status] || action.status}</span></div>
                           <time dateTime={action.dueDate} className={action.dueDate < localToday() ? "is-overdue" : ""}>
                             {action.dueDate < localToday() ? "Venció" : "Vence"} {actionDate(action.dueDate)}
                           </time>

@@ -7,7 +7,7 @@ Esta guía documenta la primera pantalla después del acceso a VERA. Corresponde
 1. **Contexto:** el título y la descripción explican el alcance del rol autenticado. «Actualizar» vuelve a consultar el servidor.
 2. **Panorama:** cinco indicadores muestran el volumen visible, propuestas abiertas, auditorías en curso, registros de riesgo alto y hallazgos abiertos.
 3. **Acciones y consultas:** conserva los accesos existentes a propuestas, revisión, auditorías/riesgos y plan trimestral. Crear y revisar aparecen solo cuando el permiso correspondiente está presente en la respuesta de la API.
-4. **Compromisos:** consulta por separado las acciones humanas registradas y visibles para la cuenta. Muestra cuántas siguen abiertas en su alcance, cuántas están asignadas a la cuenta y cuántas de estas últimas vencieron. Lista las tres asignadas con fecha objetivo más próxima y enlaza a Pendientes para atenderlas.
+4. **Compromisos:** consulta por separado las acciones humanas registradas y visibles para la cuenta. Muestra cuántas siguen abiertas en su alcance, cuántas están asignadas a la cuenta y cuántas de estas últimas vencieron. Lista las tres asignadas con fecha objetivo más próxima; cada título abre esa acción y su bitácora en Pendientes.
 5. **Estado y riesgo:** el estado puede verse como comparación de barras o como distribución del total. El riesgo puede verse como matriz de probabilidad por impacto o como suma por nivel. Cada par de vistas reutiliza los mismos conteos recibidos; cambiar de vista no modifica datos ni filtros.
 6. **Por atender:** muestra hasta ocho registros priorizados por el servidor y conserva el enlace al tablero completo. Un estado vacío se expresa en texto.
 
