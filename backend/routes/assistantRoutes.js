@@ -6,6 +6,7 @@ const { readiness } = require("../services/azureOpenAiService");
 const { answerAssistant } = require("../services/assistantAnswerService");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
+const memory = require("../repositories/assistantMemoryRepository");
 const { currentScope } = require("../services/assistantConversationScope");
 const { buildAuditDossier } = require("../services/assistantDossierService");
 const { searchAssistantEvidence } = require("../services/assistantEvidenceSearchService");
@@ -27,7 +28,8 @@ router.get("/status", (req, res) => {
     res.json({ ...readiness(), mode: "read-only",
       ...(process.env.VERA_AI_CONVERSATIONS_ENABLED === "true" && !req.user.roleTour
         ? { conversations: true,
-          ...(process.env.VERA_AI_PROJECTS_ENABLED === "true" ? { projects: true } : {}) } : {}) });
+          ...(process.env.VERA_AI_PROJECTS_ENABLED === "true" ? { projects: true } : {}),
+          ...(process.env.VERA_AI_MEMORY_ENABLED === "true" ? { memory: true } : {}) } : {}) });
   } catch {
     res.json({ available: false, reason: "invalid-configuration", mode: "read-only" });
   }
@@ -41,6 +43,9 @@ const conversationEnabled = (req, res, next) => {
 const projectEnabled = (req, res, next) => process.env.VERA_AI_PROJECTS_ENABLED === "true"
   ? conversationEnabled(req, res, next)
   : res.status(503).json({ message: "Los proyectos privados aún no están habilitados." });
+const memoryEnabled = (req, res, next) => process.env.VERA_AI_MEMORY_ENABLED === "true"
+  ? conversationEnabled(req, res, next)
+  : res.status(503).json({ message: "La memoria privada aún no está habilitada." });
 const conversationError = (res, error) => {
   if ([400, 404, 409, 503].includes(error.status)) return res.status(error.status).json({ message: error.message });
   return res.status(502).json({ message: "No se pudo consultar el historial privado." });
@@ -62,6 +67,45 @@ const projectIdFrom = (value) => {
   }
   return value;
 };
+
+router.get("/memories", memoryEnabled, async (req, res) => {
+  try { return res.json({ memories: await memory.list(req.user) }); }
+  catch (error) { return conversationError(res, error); }
+});
+
+router.post("/memories", memoryEnabled,
+  rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, keyGenerator: (req) => String(req.user.id),
+    standardHeaders: "draft-8", legacyHeaders: false }), async (req, res) => {
+    const content = req.body?.content;
+    if (typeof content !== "string" || !content.trim() || content.trim().length > 200) {
+      return res.status(400).json({ message: "La nota debe tener entre 1 y 200 caracteres." });
+    }
+    try { return res.status(201).json({ memory: await memory.create(req.user, content.trim()) }); }
+    catch (error) { return conversationError(res, error); }
+  });
+
+router.patch("/memories/:id", memoryEnabled, async (req, res) => {
+  const { content, enabled, version } = req.body || {};
+  if (typeof content !== "string" || !content.trim() || content.trim().length > 200 ||
+      typeof enabled !== "boolean" || !Number.isInteger(version) || version < 1) {
+    return res.status(400).json({ message: "La nota o la versión no son válidas." });
+  }
+  try {
+    const updated = await memory.update(req.user, req.params.id, version,
+      { content: content.trim(), enabled });
+    if (!updated) return res.status(404).json({ message: "Nota no disponible." });
+    return res.json({ memory: updated });
+  } catch (error) { return conversationError(res, error); }
+});
+
+router.delete("/memories/:id", memoryEnabled, async (req, res) => {
+  try {
+    if (!await memory.remove(req.user, req.params.id)) {
+      return res.status(404).json({ message: "Nota no disponible." });
+    }
+    return res.status(204).end();
+  } catch (error) { return conversationError(res, error); }
+});
 
 router.get("/projects", projectEnabled, async (req, res) => {
   try { return res.json({ projects: await projects.list(req.user) }); }

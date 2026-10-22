@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Bot, FileText, Pencil, RotateCcw, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantConversation, deleteAssistantProject, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantConversations, listAssistantProjects, moveAssistantConversation, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject } from "../services/assistantService";
 import { AssistantConversationContext } from "../contexts/AssistantConversationContext";
+import AssistantMemoryPanel from "./AssistantMemoryPanel";
 import "../pages/Asistente.css";
 
 const promptsByRole = {
@@ -49,6 +50,7 @@ function AssistantPanel({ focus = null }) {
   const [draftTitle, setDraftTitle] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [projectMode, setProjectMode] = useState(false);
+  const [memoryMode, setMemoryMode] = useState(false);
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [projectForm, setProjectForm] = useState(null);
@@ -61,7 +63,7 @@ function AssistantPanel({ focus = null }) {
     getAssistantStatus().then((result) => {
       if (active) { setAvailable(result.available); setReason(result.reason);
         setPersistent(Boolean(result.conversations)); setHistoryBusy(Boolean(result.conversations));
-        setProjectMode(Boolean(result.projects)); }
+        setProjectMode(Boolean(result.projects)); setMemoryMode(Boolean(result.memory)); }
     }).catch((cause) => { if (active) { setAvailable(false); setError(cause.message); } });
     getAssistantBrief().then((result) => { if (active) setBrief(result.signals || []); })
       .catch(() => { /* Las prioridades no bloquean las preguntas. */ });
@@ -262,6 +264,7 @@ function AssistantPanel({ focus = null }) {
 
   return <section className="assistant-chat" aria-label="Conversación con el asistente">
     {persistent && <div className="assistant-history" aria-label="Historial privado">
+      {memoryMode && <AssistantMemoryPanel />}
       {projectMode && <div className="assistant-projects" aria-label="Proyectos privados">
         <div className="assistant-history-main"><label htmlFor="assistant-project">Proyecto</label>
           <select id="assistant-project" value={selectedProjectId || ""} disabled={historyBusy || busy}

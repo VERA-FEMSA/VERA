@@ -54,6 +54,26 @@ export const updateAssistantProject = async (id, name, description, version) =>
 export const deleteAssistantProject = async (id) => projectRequest(`/${encodeURIComponent(id)}`, {
   method: "DELETE"
 });
+const memoryRequest = async (path = "", options = {}) => {
+  const response = await fetch(`/api/assistant/memories${path}`, {
+    ...options, headers: { ...headers(), ...(options.body ? { "Content-Type": "application/json" } : {}) },
+    cache: "no-store"
+  });
+  if (response.status === 204) return null;
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "No se pudo consultar tu memoria privada.");
+  return data;
+};
+export const listAssistantMemories = async () => (await memoryRequest()).memories;
+export const createAssistantMemory = async (content) =>
+  (await memoryRequest("", { method: "POST", body: JSON.stringify({ content }) })).memory;
+export const updateAssistantMemory = async (id, content, enabled, version) =>
+  (await memoryRequest(`/${encodeURIComponent(id)}`, {
+    method: "PATCH", body: JSON.stringify({ content, enabled, version })
+  })).memory;
+export const deleteAssistantMemory = async (id) => memoryRequest(`/${encodeURIComponent(id)}`, {
+  method: "DELETE"
+});
 export const askAssistantConversation = async (id, question, withEvidence = false) =>
   conversationRequest(`/${encodeURIComponent(id)}/ask`, {
     method: "POST", body: JSON.stringify({ question, withEvidence })
