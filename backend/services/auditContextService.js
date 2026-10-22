@@ -67,7 +67,15 @@ const buildAuditContext = async (user, auditId) => {
       ({ id, title, description, entityType, entityId, evidenceType, createdAt }))
   };
   return {
-    audit: { id: audit.id, title: audit.title, status: audit.status },
+    audit: {
+      id: audit.id, title: audit.title, status: audit.status,
+      objective: audit.objective, scope: audit.scope, area: audit.area,
+      type: audit.type, responsible: audit.responsible,
+      quarter: audit.quarter, year: audit.year,
+      startDate: audit.startDate, endDate: audit.endDate,
+      progress: audit.progress, risk: audit.risk, riskScore: audit.riskScore,
+      updatedAt: audit.updatedAt
+    },
     groups,
     counts: Object.fromEntries(Object.entries(groups).map(([key, items]) => [key, items.length])),
     asOf: new Date().toISOString(),

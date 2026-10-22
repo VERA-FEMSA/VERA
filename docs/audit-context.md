@@ -1,6 +1,6 @@
 # Contexto conectado de una auditoría
 
-Este incremento introduce una lectura común del expediente, previa al dossier ejecutivo, la IA y las decisiones asistidas. No modifica el modelo de datos ni crea estados nuevos.
+Este incremento introduce una lectura común del expediente que también alimenta una ficha para comité. No modifica el modelo de datos ni crea estados nuevos.
 
 ## Qué se relaciona
 
@@ -14,4 +14,12 @@ En **Auditorías activas → Abrir expediente → Mapa del expediente**, los con
 
 ## Uso posterior
 
-`relateAudit` centraliza las relaciones y se comparte con el dossier del asistente. Los siguientes incrementos pueden añadir el dossier de comité, indicadores de cobertura, documentos resumidos y alertas sobre esta misma interpretación, manteniendo el control de acceso en el servidor. Antes de usar esos indicadores para decisiones reales, hay que definir sus reglas de negocio y validar datos y permisos con los responsables del proceso.
+`relateAudit` centraliza las relaciones y se comparte con el dossier del asistente. Los siguientes incrementos pueden añadir indicadores de cobertura, documentos resumidos y alertas sobre esta misma interpretación, manteniendo el control de acceso en el servidor. Antes de usar esos indicadores para decisiones reales, hay que definir sus reglas de negocio y validar datos y permisos con los responsables del proceso.
+
+## Ficha para comité
+
+Desde **Auditorías activas → Abrir expediente → Ficha para comité** se abre una página interna que puede actualizarse e imprimirse como PDF desde el navegador. Usa la misma respuesta autorizada de `GET /api/planning/:id/context`; no crea otra copia de datos, no llama al modelo de IA y no cambia estados. El enlace directo es `/auditorias-activas/:id/comite` y exige sesión. La API verifica el acceso al registro concreto antes de devolver cualquier dato; para Auditor devuelve 404 si el expediente no está asignado.
+
+La ficha muestra objetivo, alcance, responsable, estado, periodo, avance y clasificación registrados; seis conteos; una tabla de relaciones por riesgo; y listas de hechos para revisar. Los cálculos son: riesgos altos con `level === "Alto"`; riesgos sin control visible cuando ningún control devuelto contiene su ID; controles evaluados de 1 a 3/5; hallazgos abiertos con `status === "OPEN"`; y evidencias según los vínculos de la lectura común. Cada fila conserva los IDs de los registros de origen. La fecha de consulta y el alcance se muestran junto al resultado.
+
+Son **conteos de los registros visibles para la cuenta**, no una certificación de cobertura, eficacia ni riesgo residual. Un cero significa que no aparece ningún registro visible en la categoría consultada. La ficha no contiene el archivo binario de evidencias ni toma decisiones por el comité. Un PDF impreso es una copia puntual y puede quedar desactualizado; para revisar el detalle o cambios posteriores hay que abrir el expediente original.
