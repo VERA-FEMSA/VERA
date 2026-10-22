@@ -14,7 +14,6 @@ const termsFor = (question) => [...new Set((normalized(question).match(/[\p{L}\p
 // que contiene el archivo original completo. No inferir totales desde extractos.
 const asksForCompleteDocument = (question) => {
   const value = normalized(question);
-  if (/\b(?:fila|pagina|fragmento)\s*(?:numero\s*)?\d+\b/u.test(value)) return false;
   return /\b(?:cuantos|cuantas|todos|todas|total(?:es)?|suma|promedio|porcentaje|completo|completa)\b/u.test(value);
 };
 

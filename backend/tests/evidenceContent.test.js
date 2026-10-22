@@ -121,7 +121,8 @@ test("Evidencias IA: no calcula totales ni listas completas desde un índice aco
   const evidence = { id, title: "Matriz acotada", file: { mime: "text/csv" } };
   const noModel = { ask: async () => { throw new Error("No debe calcular un total con Azure."); } };
   for (const question of ["¿Cuántos controles incumplen en todo este archivo?",
-    "Dame el total de controles", "Enumera todos los registros", "¿Cuál es el porcentaje de incumplimiento?"]) {
+    "Dame el total de controles", "Enumera todos los registros", "¿Cuál es el porcentaje de incumplimiento?",
+    "¿Cuántos controles hay en todo el archivo, incluida la fila 2?"]) {
     const result = await askEvidenceContent(evidence, question, "AUDITOR", noModel);
     assert.equal(result.mode, "scope-limited");
     assert.equal(result.coverage.partial, true);
