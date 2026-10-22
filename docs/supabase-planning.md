@@ -18,6 +18,10 @@ Las migraciones de `supabase/migrations` son la fuente de verdad para nuevos ent
 
 Si las tablas `vera_audit_proposals` o `logins` ya se crearon manualmente, primero extrae y compara el esquema remoto con `supabase db pull` en una rama temporal. Las migraciones usan `create table if not exists` y conservan los datos existentes, pero esta instrucción no comprueba que las columnas, restricciones, índices y permisos remotos sean iguales. Resuelve cualquier diferencia antes de aplicar o marcar migraciones como ejecutadas. No uses `migration repair` sin esa comparación. El proyecto VERA ya se concilió y migró; la [bitácora](supabase-rollout-2026-10.md) registra la ejecución y sus límites. Repite estas comprobaciones en cualquier otro proyecto.
 
+## Acciones de seguimiento
+
+Las acciones de seguimiento usan la [migración y reglas propias](action-register.md). Cuando el almacén de evidencias y comentarios está en Supabase, también se consultan allí; aplica esa migración antes de publicar rutas o pantallas que dependan de acciones. La lectura, el responsable y los cambios de estado se autorizan en la API sobre cada registro de origen.
+
 ## Cuentas persistentes
 
 La tercera migración crea `vera_users` con correo y usuario únicos, hash de contraseña, rol, estado y secretos de 2FA. La tabla tiene RLS habilitado y solo la API con clave de servidor puede accederla. No se insertan cuentas demo ni contraseñas de ejemplo en una base nueva.
