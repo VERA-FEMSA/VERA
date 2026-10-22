@@ -84,7 +84,11 @@ try {
   }
   if ($login.Status -ne 200) { throw "El inicio de sesion respondio HTTP $($login.Status)." }
 
-  if ($login.Data.requires2FA) {
+  if ($login.Data.ContainsKey('requiresMfaSetup') -and $login.Data['requiresMfaSetup']) {
+    Write-Result BLOCK 'Inicio de sesion' $login.DurationMs 'La cuenta debe configurar TOTP antes de continuar.'
+    exit 2
+  }
+  if ($login.Data.ContainsKey('requires2FA') -and $login.Data['requires2FA']) {
     $code = Read-SecretText 'Codigo de verificacion (no se muestra)'
     try {
       $session = Invoke-VeraRequest -Method POST -Path '/api/auth/verify-2fa' -Body @{
@@ -93,7 +97,8 @@ try {
     } finally { $code = $null; $login = $null }
     if ($session.Status -ne 200) { throw "La verificacion de dos factores respondio HTTP $($session.Status)." }
   } else { $session = $login }
-  if (-not $session.Data.token -or -not $session.Data.user.role) { throw 'La sesion no devolvio token y rol.' }
+  if (-not $session.Data.ContainsKey('token') -or -not $session.Data.ContainsKey('user') -or
+      -not $session.Data.user.role) { throw 'La sesion no devolvio token y rol.' }
   $token = [string]$session.Data.token
   $role = [string]$session.Data.user.role
   Write-Result PASS 'Sesion autenticada' $session.DurationMs "rol=$role"
