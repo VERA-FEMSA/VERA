@@ -7,7 +7,7 @@ Esta guía documenta la primera pantalla después del acceso a VERA. Corresponde
 1. **Contexto:** el título y la descripción explican el alcance del rol autenticado. «Actualizar» vuelve a consultar el servidor.
 2. **Panorama:** cinco indicadores muestran el volumen visible, propuestas abiertas, auditorías en curso, registros de riesgo alto y hallazgos abiertos.
 3. **Acciones y consultas:** conserva los accesos existentes a propuestas, revisión, auditorías/riesgos y plan trimestral. Crear y revisar aparecen solo cuando el permiso correspondiente está presente en la respuesta de la API.
-4. **Compromisos:** consulta por separado las acciones humanas registradas y visibles para la cuenta. Muestra cuántas siguen abiertas en su alcance, cuántas están asignadas a la cuenta y cuántas de estas últimas vencieron. Lista las tres asignadas con fecha objetivo más próxima; cada título abre esa acción y su bitácora en Pendientes.
+4. **Compromisos:** consulta por separado las acciones humanas registradas y visibles para la cuenta. Muestra cuántas siguen abiertas en su alcance, cuántas están asignadas a la cuenta, cuántas vencieron y cuántas vencen entre hoy y los próximos siete días de calendario local. Lista las tres asignadas con fecha objetivo más próxima; cada título abre esa acción y su bitácora en Pendientes.
 5. **Estado y riesgo:** el estado puede verse como comparación de barras o como distribución del total. El riesgo puede verse como matriz de probabilidad por impacto o como suma por nivel. Cada par de vistas reutiliza los mismos conteos recibidos; cambiar de vista no modifica datos ni filtros.
 6. **Por atender:** muestra hasta ocho registros priorizados por el servidor y conserva el enlace al tablero completo. Un estado vacío se expresa en texto.
 
@@ -31,6 +31,8 @@ La distribución por estado usa `statusCounts` y la matriz usa `riskMatrix` de l
 El servicio filtra las propuestas de **Auditor** por asignación. Los demás perfiles reciben el alcance definido en la API y la respuesta incluye permisos explícitos para mostrar acciones. Esta pantalla no cambia la autorización del servidor ni concede acceso por el hecho de presentar un enlace. La vista previa de otro rol disponible para Super Admin sigue siendo una función separada del menú.
 
 Los compromisos abiertos son acciones `OPEN` o `IN_PROGRESS`; las terminadas y canceladas no se cuentan. «Asignados a mi cuenta» compara el identificador del responsable con la sesión actual. Una acción vence cuando su `dueDate` es anterior a la fecha local del navegador; no se infiere vencimiento de notificaciones leídas. Si falla la consulta de acciones, esta sección muestra el error y **no** presenta ceros como si fueran datos confirmados. Su error no oculta el resto del panel.
+
+«Vencen en los próximos 7 días» incluye hoy y los siete días de calendario siguientes, solo para acciones abiertas asignadas a la cuenta. El panel y el filtro Vencimientos de Pendientes comparten la misma regla de fecha local; son recordatorios visuales calculados al consultar, no mensajes enviados ni cambios automáticos de estado.
 
 ## Decisiones visuales y de accesibilidad
 
