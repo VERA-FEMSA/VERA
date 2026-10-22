@@ -4,6 +4,7 @@ import {
   Activity,
   BellRing,
   Bot,
+  ChartNoAxesCombined,
   CalendarRange,
   ClipboardCheck,
   ClipboardList,
@@ -114,6 +115,7 @@ function Sidebar({ active }) {
     { id: "notificaciones", label: "Pendientes", Icon: BellRing, path: "/notificaciones" },
     { id: "actividad", label: "Actividad reciente", Icon: Activity, path: "/actividad" },
     { id: "asistente", label: "Asistente de IA", Icon: Bot, path: "/asistente" },
+    ...(canSeeAuditLog ? [{ id: "calidad-ia", label: "Calidad de IA", Icon: ChartNoAxesCombined, path: "/calidad-ia" }] : []),
     { id: "evidencias", label: "Evidencias", Icon: Files, path: "/evidencias" },
     { id: "mi-rol", label: "Mi rol y solicitudes", Icon: UserRoundPen, path: "/mi-rol" },
     ...(canSeeUsers ? [{ id: "usuarios", label: "Usuarios", Icon: UserCog, path: "/usuarios" }] : []),
@@ -123,7 +125,7 @@ function Sidebar({ active }) {
     { label: "Portafolio y auditorías", ids: ["dashboard", "planificacion", "trimestres", "auditorias-activas", "auditorias"] },
     { label: "Riesgos y evidencia", ids: ["riesgos", "controles", "evidencias"] },
     { label: "Seguimiento", ids: ["notificaciones", "actividad"] },
-    { label: "Asistencia", ids: ["asistente"] },
+    { label: "Asistencia", ids: ["asistente", "calidad-ia"] },
     { label: "Cuenta y administración", ids: ["mi-rol", "usuarios", "auditoria"] }
   ].map((group) => ({ ...group, items: group.ids.map((id) => items.find((item) => item.id === id)).filter(Boolean) }));
   const previewRoles = user?.role === "SUPER_ADMIN" ? PREVIEW_ROLES.map((role) => ({ role, label: ROLE_LABELS[role] })) : [];

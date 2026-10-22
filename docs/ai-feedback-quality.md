@@ -2,6 +2,8 @@
 
 VERA permite valorar cada respuesta del chat con **Sí** o **No**. La valoración se registra una vez por respuesta y no incluye la pregunta, el texto de la respuesta, archivos ni identificadores de usuario en la tabla. El navegador envía un token firmado de interacción y la calificación. El servidor comprueba que el token pertenece a la cuenta autenticada y caduca a las 24 horas.
 
+La cuenta `SUPER_ADMIN` dispone de **Asistencia → Calidad de IA** (`/calidad-ia`). La vista muestra el periodo de 30 días, hora de consulta, respuestas valoradas, votos positivos y negativos, porcentaje positivo y desglose por modo. Incluye estados vacío, error y actualización manual. Si el resumen llega al límite de 10 000 filas, avisa que es parcial. Los otros roles no ven la opción; el backend también rechaza la lectura con `403`.
+
 ## Contrato
 
 - `POST /api/assistant/feedback` requiere sesión, `feedbackToken` firmado y `rating` igual a `helpful` o `unhelpful`. Repetir el mismo token devuelve `409`.

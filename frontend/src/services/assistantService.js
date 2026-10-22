@@ -14,6 +14,13 @@ export const getAssistantBrief = async () => {
   return data;
 };
 
+export const getAssistantQuality = async () => {
+  const response = await fetch("/api/assistant/quality", { headers: headers(), cache: "no-store" });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "No se pudo consultar la calidad del asistente.");
+  return data;
+};
+
 export const getAssistantInsights = async () => {
   const response = await fetch("/api/assistant/insights", { headers: headers() });
   const data = await response.json();
