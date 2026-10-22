@@ -6,7 +6,7 @@ const isWithinDays = (date, now, days) => {
   return Number.isFinite(due) && due >= now && due - now <= days * 24 * 60 * 60 * 1000;
 };
 
-const buildNotifications = ({ proposals, user, now = Date.now() }) => {
+const buildNotifications = ({ proposals, actions = [], user, now = Date.now(), offsetMinutes = 0 }) => {
   const notifications = [];
   const isApprover = PLANNING_APPROVE_ROLES.includes(user.role);
   const canStart = isApprover;
@@ -69,6 +69,27 @@ const buildNotifications = ({ proposals, user, now = Date.now() }) => {
         path: "/auditorias-activas"
       });
     }
+  }
+
+  const localDay = new Date(now - offsetMinutes * 60 * 1000).toISOString().slice(0, 10);
+  const cutoffDay = new Date(Date.parse(`${localDay}T00:00:00.000Z`) + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  for (const action of actions) {
+    if (action.assigneeId !== user.id || !["OPEN", "IN_PROGRESS"].includes(action.status) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(action.dueDate || "")) continue;
+    const overdue = action.dueDate < localDay;
+    if (!overdue && action.dueDate > cutoffDay) continue;
+    const type = overdue ? "ACTION_OVERDUE" : "ACTION_DUE_SOON";
+    notifications.push({
+      id: `${type}:${action.id}`,
+      type,
+      title: overdue ? "Compromiso con fecha vencida" : "Compromiso próximo a vencer",
+      description: `${action.title} · ${action.sourceTitle}`,
+      entityId: action.id,
+      priority: overdue ? "HIGH" : "MEDIUM",
+      createdAt: action.updatedAt || action.createdAt,
+      dueAt: action.dueDate,
+      path: `/notificaciones?actionId=${encodeURIComponent(action.id)}`
+    });
   }
 
   const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };

@@ -24,7 +24,7 @@ const sourcePath = (action) => action.sourceType === "AUDIT"
     : action.sourceType === "CONTROL" ? `/controles#control-${encodeURIComponent(action.sourceId)}` : "/auditorias-activas";
 const initialForm = { sourceKey: "", title: "", rationale: "", dueDate: "", assigneeId: "" };
 
-function ActionQueue({ revision = 0 }) {
+function ActionQueue({ revision = 0, onActionChanged }) {
   const [query] = useSearchParams();
   const focusedActionId = query.get("actionId");
   const [actions, setActions] = useState([]);
@@ -119,6 +119,7 @@ function ActionQueue({ revision = 0 }) {
       setCreateOpen(false);
       setError("");
       setView("OPEN");
+      onActionChanged?.();
     } catch (cause) { setError(cause.message); }
     finally { setSaving(false); }
   };
@@ -147,6 +148,7 @@ function ActionQueue({ revision = 0 }) {
       await reload();
       setEditing(null);
       setError("");
+      onActionChanged?.();
     } catch (cause) { setError(cause.message); }
     finally { setSaving(false); }
   };

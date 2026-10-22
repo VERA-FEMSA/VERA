@@ -1,5 +1,6 @@
 const request = async (path = "", method = "GET") => {
-  const response = await fetch(`/api/notifications${path}`, {
+  const offsetMinutes = new Date().getTimezoneOffset();
+  const response = await fetch(`/api/notifications${path}?offsetMinutes=${offsetMinutes}`, {
     method, headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
   });
   const data = await response.json();
