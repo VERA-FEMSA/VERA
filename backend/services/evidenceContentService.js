@@ -10,6 +10,13 @@ const normalized = (value) => String(value).normalize("NFD").replace(/[\u0300-\u
 const termsFor = (question) => [...new Set((normalized(question).match(/[\p{L}\p{N}]{3,}/gu) || [])
   .filter((term) => !STOP_WORDS.has(term)))];
 
+// El índice conserva un máximo de 30 páginas/40 000 caracteres y no certifica
+// que contiene el archivo original completo. No inferir totales desde extractos.
+const asksForCompleteDocument = (question) => {
+  const value = normalized(question);
+  return /\b(?:cuantos|cuantas|todos|todas|total(?:es)?|suma|promedio|porcentaje|completo|completa)\b/u.test(value);
+};
+
 const selectChunks = (chunks, question) => {
   const terms = termsFor(question);
   const summary = /resum|sintetiz|panorama/i.test(normalized(question));
@@ -53,6 +60,13 @@ const askEvidenceContent = async (evidence, question, role, { ask = askAzureOpen
   if (!chunks.length) return { answer: "No se encontró texto legible en este archivo; puede ser un PDF escaneado o un CSV vacío.",
     mode: "no-text", citations: [], coverage: { indexedChunks: 0, includedChunks: 0, partial: false }, asOf, usage: null };
 
+  if (asksForCompleteDocument(question)) return {
+    answer: "No puedo calcular totales ni describir todo el archivo con garantías desde fragmentos indexados. " +
+      "Revisa el original o pregunta por una fila, página o sección concreta.",
+    mode: "scope-limited", citations: [], coverage: { indexedChunks: chunks.length,
+      includedChunks: 0, partial: true }, asOf, usage: null
+  };
+
   const selected = selectChunks(chunks, question);
   const coverage = { indexedChunks: chunks.length, includedChunks: selected.length,
     partial: selected.length < chunks.length };
@@ -80,4 +94,4 @@ const askEvidenceContent = async (evidence, question, role, { ask = askAzureOpen
   return { answer: result.answer, mode: "generated", citations: cited, coverage, asOf, usage: result.usage || null };
 };
 
-module.exports = { askEvidenceContent, indexFile, selectChunks };
+module.exports = { askEvidenceContent, asksForCompleteDocument, indexFile, selectChunks };

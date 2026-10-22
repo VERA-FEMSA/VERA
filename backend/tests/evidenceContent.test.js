@@ -10,7 +10,7 @@ const { startTestServer } = require("./helpers/testServer");
 const { extractEvidenceText } = require("../services/evidenceTextExtraction");
 const { paragraphsFromXml } = require("../services/docxTextExtraction");
 const evidenceTextIndex = require("../repositories/evidenceTextIndex");
-const { askEvidenceContent, selectChunks } = require("../services/evidenceContentService");
+const { askEvidenceContent, asksForCompleteDocument, selectChunks } = require("../services/evidenceContentService");
 const evidenceRepository = require("../repositories/evidenceRepository");
 const riskRepository = require("../repositories/riskRepository");
 
@@ -112,6 +112,27 @@ test("Evidencias IA: recupera solo fragmentos relevantes y exige una cita del ar
     ask: async () => { throw new Error("No debe llamar a Azure sin coincidencias."); }
   });
   assert.equal(missing.mode, "no-match");
+});
+
+test("Evidencias IA: no calcula totales ni listas completas desde un índice acotado", async () => {
+  const id = "EVD-TEST-SCOPE-1";
+  await evidenceTextIndex.replace(id, [{ chunkIndex: 0, pageNumber: null,
+    content: "Fila 2: Control: Acceso; Estado: Incumple." }]);
+  const evidence = { id, title: "Matriz acotada", file: { mime: "text/csv" } };
+  const noModel = { ask: async () => { throw new Error("No debe calcular un total con Azure."); } };
+  for (const question of ["¿Cuántos controles incumplen en todo este archivo?",
+    "Dame el total de controles", "Enumera todos los registros", "¿Cuál es el porcentaje de incumplimiento?",
+    "¿Cuántos controles hay en todo el archivo, incluida la fila 2?"]) {
+    const result = await askEvidenceContent(evidence, question, "AUDITOR", noModel);
+    assert.equal(result.mode, "scope-limited");
+    assert.equal(result.coverage.partial, true);
+    assert.deepEqual(result.citations, []);
+  }
+  assert.equal(asksForCompleteDocument("¿Cuál es el estado de la fila 2?"), false);
+  const specific = await askEvidenceContent(evidence, "¿Cuál es el estado de la fila 2?", "AUDITOR", {
+    ask: async () => ({ answer: "Incumple.", sourceIds: [`evidence:${id}:chunk:0`] })
+  });
+  assert.equal(specific.mode, "generated");
 });
 
 test("Evidencias IA: archivo anterior se indexa bajo demanda desde Storage privado", async () => {
