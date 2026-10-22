@@ -19,7 +19,7 @@ function AssistantDrawer({ focus, onClose }) {
     const onKeyDown = (event) => {
       if (event.key === "Escape") onClose();
       if (event.key !== "Tab") return;
-      const items = [...dialogRef.current.querySelectorAll('a[href], button:not([disabled]), textarea:not([disabled])')];
+      const items = [...dialogRef.current.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])')];
       if (!items.length) return;
       if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items.at(-1).focus(); }
       else if (!event.shiftKey && document.activeElement === items.at(-1)) { event.preventDefault(); items[0].focus(); }

@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Bot, FileText, RotateCcw, Send, ThumbsDown, ThumbsUp } from "lucide-react";
-import { askAssistant, getAssistantBrief, getAssistantInsights, getAssistantStatus, getAuditDossier, getProposalDraft, searchAssistantEvidence, submitAssistantFeedback } from "../services/assistantService";
+import { ArrowRight, Bot, FileText, Pencil, RotateCcw, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
+import { askAssistant, askAssistantConversation, createAssistantConversation, deleteAssistantConversation, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantConversations, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback } from "../services/assistantService";
 import { AssistantConversationContext } from "../contexts/AssistantConversationContext";
 import "../pages/Asistente.css";
 
@@ -18,6 +18,8 @@ function AssistantPanel({ focus = null }) {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const canDraftProposal = ["SUPER_ADMIN", "GERENTE", "JEFATURA"].includes(user?.role);
   const focused = Boolean(focus);
+  const focusType = focus?.type;
+  const focusId = focus?.id;
   const { conversations, updateConversation } = useContext(AssistantConversationContext);
   const conversationKey = focus ? `${focus.type}:${focus.id}` : "general";
   const messages = conversations[conversationKey] || [];
@@ -37,11 +39,21 @@ function AssistantPanel({ focus = null }) {
   const [draftBusy, setDraftBusy] = useState(false);
   const [draftError, setDraftError] = useState("");
   const [feedbackBusyId, setFeedbackBusyId] = useState(null);
+  const [persistent, setPersistent] = useState(false);
+  const [threadList, setThreadList] = useState([]);
+  const [thread, setThread] = useState(null);
+  const [historyBusy, setHistoryBusy] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [historyStale, setHistoryStale] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     let active = true;
     getAssistantStatus().then((result) => {
-      if (active) { setAvailable(result.available); setReason(result.reason); }
+      if (active) { setAvailable(result.available); setReason(result.reason);
+        setPersistent(Boolean(result.conversations)); setHistoryBusy(Boolean(result.conversations)); }
     }).catch((cause) => { if (active) { setAvailable(false); setError(cause.message); } });
     getAssistantBrief().then((result) => { if (active) setBrief(result.signals || []); })
       .catch(() => { /* Las prioridades no bloquean las preguntas. */ });
@@ -50,15 +62,87 @@ function AssistantPanel({ focus = null }) {
     return () => { active = false; };
   }, [focused]);
 
+  useEffect(() => {
+    if (!persistent) return undefined;
+    let active = true;
+    listAssistantConversations().then(async (items) => {
+      if (!active) return;
+      const scoped = items.filter((item) => focusType
+        ? item.focus?.type === focusType && item.focus?.id === focusId : !item.focus);
+      setThreadList(scoped);
+      if (!scoped.length) { setThread(null); updateConversation(conversationKey, []); return; }
+      const opened = await getAssistantConversation(scoped[0].id);
+      if (!active) return;
+      setThread(opened); setHistoryStale(Boolean(opened.stale));
+      updateConversation(conversationKey, opened.messages || []);
+    }).catch((cause) => { if (active) setHistoryError(cause.message); })
+      .finally(() => { if (active) setHistoryBusy(false); });
+    return () => { active = false; };
+  }, [persistent, conversationKey, updateConversation, focusType, focusId]);
+
+  const openThread = async (id) => {
+    setHistoryBusy(true); setHistoryError(""); setConfirmDelete(false); setEditingTitle(false);
+    try {
+      const opened = await getAssistantConversation(id);
+      setThread(opened); setHistoryStale(Boolean(opened.stale));
+      setMessages(opened.messages || []);
+    } catch (cause) { setHistoryError(cause.message); }
+    finally { setHistoryBusy(false); }
+  };
+
+  const newThread = async () => {
+    if (historyBusy || busy) return;
+    setHistoryBusy(true); setHistoryError(""); setConfirmDelete(false); setEditingTitle(false);
+    try {
+      const created = await createAssistantConversation(focus ? { type: focus.type, id: focus.id } : null);
+      setThread(created); setThreadList((items) => [created, ...items]);
+      setHistoryStale(false); setMessages([]); setError("");
+    } catch (cause) { setHistoryError(cause.message); }
+    finally { setHistoryBusy(false); }
+  };
+
+  const renameThread = async (event) => {
+    event.preventDefault();
+    if (!thread || !draftTitle.trim() || historyBusy) return;
+    setHistoryBusy(true); setHistoryError("");
+    try {
+      const updated = await renameAssistantConversation(thread.id, draftTitle.trim(), thread.version);
+      setThread((item) => ({ ...item, ...updated }));
+      setThreadList((items) => items.map((item) => item.id === updated.id ? updated : item));
+      setEditingTitle(false);
+    } catch (cause) { setHistoryError(cause.message); }
+    finally { setHistoryBusy(false); }
+  };
+
+  const removeThread = async () => {
+    if (!thread || historyBusy) return;
+    setHistoryBusy(true); setHistoryError("");
+    try {
+      await deleteAssistantConversation(thread.id);
+      setThreadList((items) => items.filter((item) => item.id !== thread.id));
+      setThread(null); setMessages([]); setHistoryStale(false); setConfirmDelete(false);
+    } catch (cause) { setHistoryError(cause.message); }
+    finally { setHistoryBusy(false); }
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     const value = question.trim();
-    if (!available || busy || value.length < 3 || value.length > (withEvidence ? 500 : 800)) return;
+    if (!available || busy || historyBusy || historyError || historyStale ||
+        value.length < 3 || value.length > (withEvidence ? 500 : 800)) return;
     const history = messages.slice(-6).map(({ role, text }) => ({ role, text: text.slice(0, 800) }));
-    setMessages((current) => [...current, { id: crypto.randomUUID(), role: "user", text: value }]);
+    if (!persistent) setMessages((current) => [...current, { id: crypto.randomUUID(), role: "user", text: value }]);
     setQuestion(""); setBusy(true); setError("");
     try {
       const selectedFocus = focus ? { type: focus.type, id: focus.id } : null;
+      if (persistent) {
+        const active = thread || await createAssistantConversation(selectedFocus);
+        if (!thread) { setThread(active); setThreadList((items) => [active, ...items]); }
+        const saved = await askAssistantConversation(active.id, value, withEvidence);
+        setMessages((current) => [...current, saved.userMessage, saved.message]);
+        setThread((item) => ({ ...item, version: saved.version, updatedAt: new Date().toISOString() }));
+        return;
+      }
       const result = withEvidence
         ? await searchAssistantEvidence(value, selectedFocus)
         : await askAssistant(value, { history, focus: selectedFocus });
@@ -67,7 +151,7 @@ function AssistantPanel({ focus = null }) {
         citations: result.citations || [], references: result.references || [], coverage: result.coverage,
         asOf: result.asOf,
         durationMs: result.durationMs, feedbackToken: result.feedbackToken || null }]);
-    } catch (cause) { setError(cause.message); }
+    } catch (cause) { setError(cause.message); if (persistent) setQuestion(value); }
     finally { setBusy(false); }
   };
 
@@ -112,6 +196,28 @@ function AssistantPanel({ focus = null }) {
     : promptsByRole[user?.role] || ["Resume mis pendientes."];
 
   return <section className="assistant-chat" aria-label="Conversación con el asistente">
+    {persistent && <div className="assistant-history" aria-label="Historial privado">
+      <div className="assistant-history-main"><label htmlFor="assistant-thread">Conversaciones privadas</label>
+        <select id="assistant-thread" value={thread?.id || ""} disabled={historyBusy || busy || !threadList.length}
+          onChange={(event) => openThread(event.target.value)}><option value="">Selecciona una conversación</option>
+          {threadList.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
+        <button type="button" onClick={newThread} disabled={historyBusy || busy}>Nueva conversación</button></div>
+      {thread && <div className="assistant-history-actions"><button type="button" onClick={() => {
+        setDraftTitle(thread.title); setEditingTitle(true); setConfirmDelete(false);
+      }} disabled={historyBusy || busy} aria-label="Renombrar conversación"><Pencil size={15} aria-hidden="true" /> Renombrar</button>
+        <button type="button" onClick={() => { setConfirmDelete(true); setEditingTitle(false); }}
+          disabled={historyBusy || busy} aria-label="Eliminar conversación"><Trash2 size={15} aria-hidden="true" /> Eliminar</button></div>}
+      {editingTitle && <form className="assistant-history-edit" onSubmit={renameThread}><label htmlFor="assistant-thread-title">Nuevo nombre</label>
+        <input id="assistant-thread-title" value={draftTitle} maxLength={80} onChange={(event) => setDraftTitle(event.target.value)} />
+        <button type="submit" disabled={!draftTitle.trim() || historyBusy}>Guardar</button>
+        <button type="button" onClick={() => setEditingTitle(false)}>Cancelar</button></form>}
+      {confirmDelete && <div className="assistant-history-confirm" role="group" aria-label="Confirmar eliminación">
+        <span>¿Eliminar esta conversación de forma permanente?</span><button type="button" onClick={removeThread}>Sí, eliminar</button>
+        <button type="button" onClick={() => setConfirmDelete(false)}>Cancelar</button></div>}
+      {historyBusy && <small role="status">Cargando historial...</small>}
+      {historyError && <p className="assistant-error" role="alert">{historyError}</p>}
+      {historyStale && <p className="assistant-state" role="status">Cambió tu alcance de datos. Por protección, esta conversación ya no muestra respuestas anteriores. Inicia una conversación nueva.</p>}
+    </div>}
     {focus && <div className="assistant-focus"><b>Expediente en contexto</b><span>{focus.title || focus.id}</span><small>La respuesta usará solo los registros que tu cuenta puede consultar.</small></div>}
     {focus?.type === "audit" && <section className="assistant-dossier" aria-label="Briefing de auditoría">
       <div className="assistant-dossier-header"><div><h2>Briefing del expediente</h2><p>Estado y relaciones calculados desde registros visibles.</p></div>
@@ -158,12 +264,12 @@ function AssistantPanel({ focus = null }) {
         {message.citations?.length === 0 && message.mode !== "computed" && <small className="assistant-answer-note">Sin registros citados en esta respuesta.</small>}
         {message.references?.length > 0 && <details><summary>Registros relacionados ({message.references.length})</summary><ul>{message.references.map((item) => <li key={item.sourceId || `${item.type}:${item.id}`}><Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link></li>)}</ul></details>}
         {message.feedbackToken && !message.feedbackRating && <div className="assistant-feedback" aria-label="Valora esta respuesta"><span>¿Te sirvió?</span><button type="button" onClick={() => rateResponse(message, "helpful")} disabled={Boolean(feedbackBusyId)} aria-label="Me sirvió esta respuesta"><ThumbsUp size={14} aria-hidden="true" /> Sí</button><button type="button" onClick={() => rateResponse(message, "unhelpful")} disabled={Boolean(feedbackBusyId)} aria-label="No me sirvió esta respuesta"><ThumbsDown size={14} aria-hidden="true" /> No</button></div>}
-        {message.feedbackRating && <small className="assistant-answer-note" role="status">Gracias. Tu valoración se registró sin guardar el texto de la conversación.</small>}
+        {message.feedbackRating && <small className="assistant-answer-note" role="status">Gracias. Tu valoración quedó registrada.</small>}
       </>}</article>)}</div>
     {busy && <p className="assistant-state" role="status">Consultando información autorizada...</p>}
     {error && <p className="assistant-error" role="alert">{error}</p>}
-    {messages.length > 0 && <button className="assistant-clear" type="button" onClick={() => { setMessages([]); setError(""); }}><RotateCcw size={14} aria-hidden="true" /> Nueva conversación</button>}
-    <form className="assistant-form" onSubmit={submit}><label htmlFor="assistant-question">Tu pregunta</label><label className="assistant-search-option"><input type="checkbox" checked={withEvidence} onChange={(event) => setWithEvidence(event.target.checked)} disabled={!available || busy} /> Buscar también en textos de evidencias visibles</label><div><textarea id="assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={withEvidence ? 500 : 800} rows={3} placeholder="Escribe una pregunta sobre VERA..." disabled={!available || busy} /><button type="submit" disabled={!available || busy || question.trim().length < 3 || question.trim().length > (withEvidence ? 500 : 800)} aria-label="Enviar pregunta"><Send size={19} aria-hidden="true" /></button></div><small>{question.length}/{withEvidence ? 500 : 800} caracteres · No escribas contraseñas ni claves.</small></form>
+    {!persistent && messages.length > 0 && <button className="assistant-clear" type="button" onClick={() => { setMessages([]); setError(""); }}><RotateCcw size={14} aria-hidden="true" /> Nueva conversación</button>}
+    <form className="assistant-form" onSubmit={submit}><label htmlFor="assistant-question">Tu pregunta</label><label className="assistant-search-option"><input type="checkbox" checked={withEvidence} onChange={(event) => setWithEvidence(event.target.checked)} disabled={!available || busy} /> Buscar también en textos de evidencias visibles</label><div><textarea id="assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={withEvidence ? 500 : 800} rows={3} placeholder="Escribe una pregunta sobre VERA..." disabled={!available || busy || historyBusy || Boolean(historyError) || historyStale} /><button type="submit" disabled={!available || busy || historyBusy || Boolean(historyError) || historyStale || question.trim().length < 3 || question.trim().length > (withEvidence ? 500 : 800)} aria-label="Enviar pregunta"><Send size={19} aria-hidden="true" /></button></div><small>{question.length}/{withEvidence ? 500 : 800} caracteres · No escribas contraseñas ni claves.</small></form>
   </section>;
 }
 

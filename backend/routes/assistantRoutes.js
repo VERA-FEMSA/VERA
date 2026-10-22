@@ -2,8 +2,10 @@ const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const { verifyToken } = require("../middleware/authMiddleware");
 const { buildAssistantContext } = require("../services/assistantContextService");
-const { getVerifiedAnswer } = require("../services/assistantVerifiedAnswers");
-const { askAzureOpenAi, readiness } = require("../services/azureOpenAiService");
+const { readiness } = require("../services/azureOpenAiService");
+const { answerAssistant } = require("../services/assistantAnswerService");
+const conversations = require("../repositories/assistantConversationRepository");
+const { currentScope } = require("../services/assistantConversationScope");
 const { buildAuditDossier } = require("../services/assistantDossierService");
 const { searchAssistantEvidence } = require("../services/assistantEvidenceSearchService");
 const { buildDecisionInsights } = require("../services/assistantInsightService");
@@ -12,6 +14,8 @@ const { allowRoles } = require("../middleware/roleMiddleware");
 const { buildProposalDraft } = require("../services/assistantProposalDraftService");
 const { issueFeedbackToken, verifyFeedbackToken } = require("../services/assistantFeedbackToken");
 const assistantFeedback = require("../repositories/assistantFeedbackRepository");
+const userRepository = require("../repositories/userRepository");
+const { randomUUID } = require("node:crypto");
 
 const router = express.Router();
 router.use(verifyToken);
@@ -19,11 +23,129 @@ router.use((req, res, next) => { res.set("Cache-Control", "no-store"); next(); }
 
 router.get("/status", (req, res) => {
   try {
-    res.json({ ...readiness(), mode: "read-only" });
+    res.json({ ...readiness(), mode: "read-only",
+      ...(process.env.VERA_AI_CONVERSATIONS_ENABLED === "true" && !req.user.roleTour
+        ? { conversations: true } : {}) });
   } catch {
     res.json({ available: false, reason: "invalid-configuration", mode: "read-only" });
   }
 });
+
+const conversationEnabled = (req, res, next) => {
+  if (req.user.roleTour) return res.status(403).json({ message: "El recorrido de rol no incluye conversaciones privadas." });
+  return process.env.VERA_AI_CONVERSATIONS_ENABLED === "true"
+    ? next() : res.status(503).json({ message: "El historial privado aún no está habilitado." });
+};
+const conversationError = (res, error) => {
+  if ([400, 404, 409, 503].includes(error.status)) return res.status(error.status).json({ message: error.message });
+  return res.status(502).json({ message: "No se pudo consultar el historial privado." });
+};
+const focusFrom = (value) => {
+  if (value === null || value === undefined) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value) ||
+      !["audit", "risk", "control", "finding"].includes(value.type) ||
+      typeof value.id !== "string" || !value.id.trim() || value.id.length > 80) {
+    const error = new Error("Selecciona un expediente válido."); error.status = 400; throw error;
+  }
+  return { type: value.type, id: value.id };
+};
+
+router.get("/conversations", conversationEnabled, async (req, res) => {
+  try { return res.json({ conversations: await conversations.list(req.user) }); }
+  catch (error) { return conversationError(res, error); }
+});
+
+router.post("/conversations", conversationEnabled,
+  rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerator: (req) => String(req.user.id),
+    standardHeaders: "draft-8", legacyHeaders: false }), async (req, res) => {
+    try {
+      const focus = focusFrom(req.body?.focus);
+      const scopeHash = await currentScope(req.user, focus);
+      const conversation = await conversations.create(req.user, focus, scopeHash);
+      return res.status(201).json({ conversation: { ...conversation, scopeHash: undefined } });
+    } catch (error) { return conversationError(res, error); }
+  });
+
+router.get("/conversations/:id", conversationEnabled, async (req, res) => {
+  try {
+    const conversation = await conversations.get(req.user, req.params.id);
+    if (!conversation) return res.status(404).json({ message: "Conversación no disponible." });
+    const scopeHash = await currentScope(req.user, conversation.focus);
+    if (scopeHash !== conversation.scopeHash) return res.json({ conversation: {
+      ...conversation, messages: [], scopeHash: undefined, stale: true } });
+    return res.json({ conversation: { ...conversation, scopeHash: undefined, stale: false } });
+  } catch (error) { return conversationError(res, error); }
+});
+
+router.patch("/conversations/:id", conversationEnabled, async (req, res) => {
+  const title = req.body?.title;
+  const version = req.body?.version;
+  if (typeof title !== "string" || title.trim().length < 1 || title.trim().length > 80 ||
+      !Number.isInteger(version) || version < 1) {
+    return res.status(400).json({ message: "El nombre o la versión no son válidos." });
+  }
+  try {
+    const conversation = await conversations.update(req.user, req.params.id, version, { title: title.trim() });
+    if (!conversation) return res.status(404).json({ message: "Conversación no disponible." });
+    return res.json({ conversation: { ...conversation, messages: undefined, scopeHash: undefined } });
+  } catch (error) { return conversationError(res, error); }
+});
+
+router.delete("/conversations/:id", conversationEnabled, async (req, res) => {
+  try {
+    if (!await conversations.remove(req.user, req.params.id)) {
+      return res.status(404).json({ message: "Conversación no disponible." });
+    }
+    return res.status(204).end();
+  } catch (error) { return conversationError(res, error); }
+});
+
+router.post("/conversations/:id/ask", conversationEnabled,
+  rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerator: (req) => String(req.user.id),
+    standardHeaders: "draft-8", legacyHeaders: false }), async (req, res) => {
+    const question = req.body?.question;
+    const withEvidence = req.body?.withEvidence === true;
+    if (typeof question !== "string" || question.trim().length < 3 ||
+        question.length > (withEvidence ? 500 : 800) ||
+        (req.body?.withEvidence !== undefined && typeof req.body.withEvidence !== "boolean")) {
+      return res.status(400).json({ message: "Escribe una pregunta válida para esta conversación." });
+    }
+    const startedAt = Date.now();
+    try {
+      const thread = await conversations.get(req.user, req.params.id);
+      if (!thread) return res.status(404).json({ message: "Conversación no disponible." });
+      const scopeHash = await currentScope(req.user, thread.focus);
+      if (scopeHash !== thread.scopeHash) return res.status(409).json({
+        message: "Cambió el alcance de tus expedientes. Inicia una conversación nueva." });
+      const history = thread.messages.slice(-6).map(({ role, text }) => ({ role, text: text.slice(0, 800) }));
+      const result = await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence);
+      const currentUser = await userRepository.findById(req.user.id);
+      if (currentUser?.status !== "ACTIVE" || currentUser.role !== req.user.role ||
+          await currentScope(req.user, thread.focus) !== scopeHash) {
+        return res.status(409).json({ message: "Cambió tu acceso. Inicia una conversación nueva." });
+      }
+      const durationMs = Date.now() - startedAt;
+      const userMessage = { id: randomUUID(), role: "user", text: question.trim(), asOf: new Date().toISOString() };
+      const assistantMessage = { id: randomUUID(), role: "assistant", text: result.answer.slice(0, 4000),
+        mode: result.mode, metric: result.metric || null, citations: (result.citations || []).slice(0, 8),
+        references: (result.references || []).slice(0, 15), coverage: result.coverage || null,
+        asOf: result.asOf, durationMs };
+      const messages = [...thread.messages, userMessage, assistantMessage].slice(-40);
+      while (Buffer.byteLength(JSON.stringify(messages), "utf8") > 140_000 && messages.length > 2) {
+        messages.splice(0, 2);
+      }
+      const updated = await conversations.update(req.user, thread.id, thread.version, { messages });
+      const channel = withEvidence ? "evidence-search" : "ask";
+      const feedbackToken = issueFeedbackToken(req.user, channel, result.mode);
+      console.info(JSON.stringify({ event: "VERA_AI_CONVERSATION", role: req.user.role,
+        mode: result.mode, durationMs, promptTokens: result.usage?.prompt_tokens ?? null,
+        completionTokens: result.usage?.completion_tokens ?? null }));
+      return res.json({ conversationId: thread.id, version: updated.version, userMessage,
+        message: { ...assistantMessage, feedbackToken }, usage: result.usage ? {
+          promptTokens: result.usage.prompt_tokens ?? null,
+          completionTokens: result.usage.completion_tokens ?? null } : null });
+    } catch (error) { return conversationError(res, error); }
+  });
 
 router.get("/brief", async (req, res) => {
   try {
@@ -173,26 +295,14 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     return res.status(400).json({ message: "El historial o el expediente solicitado no es válido." });
   }
   try {
-    if (!readiness().available) return res.status(503).json({ message: "El asistente requiere Azure OpenAI y almacenes persistentes en producción." });
-    const { context, references, sourceCatalog, brief, verifiedData, coverage, asOf } = await buildAssistantContext(req.user, question.trim(), focus);
-    const verified = getVerifiedAnswer({ question: question.trim(), context, brief, sourceCatalog, verifiedData });
-    if (verified) {
-      const citations = verified.sourceIds.map((id) => sourceCatalog.find((item) => item.sourceId === id)).filter(Boolean);
-      const durationMs = Date.now() - startedAt;
-      console.info(JSON.stringify({ event: "VERA_AI_COMPUTED", status: 200, role: req.user.role, durationMs }));
-      return res.json({ answer: verified.answer, mode: verified.mode, metric: verified.metric || null,
-        feedbackToken: issueFeedbackToken(req.user, "ask", verified.mode),
-        citations, references: verified.references ?? (verified.metric ? [] : references), coverage, asOf, durationMs, usage: null });
-    }
-    const { answer, sourceIds, usage } = await askAzureOpenAi({ question: question.trim(), context, history });
-    const citations = sourceIds.map((id) => sourceCatalog.find((item) => item.sourceId === id)).filter(Boolean);
-    console.info(JSON.stringify({ event: "VERA_AI_ANSWER", status: 200, role: req.user.role,
-      durationMs: Date.now() - startedAt, promptTokens: usage?.prompt_tokens ?? null,
-      completionTokens: usage?.completion_tokens ?? null }));
-    return res.json({ answer, mode: "generated", feedbackToken: issueFeedbackToken(req.user, "ask", "generated"),
-      citations, references, coverage, asOf, durationMs: Date.now() - startedAt, usage: usage ? {
-      promptTokens: usage.prompt_tokens ?? null, completionTokens: usage.completion_tokens ?? null
-    } : null });
+    const result = await answerAssistant(req.user, question.trim(), history, focus);
+    const durationMs = Date.now() - startedAt;
+    console.info(JSON.stringify({ event: result.mode === "computed" ? "VERA_AI_COMPUTED" : "VERA_AI_ANSWER",
+      status: 200, role: req.user.role, durationMs, promptTokens: result.usage?.prompt_tokens ?? null,
+      completionTokens: result.usage?.completion_tokens ?? null }));
+    return res.json({ ...result, feedbackToken: issueFeedbackToken(req.user, "ask", result.mode), durationMs,
+      usage: result.usage ? { promptTokens: result.usage.prompt_tokens ?? null,
+        completionTokens: result.usage.completion_tokens ?? null } : null });
   } catch (error) {
     console.warn(JSON.stringify({ event: "VERA_AI_ERROR", status: error.status || 502,
       durationMs: Date.now() - startedAt }));
