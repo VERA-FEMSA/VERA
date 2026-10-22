@@ -22,6 +22,17 @@ test("HU-09: matrix selection reveals linked risks, controls and audit navigatio
     id: "FDG-451", title: "Excepción de conciliación", description: "La revisión detectó una diferencia.",
     auditId: audit.id, riskId: "RSK-451", controlId: "CTL-451", status: "OPEN"
   }] } }));
+  await page.route("**/api/planning/AUD-451/context", (route) => route.fulfill({ json: {
+    audit: { id: audit.id, title: audit.title, status: audit.status },
+    groups: {
+      risks: [{ id: "RSK-451", title: "Riesgo operativo", description: "Exposición registrada", level: "Alto", score: 6 }],
+      controls: [{ id: "CTL-451", title: "Revisión mensual", riskIds: ["RSK-451"], effectiveness: 4 }],
+      findings: [{ id: "FDG-451", title: "Excepción de conciliación", description: "La revisión detectó una diferencia.", riskId: "RSK-451", controlId: "CTL-451", status: "OPEN" }],
+      evidence: []
+    },
+    counts: { risks: 1, controls: 1, findings: 1, evidence: 0 },
+    asOf: "2026-10-01T00:00:00.000Z", scope: "Relaciones del expediente", mode: "read-only"
+  } }));
 
   await page.goto("/auditorias-activas");
   await page.getByRole("button", { name: "Ver auditorías con probabilidad Alta e impacto Media: 1" }).click();

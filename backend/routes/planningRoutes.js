@@ -19,12 +19,22 @@ const {
   editAudit
 } = require("../controllers/planningController");
 const { getHistory, addComment } = require("../controllers/planningHistoryController");
+const { buildAuditContext } = require("../services/auditContextService");
 
 // Todos los usuarios con sesión pueden consultar el tablero.
 router.get("/", verifyToken, listProposals);
 router.get("/search", verifyToken, searchPlanningAudits);
 router.get("/active", verifyToken, listActiveAudits);
 router.get("/auditors", verifyToken, allowRoles(...AUDIT_PROPOSAL_CREATE_ROLES), listAuditors);
+router.get("/:id/context", verifyToken, async (req, res, next) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    res.json(await buildAuditContext(req.user, req.params.id));
+  } catch (error) {
+    if ([400, 403, 404].includes(error.status)) return res.status(error.status).json({ message: error.message });
+    next(error);
+  }
+});
 router.get("/:id/history", verifyToken, getHistory);
 const { RECORD_CREATE_ROLES } = require("../config/roles");
 

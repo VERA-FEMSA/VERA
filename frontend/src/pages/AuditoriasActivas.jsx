@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Activity, ArrowLeft, ArrowRight, Bot, CheckCircle2, ClipboardCheck, FileText, Flag, LockKeyhole, Pencil, Play, RefreshCw, ShieldAlert, Target } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, Bot, CheckCircle2, ClipboardCheck, FileText, Flag, GitBranch, LockKeyhole, Pencil, Play, RefreshCw, ShieldAlert, Target } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import AssistantDrawer from "../components/AssistantDrawer";
 import PlanningHistoryButton from "../components/PlanningHistoryButton";
 import EditAuditModal from "../components/EditAuditModal";
 import { PLANNING_APPROVE_ROLES, RISK_FACTORS } from "../constants/planning";
-import { closeAudit, getActiveAudits, getPlanningAudits, startAudit } from "../services/planningService";
+import { closeAudit, getActiveAudits, getAuditContext, getPlanningAudits, startAudit } from "../services/planningService";
 import { getRisks } from "../services/riskService";
 import { getControls } from "../services/controlService";
-import { getEvidence } from "../services/evidenceService";
-import { getFindings } from "../services/findingService";
 import "./Planning.css";
 
 const riskFor = (likelihood, impact) => {
@@ -38,39 +36,40 @@ function AuditoriasActivas() {
   const [assistantFocus, setAssistantFocus] = useState(null);
   const [activeStep, setActiveStep] = useState("execution");
   const [activeTab, setActiveTab] = useState("summary");
-  const [evidence, setEvidence] = useState([]);
-  const [findings, setFindings] = useState([]);
+  const [auditContext, setAuditContext] = useState(null);
+  const [contextError, setContextError] = useState(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [active, proposals, linkedRisks, linkedControls, allEvidence, allFindings] = await Promise.all([
-        getActiveAudits(), getPlanningAudits(), getRisks(), getControls(), getEvidence(), getFindings()
+      const [active, proposals, linkedRisks, linkedControls] = await Promise.all([
+        getActiveAudits(), getPlanningAudits(), getRisks(), getControls()
       ]);
       setActiveAudits(active);
       setApprovedAudits(proposals.filter((item) => item.status === "APPROVED"));
       setRisks(linkedRisks);
       setControls(linkedControls);
-      setEvidence(allEvidence);
-      setFindings(allFindings);
+      if (auditId) {
+        setSelectedAudit(active.find((item) => item.id === auditId) || null);
+        setAuditContext(await getAuditContext(auditId));
+        setContextError(null);
+      }
       setError("");
     } catch (loadError) {
       setError(loadError.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [auditId]);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getActiveAudits(), getPlanningAudits(), getRisks(), getControls(), getEvidence(), getFindings()])
-      .then(([active, proposals, linkedRisks, linkedControls, allEvidence, allFindings]) => {
+    Promise.all([getActiveAudits(), getPlanningAudits(), getRisks(), getControls()])
+      .then(([active, proposals, linkedRisks, linkedControls]) => {
         if (cancelled) return;
         setActiveAudits(active);
         setApprovedAudits(proposals.filter((item) => item.status === "APPROVED"));
         setRisks(linkedRisks);
         setControls(linkedControls);
-        setEvidence(allEvidence);
-        setFindings(allFindings);
         const auditFromRoute = auditId ? active.find((item) => item.id === auditId) : null;
         setSelectedAudit(auditFromRoute || null);
         if (auditFromRoute) setActiveStep("annual");
@@ -82,6 +81,20 @@ function AuditoriasActivas() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    return () => { cancelled = true; };
+  }, [auditId]);
+
+  useEffect(() => {
+    if (!auditId) return;
+    let cancelled = false;
+    getAuditContext(auditId).then((context) => {
+      if (!cancelled) {
+        setAuditContext(context);
+        setContextError(null);
+      }
+    }).catch((loadError) => {
+      if (!cancelled) setContextError({ id: auditId, message: loadError.message });
+    });
     return () => { cancelled = true; };
   }, [auditId]);
 
@@ -114,10 +127,13 @@ function AuditoriasActivas() {
     setActiveTab("summary");
   };
 
-  const linkedRisks = selectedAudit ? risks.filter((item) => item.linkedAuditId === selectedAudit.id) : [];
-  const linkedControls = selectedAudit ? controls.filter((item) => linkedRisks.some((risk) => item.riskIds?.includes(risk.id))) : [];
-  const linkedEvidence = selectedAudit ? evidence.filter((item) => item.auditId === selectedAudit.id || item.linkedAuditId === selectedAudit.id) : [];
-  const linkedFindings = selectedAudit ? findings.filter((item) => item.auditId === selectedAudit.id) : [];
+  const currentContext = auditContext?.audit.id === selectedAudit?.id ? auditContext : null;
+  const currentContextError = !currentContext && contextError && contextError.id === selectedAudit?.id
+    ? contextError.message : "";
+  const linkedRisks = currentContext?.groups.risks || [];
+  const linkedControls = currentContext?.groups.controls || [];
+  const linkedEvidence = currentContext?.groups.evidence || [];
+  const linkedFindings = currentContext?.groups.findings || [];
 
   const runTransition = async (id, action, successMessage) => {
     setBusyId(id);
@@ -369,6 +385,7 @@ function AuditoriasActivas() {
                     <nav className="governance-tabs" aria-label="Secciones del expediente">
                       {[
                         ["summary", "Resumen", Target],
+                        ["map", "Mapa del expediente", GitBranch],
                         ["risks", "Riesgos", ShieldAlert],
                         ["controls", "Controles", ClipboardCheck],
                         ["findings", "Hallazgos", Flag],
@@ -380,11 +397,14 @@ function AuditoriasActivas() {
                           {id === "risks" && linkedRisks.length > 0 && <small>{linkedRisks.length}</small>}
                           {id === "controls" && linkedControls.length > 0 && <small>{linkedControls.length}</small>}
                           {id === "findings" && linkedFindings.length > 0 && <small>{linkedFindings.length}</small>}
+                          {id === "evidence" && linkedEvidence.length > 0 && <small>{linkedEvidence.length}</small>}
                         </button>
                       ))}
                     </nav>
 
                     <div className="governance-panel">
+                      {currentContextError && <p role="alert">No se pudieron cargar las relaciones: {currentContextError}</p>}
+                      {activeTab !== "summary" && activeTab !== "activity" && !currentContext && !currentContextError && <p role="status">Cargando relaciones del expediente...</p>}
                       {activeTab === "summary" && (
                         <>
                           <h3>Resumen de auditoría</h3>
@@ -397,23 +417,54 @@ function AuditoriasActivas() {
                           </div>
                         </>
                       )}
-                      {activeTab === "risks" && (
+                      {activeTab === "map" && currentContext && (
+                        <section className="audit-context-map" aria-label="Mapa del expediente">
+                          <h3>Mapa del expediente</h3>
+                          <p>Relaciones registradas y visibles para tu cuenta. Cada cifra abre su sección del expediente.</p>
+                          <div className="audit-context-metrics">
+                            {[["risks", "Riesgos"], ["controls", "Controles"], ["findings", "Hallazgos"], ["evidence", "Evidencias"]].map(([key, label]) => (
+                              <button key={key} type="button" onClick={() => setActiveTab(key)}>
+                                <strong>{currentContext.counts[key]}</strong><span>{label}</span>
+                              </button>
+                            ))}
+                          </div>
+                          {linkedRisks.length ? linkedRisks.map((risk) => {
+                            const riskControls = linkedControls.filter((control) => control.riskIds.includes(risk.id));
+                            const riskControlIds = new Set(riskControls.map((control) => control.id));
+                            const riskFindings = linkedFindings.filter((finding) => finding.riskId === risk.id);
+                            const riskEvidence = linkedEvidence.filter((item) =>
+                              (item.entityType === "RISK" && item.entityId === risk.id) ||
+                              (item.entityType === "CONTROL" && riskControlIds.has(item.entityId)));
+                            return <article className="audit-context-row" key={risk.id}>
+                              <div><span>RIESGO · {risk.id}</span><strong>{risk.title}</strong></div>
+                              <div className="audit-context-links">
+                                <button type="button" onClick={() => setActiveTab("controls")}>{riskControls.length} controles</button>
+                                <button type="button" onClick={() => setActiveTab("findings")}>{riskFindings.length} hallazgos</button>
+                                <button type="button" onClick={() => setActiveTab("evidence")}>{riskEvidence.length} evidencias</button>
+                              </div>
+                            </article>;
+                          }) : <p>Aún no hay riesgos vinculados a esta auditoría.</p>}
+                          {linkedEvidence.some((item) => item.entityType === "AUDIT") && <p>También hay {linkedEvidence.filter((item) => item.entityType === "AUDIT").length} evidencias vinculadas directamente a la auditoría.</p>}
+                          <small>Actualizado: {new Date(currentContext.asOf).toLocaleString("es-MX")} · {currentContext.scope}</small>
+                        </section>
+                      )}
+                      {activeTab === "risks" && currentContext && (
                         <>
                           <h3>Riesgos vinculados</h3>
                           {linkedRisks.length ? linkedRisks.map((risk) => <article className="governance-record" key={risk.id}><strong>{risk.id} · {risk.title}</strong><p>{risk.description}</p><span>Nivel {risk.level} · {risk.score}/9</span></article>) : <p>No hay riesgos registrados para esta auditoría.</p>}
                         </>
                       )}
-                      {activeTab === "controls" && (
+                      {activeTab === "controls" && currentContext && (
                         <>
                           <h3>Controles</h3>
                           {linkedControls.length ? linkedControls.map((control) => <article className="governance-record" key={control.id}><strong>{control.id} · {control.title}</strong><p>{control.description || "Control registrado en el expediente."}</p><span>Resultado: {control.effectiveness ?? "Sin evaluar"}</span></article>) : <p>No hay controles vinculados a los riesgos de esta auditoría.</p>}
                         </>
                       )}
-                      {activeTab === "findings" && <><h3>Hallazgos</h3>{linkedFindings.length ? linkedFindings.map((finding) => <article className="governance-record" key={finding.id}><strong>{finding.id} · {finding.title}</strong><p>{finding.description}</p><span>{finding.status} · Riesgo {finding.riskId} · Control {finding.controlId}</span></article>) : <p>No hay hallazgos registrados para esta auditoría.</p>}</>}
-                      {activeTab === "evidence" && (
+                      {activeTab === "findings" && currentContext && <><h3>Hallazgos</h3>{linkedFindings.length ? linkedFindings.map((finding) => <article className="governance-record" key={finding.id}><strong>{finding.id} · {finding.title}</strong><p>{finding.description}</p><span>{finding.status} · Riesgo {finding.riskId} · Control {finding.controlId}</span></article>) : <p>No hay hallazgos registrados para esta auditoría.</p>}</>}
+                      {activeTab === "evidence" && currentContext && (
                         <>
                           <h3>Evidencias</h3>
-                          {linkedEvidence.length ? linkedEvidence.map((item) => <article className="governance-record" key={item.id}><strong>{item.id} · {item.title}</strong><p>{item.description || item.reference || "Evidencia registrada."}</p></article>) : <p>No hay evidencias vinculadas a esta auditoría.</p>}
+                          {linkedEvidence.length ? linkedEvidence.map((item) => <article className="governance-record" key={item.id}><strong>{item.id} · {item.title}</strong><p>{item.description || "Evidencia registrada."}</p><span>Vinculada a {({ AUDIT: "auditoría", RISK: "riesgo", CONTROL: "control" })[item.entityType]} {item.entityId}</span></article>) : <p>No hay evidencias vinculadas a esta auditoría ni a sus riesgos o controles.</p>}
                         </>
                       )}
                       {activeTab === "activity" && <><h3>Actividad del expediente</h3><PlanningHistoryButton proposal={selectedAudit} /></>}

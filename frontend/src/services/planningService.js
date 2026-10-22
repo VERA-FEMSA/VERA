@@ -39,6 +39,8 @@ export const getActiveAudits = async () => {
   return data.audits;
 };
 
+export const getAuditContext = (id) => request(`/${encodeURIComponent(id)}/context`);
+
 export const getAuditors = async () => {
   const data = await request("/auditors");
   return data.auditors;
