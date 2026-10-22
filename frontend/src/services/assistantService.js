@@ -45,11 +45,11 @@ const projectRequest = async (path = "", options = {}) => {
   return data;
 };
 export const listAssistantProjects = async () => (await projectRequest()).projects;
-export const createAssistantProject = async (name, description = "") =>
-  (await projectRequest("", { method: "POST", body: JSON.stringify({ name, description }) })).project;
-export const updateAssistantProject = async (id, name, description, version) =>
+export const createAssistantProject = async (name, description = "", instructions = "") =>
+  (await projectRequest("", { method: "POST", body: JSON.stringify({ name, description, instructions }) })).project;
+export const updateAssistantProject = async (id, name, description, instructions, version) =>
   (await projectRequest(`/${encodeURIComponent(id)}`, {
-    method: "PATCH", body: JSON.stringify({ name, description, version })
+    method: "PATCH", body: JSON.stringify({ name, description, instructions, version })
   })).project;
 export const deleteAssistantProject = async (id) => projectRequest(`/${encodeURIComponent(id)}`, {
   method: "DELETE"

@@ -38,11 +38,12 @@ const request = async (method, query, body) => {
 
 const ownerQuery = (user) => ({ owner_id: `eq.${Number(user.id)}`, owner_role: `eq.${user.role}` });
 const publicRow = (row) => ({ id: row.id, name: row.name, description: row.description,
+  instructions: row.instructions || "",
   version: row.version, createdAt: row.created_at, updatedAt: row.updated_at });
 
 const list = async (user) => {
   if (remote()) {
-    const rows = await request("GET", { select: "id,name,description,version,created_at,updated_at",
+    const rows = await request("GET", { select: "id,name,description,instructions,version,created_at,updated_at",
       ...ownerQuery(user), order: "updated_at.desc", limit: String(MAX_PROJECTS) });
     if (!Array.isArray(rows)) throw new ProjectStorageError("Los proyectos privados devolvieron datos inválidos.");
     return rows.map(publicRow);
@@ -62,13 +63,13 @@ const get = async (user, id) => {
   return row?.owner_id === Number(user.id) && row.owner_role === user.role ? publicRow(row) : null;
 };
 
-const create = async (user, name, description = "") => {
+const create = async (user, name, description = "", instructions = "") => {
   if ((await list(user)).length >= MAX_PROJECTS) {
     throw new ProjectStorageError("Alcanzaste el límite de proyectos. Elimina uno para continuar.", 409);
   }
   const now = new Date().toISOString();
   const row = { id: randomUUID(), owner_id: Number(user.id), owner_role: user.role,
-    name, description, version: 1, created_at: now, updated_at: now };
+    name, description, instructions, version: 1, created_at: now, updated_at: now };
   if (remote()) {
     const rows = await request("POST", { select: "*" }, row);
     return publicRow(rows[0]);

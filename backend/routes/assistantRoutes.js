@@ -206,24 +206,29 @@ router.post("/projects", projectEnabled,
     standardHeaders: "draft-8", legacyHeaders: false }), async (req, res) => {
     const name = req.body?.name;
     const description = req.body?.description ?? "";
+    const instructions = req.body?.instructions ?? "";
     if (typeof name !== "string" || !name.trim() || name.trim().length > 80 ||
-        typeof description !== "string" || description.length > 500) {
-      return res.status(400).json({ message: "El nombre o la descripción no son válidos." });
+        typeof description !== "string" || description.length > 500 ||
+        typeof instructions !== "string" || instructions.length > 800) {
+      return res.status(400).json({ message: "El nombre, la descripción o las instrucciones no son válidos." });
     }
-    try { return res.status(201).json({ project: await projects.create(req.user, name.trim(), description.trim()) }); }
+    try { return res.status(201).json({ project: await projects.create(req.user, name.trim(), description.trim(), instructions.trim()) }); }
     catch (error) { return conversationError(res, error); }
   });
 
 router.patch("/projects/:id", projectEnabled, async (req, res) => {
   const { name, description, version } = req.body || {};
+  const instructions = req.body?.instructions;
   if (typeof name !== "string" || !name.trim() || name.trim().length > 80 ||
       typeof description !== "string" || description.length > 500 ||
+      (instructions !== undefined && (typeof instructions !== "string" || instructions.length > 800)) ||
       !Number.isInteger(version) || version < 1) {
     return res.status(400).json({ message: "El proyecto o la versión no son válidos." });
   }
   try {
     const project = await projects.update(req.user, req.params.id, version,
-      { name: name.trim(), description: description.trim() });
+      { name: name.trim(), description: description.trim(),
+        ...(instructions === undefined ? {} : { instructions: instructions.trim() }) });
     if (!project) return res.status(404).json({ message: "Proyecto no disponible." });
     return res.json({ project });
   } catch (error) { return conversationError(res, error); }
@@ -341,8 +346,10 @@ router.post("/conversations/:id/ask", conversationEnabled,
       const history = thread.messages.slice(-6).map(({ role, text }) => ({ role, text: text.slice(0, 800) }));
       const attached = attachmentId ? await attachments.get(req.user, thread.id, attachmentId) : null;
       if (attachmentId && !attached) return res.status(404).json({ message: "Archivo no disponible." });
+      const project = thread.projectId ? await projects.get(req.user, thread.projectId) : null;
       const result = attached ? await askAttachment(attached, question.trim())
-        : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence);
+        : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
+          project?.instructions || "");
       const currentUser = await userRepository.findById(req.user.id);
       if (currentUser?.status !== "ACTIVE" || currentUser.role !== req.user.role ||
           await currentScope(req.user, thread.focus) !== scopeHash) {
