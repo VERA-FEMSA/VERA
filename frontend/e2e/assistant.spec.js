@@ -7,6 +7,63 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/assistant/insights", (route) => route.fulfill({ json: { insights: [], partial: false } }));
 });
 
+test("Copiloto: proyectos privados agrupan hilos y borrarlos conserva el historial", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "read-only", conversations: true, projects: true
+  } }));
+  const projectId = "22222222-2222-4222-8222-222222222222";
+  const threadId = "11111111-1111-4111-8111-111111111111";
+  let project = null;
+  let thread = null;
+  await page.route("**/api/assistant/projects**", (route) => {
+    const method = route.request().method();
+    if (method === "GET") return route.fulfill({ json: { projects: project ? [project] : [] } });
+    if (method === "POST") {
+      project = { id: projectId, ...route.request().postDataJSON(), version: 1 };
+      return route.fulfill({ status: 201, json: { project } });
+    }
+    if (method === "DELETE") {
+      project = null;
+      if (thread) { thread.projectId = null; thread.version += 1; }
+      return route.fulfill({ status: 204, body: "" });
+    }
+    return route.abort();
+  });
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") {
+      return route.fulfill({ json: { conversations: thread ? [thread] : [] } });
+    }
+    if (path.endsWith("/conversations") && method === "POST") {
+      thread = { id: threadId, title: "Nueva conversación", focus: null,
+        projectId: route.request().postDataJSON().projectId, messages: [], version: 1 };
+      return route.fulfill({ status: 201, json: { conversation: thread } });
+    }
+    if (path.endsWith(`/${threadId}`) && method === "GET") {
+      return route.fulfill({ json: { conversation: { ...thread, stale: false } } });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByRole("button", { name: "Nuevo proyecto" }).click();
+  await page.getByLabel("Nombre del proyecto").fill("Auditoría anual");
+  await page.getByRole("button", { name: "Guardar proyecto" }).click();
+  await expect(page.getByLabel("Proyecto", { exact: true })).toHaveValue(projectId);
+  await page.getByRole("button", { name: "Nueva conversación" }).click();
+  await expect(page.getByLabel("Conversaciones privadas")).toHaveValue(threadId);
+  await page.reload();
+  await page.getByLabel("Proyecto", { exact: true }).selectOption(projectId);
+  await expect(page.getByRole("option", { name: "Nueva conversación" })).toBeAttached();
+  await page.getByRole("button", { name: "Eliminar proyecto" }).click();
+  await page.getByRole("button", { name: "Sí, eliminar proyecto" }).click();
+  await expect(page.getByLabel("Proyecto", { exact: true })).toHaveValue("");
+  await expect(page.getByRole("option", { name: "Nueva conversación" })).toBeAttached();
+  const access = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(access.violations.map(({ id }) => id)).toEqual([]);
+});
+
 test("Copiloto: reabre, renombra y elimina un historial privado persistente", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
