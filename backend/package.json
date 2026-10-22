@@ -27,6 +27,8 @@
     "jsonwebtoken": "^9.0.3",
     "otplib": "^13.5.0",
     "pdfjs-dist": "6.4.299",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "saxes": "6.0.0",
+    "yauzl": "3.4.0"
   }
 }

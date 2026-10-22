@@ -1,11 +1,14 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const jwt = require("jsonwebtoken");
+const fs = require("node:fs");
+const path = require("node:path");
 
 process.env.JWT_SECRET ||= "evidence-content-test-secret-32-characters";
 const app = require("../server");
 const { startTestServer } = require("./helpers/testServer");
 const { extractEvidenceText } = require("../services/evidenceTextExtraction");
+const { paragraphsFromXml } = require("../services/docxTextExtraction");
 const evidenceTextIndex = require("../repositories/evidenceTextIndex");
 const { askEvidenceContent, selectChunks } = require("../services/evidenceContentService");
 const evidenceRepository = require("../repositories/evidenceRepository");
@@ -63,6 +66,24 @@ test("Evidencias IA: interpreta CSV UTF-8 con encabezados, comillas y límites",
   const long = await extractEvidenceText(Buffer.from(`Campo,Estado\n${"a,ok\n".repeat(1001)}`), "text/csv");
   assert.equal(long.truncated, true);
   assert.ok(long.chunks.every((item) => item.content.length <= 800));
+});
+
+test("Evidencias IA: DOCX extrae solo texto vigente y limita archivos comprimidos", async () => {
+  const mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  const fixture = (name) => fs.readFileSync(path.join(__dirname, "fixtures", name));
+  const docx = await extractEvidenceText(fixture("sample-evidence.docx"), mime);
+  assert.equal(docx.status, "ready");
+  assert.equal(docx.truncated, false);
+  assert.ok(docx.chunks.some((item) => item.content.includes("Revisión trimestral sin excepción")));
+  assert.ok(docx.chunks.every((item) => item.pageNumber === null));
+  assert.ok(!JSON.stringify(docx).includes("Texto eliminado confidencial"));
+  await assert.rejects(() => extractEvidenceText(fixture("oversized-evidence.docx"), mime), /límite/);
+  await assert.rejects(() => extractEvidenceText(Buffer.from("PK\\x03\\x04invalid"), mime));
+  assert.throws(() => paragraphsFromXml("<!DOCTYPE x><x/>"), /DTD/);
+  assert.throws(() => paragraphsFromXml("<w:document>"));
+  const long = paragraphsFromXml(`<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:r><w:t>${"A".repeat(40_100)}</w:t></w:r></w:p></w:document>`);
+  assert.equal(long.truncated, true);
+  assert.equal(long.pages[0].text.length, 40_000);
 });
 
 test("Evidencias IA: recupera solo fragmentos relevantes y exige una cita del archivo", async () => {

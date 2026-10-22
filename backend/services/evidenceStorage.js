@@ -8,7 +8,8 @@ const MIME_EXTENSIONS = {
   "image/jpeg": "jpg",
   "image/webp": "webp",
   "text/plain": "txt",
-  "text/csv": "csv"
+  "text/csv": "csv",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx"
 };
 
 class EvidenceStorageError extends Error {
@@ -44,6 +45,9 @@ const pathFor = (entityType, entityId, mime) => {
 const hasValidSignature = (bytes, mime) => {
   const data = Buffer.from(bytes);
   if (mime === "application/pdf") return data.subarray(0, 5).toString() === "%PDF-";
+  if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    return data.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+  }
   if (mime === "image/png") return data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
   if (mime === "image/jpeg") return data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
   if (mime === "image/webp") return data.subarray(0, 4).toString() === "RIFF" && data.subarray(8, 12).toString() === "WEBP";
@@ -87,7 +91,7 @@ const remove = async (file) => {
 };
 
 const validFile = (file) => file && file.bucket === BUCKET &&
-  /^(risk|control|audit)\/[^/]+\/[0-9a-f-]{36}\.(pdf|png|jpg|webp|txt|csv)$/.test(file.path) &&
+  /^(risk|control|audit)\/[^/]+\/[0-9a-f-]{36}\.(pdf|png|jpg|webp|txt|csv|docx)$/.test(file.path) &&
   MIME_EXTENSIONS[file.mime] && file.path.endsWith(`.${MIME_EXTENSIONS[file.mime]}`);
 
 const downloadBytes = async (file) => {

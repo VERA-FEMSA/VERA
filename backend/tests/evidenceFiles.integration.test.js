@@ -1,6 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const jwt = require("jsonwebtoken");
+const fs = require("node:fs");
+const path = require("node:path");
 
 process.env.JWT_SECRET ||= "evidence-files-test-secret-over-32-characters";
 const app = require("../server");
@@ -31,7 +33,7 @@ test("HU-16: carga archivo privado, vincula metadatos y firma descarga autorizad
     if (url.pathname.startsWith("/storage/v1/object/vera-evidence/")) {
       uploaded += 1;
       assert.equal(options.method, "POST");
-      assert.ok(["application/pdf", "text/csv"].includes(options.headers["Content-Type"]));
+      assert.ok(["application/pdf", "text/csv", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"].includes(options.headers["Content-Type"]));
       return Response.json({ Key: url.pathname });
     }
     if (url.pathname.startsWith("/storage/v1/object/sign/vera-evidence/")) {
@@ -72,6 +74,18 @@ test("HU-16: carga archivo privado, vincula metadatos y firma descarga autorizad
   assert.equal(csvResult.contentIndex.status, "ready");
   assert.equal(uploaded, 2);
 
+  const docx = fs.readFileSync(path.join(__dirname, "fixtures", "sample-evidence.docx"));
+  const docxUpload = await fetch(`${base}/api/evidence/upload?${query}`, {
+    method: "POST", headers: auth(5, {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    }), body: docx
+  });
+  assert.equal(docxUpload.status, 201);
+  const docxResult = await docxUpload.json();
+  assert.equal(docxResult.evidence.file.mime, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  assert.equal(docxResult.contentIndex.status, "ready");
+  assert.equal(uploaded, 3);
+
   const download = await fetch(`${base}/api/evidence/${evidence.id}/download`, { headers: auth(5) });
   assert.equal(download.status, 200);
   const signed = await download.json();
@@ -84,11 +98,11 @@ test("HU-16: carga archivo privado, vincula metadatos y firma descarga autorizad
     method: "POST", headers: auth(5, { "Content-Type": "application/pdf" }), body: "not a pdf"
   });
   assert.equal(invalid.status, 415);
-  assert.equal(uploaded, 2);
+  assert.equal(uploaded, 3);
   const tooLarge = await fetch(`${base}/api/evidence/upload?${query}`, {
     method: "POST", headers: auth(5, { "Content-Type": "application/pdf" }),
     body: Buffer.alloc(3 * 1024 * 1024 + 1, 65)
   });
   assert.equal(tooLarge.status, 413);
-  assert.equal(uploaded, 2);
+  assert.equal(uploaded, 3);
 });
