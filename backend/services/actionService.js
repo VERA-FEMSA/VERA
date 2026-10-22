@@ -27,7 +27,8 @@ class ActionError extends Error {
 }
 
 const assertSourceInput = (sourceType, sourceId) => {
-  if (!SOURCES.includes(sourceType) || !sourceId || sourceId.length > 80) {
+  if (typeof sourceType !== "string" || typeof sourceId !== "string" ||
+      !SOURCES.includes(sourceType) || !sourceId.trim() || sourceId.length > 80) {
     throw new ActionError("Selecciona un registro de origen válido.", 400);
   }
 };
