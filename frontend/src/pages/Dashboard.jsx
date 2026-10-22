@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { getDashboardSummary } from "../services/dashboardService";
 import { getActions } from "../services/actionService";
-import { localToday } from "../utils/localDate";
+import { localDateAfter, localToday } from "../utils/localDate";
 import "./Dashboard.css";
 
 const STATUS_LABELS = {
@@ -71,7 +71,10 @@ function Dashboard() {
   try { user = JSON.parse(localStorage.getItem("user") || "null"); } catch { /* Sin asignaciones personales. */ }
   const activeActions = actions.filter((item) => ["OPEN", "IN_PROGRESS"].includes(item.status));
   const myActions = activeActions.filter((item) => item.assigneeId === user?.id);
-  const overdueActions = myActions.filter((item) => item.dueDate < localToday());
+  const today = localToday();
+  const upcomingDate = localDateAfter(7);
+  const overdueActions = myActions.filter((item) => item.dueDate < today);
+  const dueSoonActions = myActions.filter((item) => item.dueDate >= today && item.dueDate <= upcomingDate);
   const nextActions = [...myActions].sort((first, second) => first.dueDate.localeCompare(second.dueDate)).slice(0, 3);
 
   return (
@@ -165,14 +168,15 @@ function Dashboard() {
                       <div className="dashboard-commitment-metrics" aria-label="Resumen de compromisos">
                         <div><strong>{myActions.length}</strong><span>Asignados a mi cuenta</span></div>
                         <div><strong>{overdueActions.length}</strong><span>Vencidos de mis asignaciones</span></div>
+                        <div><strong>{dueSoonActions.length}</strong><span>Vencen en los próximos 7 días</span></div>
                         <div><strong>{activeActions.length}</strong><span>Abiertos en mi alcance</span></div>
                       </div>
                       {nextActions.length ? <div className="dashboard-commitment-list">
                         <h3>Próximos a atender</h3>
                         <ul>{nextActions.map((action) => <li key={action.id}>
                           <div><Link to={`/notificaciones?actionId=${encodeURIComponent(action.id)}`}>{action.title}</Link><span>{ACTION_SOURCE[action.sourceType]} · {action.sourceTitle} · {ACTION_STATUS[action.status] || action.status}</span></div>
-                          <time dateTime={action.dueDate} className={action.dueDate < localToday() ? "is-overdue" : ""}>
-                            {action.dueDate < localToday() ? "Venció" : "Vence"} {actionDate(action.dueDate)}
+                          <time dateTime={action.dueDate} className={action.dueDate < today ? "is-overdue" : ""}>
+                            {action.dueDate < today ? "Venció" : "Vence"} {actionDate(action.dueDate)}
                           </time>
                         </li>)}</ul>
                       </div> : <p className="dashboard-commitment-state">No tienes compromisos abiertos asignados en este momento.</p>}

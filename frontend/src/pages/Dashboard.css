@@ -796,7 +796,7 @@
 .role-dashboard .kpi-row p { color: var(--vera-text-muted); font-size: 12px; line-height: 1.35; }
 
 .role-dashboard .dashboard-commitments { margin-top: 18px; }
-.dashboard-commitment-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.dashboard-commitment-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .dashboard-commitment-metrics > div { display: grid; gap: 3px; padding: 15px 17px; border: 1px solid var(--vera-border-soft); border-radius: 10px; background: var(--vera-surface-soft); }
 .dashboard-commitment-metrics strong { color: var(--vera-text-strong); font-size: 28px; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .dashboard-commitment-metrics span { color: var(--vera-text-muted); font-size: 12px; line-height: 1.4; }
@@ -902,6 +902,7 @@
 
 @media (max-width: 750px) {
   .role-dashboard { padding: 24px 20px 44px; }
+  .dashboard-commitment-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .role-dashboard .dashboard-hero { grid-template-columns: 1fr; gap: 22px; }
   .dashboard-hero-tools { justify-items: start; }
   .dashboard-scope-note { text-align: left; }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CalendarClock, ClipboardCheck, Plus, RefreshCw } from "lucide-react";
 import { changeActionStatus, createAction, getActionAssignees, getActionSources, getActions, reassignAction } from "../services/actionService";
-import { localToday } from "../utils/localDate";
+import { localDateAfter, localToday } from "../utils/localDate";
 import "./ActionQueue.css";
 
 const SOURCE = { AUDIT: "Auditoría", RISK: "Riesgo", CONTROL: "Control", FINDING: "Hallazgo" };
@@ -34,7 +34,7 @@ function ActionQueue({ revision = 0 }) {
   const [form, setForm] = useState(() => ({ ...initialForm, sourceKey: query.get("sourceType") && query.get("sourceId")
     ? `${query.get("sourceType")}:${query.get("sourceId")}` : "" }));
   const [createOpen, setCreateOpen] = useState(() => Boolean(query.get("sourceType") && query.get("sourceId")));
-  const [view, setView] = useState(null);
+  const [viewSelection, setViewSelection] = useState(null);
   const [editing, setEditing] = useState(null);
   const [editMode, setEditMode] = useState("STATUS");
   const [nextStatus, setNextStatus] = useState("");
@@ -47,6 +47,7 @@ function ActionQueue({ revision = 0 }) {
   const user = useMemo(() => { try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; } }, []);
   const manager = !user?.roleTour && ["SUPER_ADMIN", "GERENTE"].includes(user?.role);
   const canCreate = !user?.roleTour && ["SUPER_ADMIN", "GERENTE", "AUDITOR", "JEFATURA"].includes(user?.role);
+  const setView = (value) => setViewSelection({ actionId: focusedActionId, value });
 
   const reload = async () => {
     const actionResult = await getActions();
@@ -93,12 +94,17 @@ function ActionQueue({ revision = 0 }) {
   const assignees = assigneeResult.key === form.sourceKey ? assigneeResult.items : [];
   const active = actions.filter((item) => !["DONE", "CANCELLED"].includes(item.status));
   const mine = active.filter((item) => item.assigneeId === user?.id);
-  const overdue = mine.filter((item) => item.dueDate < localToday());
+  const today = localToday();
+  const cutoff = localDateAfter(7);
+  const overdue = mine.filter((item) => item.dueDate < today);
+  const dueSoon = mine.filter((item) => item.dueDate >= today && item.dueDate <= cutoff);
+  const dueActions = [...overdue, ...dueSoon].sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.title.localeCompare(b.title));
   const selectedAction = actions.find((item) => item.id === focusedActionId);
   const focusedView = selectedAction && (["DONE", "CANCELLED"].includes(selectedAction.status) ? "CLOSED"
     : selectedAction.assigneeId === user?.id ? "MINE" : "OPEN");
-  const activeView = view ?? focusedView ?? "MINE";
-  const visible = activeView === "MINE" ? mine : activeView === "OPEN" ? active : actions.filter((item) => ["DONE", "CANCELLED"].includes(item.status));
+  const activeView = (viewSelection?.actionId === focusedActionId ? viewSelection.value : null) ?? focusedView ?? "MINE";
+  const visible = activeView === "MINE" ? mine : activeView === "DUE" ? dueActions
+    : activeView === "OPEN" ? active : actions.filter((item) => ["DONE", "CANCELLED"].includes(item.status));
 
   const submitCreate = async (event) => {
     event.preventDefault();
@@ -149,9 +155,13 @@ function ActionQueue({ revision = 0 }) {
     <div className="action-queue-heading"><div><span className="eyebrow">SEGUIMIENTO CON RESPONSABLE</span><h2 id="action-queue-title">Acciones registradas</h2><p>Compromisos con fecha y estado propios. Leer un aviso no termina una acción.</p></div>
       {canCreate && <button type="button" className="primary-action" onClick={() => setCreateOpen((open) => !open)} aria-expanded={createOpen}><Plus size={16} /> Nueva acción</button>}
     </div>
-    <div className="action-queue-summary"><span><b>{loadError ? "—" : mine.length}</b> Asignadas a mí</span><span><b>{loadError ? "—" : overdue.length}</b> Vencidas</span><span><b>{loadError ? "—" : active.length}</b> Abiertas visibles</span></div>
+    <div className="action-queue-summary"><span><b>{loadError ? "—" : mine.length}</b> Asignadas a mí</span><span><b>{loadError ? "—" : overdue.length}</b> Vencidas</span><span><b>{loadError ? "—" : dueSoon.length}</b> Próximos 7 días</span><span><b>{loadError ? "—" : active.length}</b> Abiertas visibles</span></div>
     {loadError && <p role="alert" className="notification-error">No se pudieron consultar las acciones: {loadError}. Los conteos no están disponibles.</p>}
     {error && <p role="alert" className="notification-error">{error}</p>}
+    {!loading && !loadError && dueActions.length > 0 && <div className="action-due-alert" role="status">
+      <CalendarClock size={19} aria-hidden="true" /><div><strong>Fechas que requieren atención</strong><p>{overdue.length} vencida{overdue.length === 1 ? "" : "s"} · {dueSoon.length} con fecha objetivo en los próximos 7 días, asignadas a tu cuenta.</p></div>
+      <button type="button" onClick={() => setView("DUE")}>Ver vencimientos</button>
+    </div>}
     {!loading && !loadError && focusedActionId && !actions.some((action) => action.id === focusedActionId) &&
       <p role="status" className="action-queue-empty">El compromiso solicitado no está disponible para esta cuenta.</p>}
     {canCreate && createOpen && <form className="action-form" onSubmit={submitCreate}>
@@ -163,11 +173,11 @@ function ActionQueue({ revision = 0 }) {
       <label className="action-form-full">Motivo<textarea required minLength={10} maxLength={1000} rows={3} value={form.rationale} onChange={(event) => setForm({ ...form, rationale: event.target.value })} /></label>
       <div className="action-form-actions"><button type="button" className="secondary-action" onClick={() => setCreateOpen(false)}>Cancelar</button><button type="submit" className="primary-action" disabled={saving || !assignees.length}>{saving ? "Guardando…" : "Registrar acción"}</button></div>
     </form>}
-    <div className="action-queue-tabs" role="group" aria-label="Filtrar acciones"><button type="button" aria-pressed={activeView === "MINE"} onClick={() => setView("MINE")}>Mis acciones</button><button type="button" aria-pressed={activeView === "OPEN"} onClick={() => setView("OPEN")}>Abiertas visibles</button><button type="button" aria-pressed={activeView === "CLOSED"} onClick={() => setView("CLOSED")}>Finalizadas</button></div>
-    {loading ? <p className="action-queue-empty" role="status">Consultando acciones…</p> : loadError ? null : visible.length === 0 ? <p className="action-queue-empty">No hay acciones en esta vista.</p> : <div className="action-queue-list">{visible.map((action) => <article className="action-card" id={`action-${action.id}`} tabIndex={-1} key={action.id}>
+    <div className="action-queue-tabs" role="group" aria-label="Filtrar acciones"><button type="button" aria-pressed={activeView === "MINE"} onClick={() => setView("MINE")}>Mis acciones</button><button type="button" aria-pressed={activeView === "DUE"} onClick={() => setView("DUE")}>Vencimientos</button><button type="button" aria-pressed={activeView === "OPEN"} onClick={() => setView("OPEN")}>Abiertas visibles</button><button type="button" aria-pressed={activeView === "CLOSED"} onClick={() => setView("CLOSED")}>Finalizadas</button></div>
+    {loading ? <p className="action-queue-empty" role="status">Consultando acciones…</p> : loadError ? null : visible.length === 0 ? <p className="action-queue-empty">{activeView === "DUE" ? "No hay compromisos vencidos ni próximos a vencer asignados a tu cuenta." : "No hay acciones en esta vista."}</p> : <div className="action-queue-list">{visible.map((action) => <article className="action-card" id={`action-${action.id}`} tabIndex={-1} key={action.id}>
       <div className="action-card-top"><span><ClipboardCheck size={17} aria-hidden="true" /> {SOURCE[action.sourceType]} · {action.sourceTitle}</span><strong className={`action-status action-status-${action.status.toLowerCase()}`}>{STATUS[action.status]}</strong></div>
       <h3>{action.title}</h3><p>{action.rationale}</p>
-      <div className="action-card-meta"><span>Responsable: <b>{action.assigneeName}</b></span><span><CalendarClock size={14} aria-hidden="true" /> Fecha objetivo: <b>{formatDate(action.dueDate)}</b></span><span>{action.history.length} evento{action.history.length === 1 ? "" : "s"}</span></div>
+      <div className="action-card-meta"><span>Responsable: <b>{action.assigneeName}</b></span><span><CalendarClock size={14} aria-hidden="true" /> Fecha objetivo: <b>{formatDate(action.dueDate)}</b></span>{!["DONE", "CANCELLED"].includes(action.status) && action.dueDate < today && <span className="action-due-label is-overdue">Vencida</span>}{!["DONE", "CANCELLED"].includes(action.status) && action.dueDate === today && <span className="action-due-label">Vence hoy</span>}{!["DONE", "CANCELLED"].includes(action.status) && action.dueDate > today && action.dueDate <= cutoff && <span className="action-due-label">Próxima</span>}<span>{action.history.length} evento{action.history.length === 1 ? "" : "s"}</span></div>
       <div className="action-card-actions"><Link to={sourcePath(action)}>{action.sourceType === "FINDING" ? "Ver auditorías" : "Abrir registro"}</Link>{(manager || (canCreate && action.assigneeId === user?.id)) && <button type="button" onClick={() => openEdit(action, "STATUS")}>Cambiar estado</button>}{manager && <button type="button" onClick={() => openEdit(action, "ASSIGNEE")}>Reasignar</button>}</div>
       <details className="action-history"><summary>Ver bitácora · {action.history.length} evento{action.history.length === 1 ? "" : "s"}</summary>
         <ol>{[...action.history].reverse().map((entry, index) => <li key={`${entry.at}-${entry.type}-${index}`}>
