@@ -54,6 +54,21 @@ export const updateAssistantProject = async (id, name, description, instructions
 export const deleteAssistantProject = async (id) => projectRequest(`/${encodeURIComponent(id)}`, {
   method: "DELETE"
 });
+export const listAssistantProjectFiles = async (id) =>
+  (await projectRequest(`/${encodeURIComponent(id)}/files`)).files;
+export const uploadAssistantProjectFile = async (id, file) => {
+  const response = await fetch(`/api/assistant/projects/${encodeURIComponent(id)}/files`, {
+    method: "POST", headers: { ...headers(), "Content-Type": file.type,
+      "X-File-Name": encodeURIComponent(file.name) }, body: file, cache: "no-store"
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || "No se pudo agregar el archivo privado al proyecto.");
+  return data.file;
+};
+export const deleteAssistantProjectFile = async (id, fileId) =>
+  projectRequest(`/${encodeURIComponent(id)}/files/${encodeURIComponent(fileId)}`, { method: "DELETE" });
+export const getAssistantProjectFileDownload = async (id, fileId) =>
+  (await projectRequest(`/${encodeURIComponent(id)}/files/${encodeURIComponent(fileId)}/download`)).url;
 const memoryRequest = async (path = "", options = {}) => {
   const response = await fetch(`/api/assistant/memories${path}`, {
     ...options, headers: { ...headers(), ...(options.body ? { "Content-Type": "application/json" } : {}) },

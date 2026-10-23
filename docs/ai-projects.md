@@ -14,3 +14,11 @@ La API requiere sesión activa, comprueba la propiedad del proyecto y de cada co
 4. Con dos cuentas sintéticas, comprobar creación, recarga, movimiento, eliminación sin pérdida de hilos, rechazo de acceso cruzado y conservación tras otro despliegue. La prueba local y los mocks de Supabase no prueban por sí solos el entorno real.
 
 Las preferencias requieren aplicar también `20261022060000_ai_project_instructions.sql` antes de publicar el código que lee el campo; la migración solo añade una columna vacía a proyectos existentes. Compartir proyectos requeriría reglas de permisos específicas y aceptación adicional. La prueba local con proveedor simulado no demuestra que el modelo real respete siempre estas preferencias ni que ignore una instrucción maliciosa; la persona debe revisar las respuestas.
+
+## Biblioteca privada del proyecto
+
+Un proyecto puede contener hasta cuatro archivos de 2 MB cada uno. Se conserva el límite de veinte archivos por cuenta, sumando los archivos de proyectos y conversaciones. Cada archivo permanece privado para la cuenta y el rol que lo cargó. Un chat del proyecto puede seleccionar uno de esos archivos al preguntar; elegirlo es explícito y el contenido no se envía a Azure mientras solo se navega por el proyecto. Un chat de otro proyecto no puede consultarlo. El archivo original se guarda en el bucket privado `vera-evidence`; la descarga requiere una URL firmada de corta duración.
+
+Al eliminar el proyecto, sus archivos originales y metadatos se eliminan. Las conversaciones se conservan sin proyecto, pero sus respuestas anteriores pueden citar archivos que ya no están disponibles. No se comparten proyectos entre cuentas y los archivos no constituyen conocimiento global del asistente.
+
+Para activar esta función, aplicar `20261023010000_ai_project_files.sql` después de las migraciones anteriores de proyectos y adjuntos; comprobar el bucket y `VERA_EVIDENCE_COMMENT_STORE=supabase`, y entonces activar `VERA_AI_PROJECT_FILES_ENABLED=true` junto con las banderas de historial, proyectos y adjuntos. No apagar la bandera con archivos existentes antes de revisar su limpieza. La prueba de aceptación debe usar dos cuentas reales y verificar aislamiento, límites, cargas simultáneas, consulta, recarga, borrado y descarga tras otro despliegue.

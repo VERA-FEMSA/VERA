@@ -16,3 +16,5 @@ La consulta de un archivo se mantiene separada de la consulta del portafolio. Se
 4. Probar con dos cuentas reales: aislamiento, tipos inválidos, límites, descarga firmada, preguntas con cita y sin cita, PDF escaneado, imagen, borrado, recarga y persistencia tras despliegue. No afirmar esta aceptación con mocks.
 
 La bandera solo controla el acceso a esta función. Si se apaga tras recibir archivos, no borrar conversaciones hasta reactivarla o ejecutar la limpieza de archivos pendientes, para evitar objetos huérfanos.
+
+Los proyectos pueden tener una biblioteca privada independiente. Su cuota de cuatro archivos por proyecto comparte el límite de veinte por cuenta. El archivo del proyecto solo puede consultarse desde un chat de ese mismo proyecto y siempre se elige explícitamente. Véase [Proyectos privados del asistente](ai-projects.md).

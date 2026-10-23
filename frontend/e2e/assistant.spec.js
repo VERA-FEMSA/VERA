@@ -182,6 +182,83 @@ test("Copiloto: proyectos privados agrupan hilos y borrarlos conserva el histori
   expect(access.violations.map(({ id }) => id)).toEqual([]);
 });
 
+test("Copiloto: biblioteca privada de proyecto disponible en chats nuevos", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "read-only", conversations: true, projects: true,
+    attachments: true, projectFiles: true
+  } }));
+  const projectId = "22222222-2222-4222-8222-222222222222";
+  const threadId = "11111111-1111-4111-8111-111111111111";
+  const fileId = "33333333-3333-4333-8333-333333333333";
+  let project = null;
+  let file = null;
+  await page.route("**/api/assistant/projects**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith(`/projects/${projectId}/files`) && method === "GET") {
+      return route.fulfill({ json: { files: file ? [file] : [] } });
+    }
+    if (path.endsWith(`/projects/${projectId}/files`) && method === "POST") {
+      file = { id: fileId, projectId, name: "guia.txt", mime: "text/plain", size: 29,
+        status: "ready", truncated: false };
+      return route.fulfill({ status: 201, json: { file } });
+    }
+    if (path.endsWith(`/projects/${projectId}/files/${fileId}`) && method === "DELETE") {
+      file = null; return route.fulfill({ status: 204, body: "" });
+    }
+    if (path.endsWith("/projects") && method === "GET") {
+      return route.fulfill({ json: { projects: project ? [project] : [] } });
+    }
+    if (path.endsWith("/projects") && method === "POST") {
+      project = { id: projectId, ...route.request().postDataJSON(), version: 1 };
+      return route.fulfill({ status: 201, json: { project } });
+    }
+    return route.abort();
+  });
+  let thread = null;
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") {
+      return route.fulfill({ json: { conversations: thread ? [thread] : [] } });
+    }
+    if (path.endsWith("/conversations") && method === "POST") {
+      thread = { id: threadId, title: "Nueva conversación", projectId,
+        focus: null, messages: [], version: 1 };
+      return route.fulfill({ status: 201, json: { conversation: thread } });
+    }
+    if (path.endsWith(`/${threadId}/attachments`) && method === "GET") {
+      return route.fulfill({ json: { attachments: [] } });
+    }
+    if (path.endsWith(`/${threadId}/ask`) && method === "POST") {
+      expect(route.request().postDataJSON().attachmentId).toBe(fileId);
+      const userMessage = { id: "user-1", role: "user", text: "¿Qué dice la guía?", attachmentName: "guia.txt" };
+      const message = { id: "answer-1", role: "assistant", text: "La guía menciona un riesgo de proveedor.",
+        mode: "attachment-text", citations: [{ sourceId: `attachment:${fileId}:chunk:0`, attachmentId: fileId,
+          projectId, type: "Archivo adjunto", title: "guia.txt", excerpt: "Riesgo de proveedor" }] };
+      thread.messages = [userMessage, message];
+      return route.fulfill({ json: { version: 2, userMessage, message } });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByRole("button", { name: "Nuevo proyecto" }).click();
+  await page.getByLabel("Nombre del proyecto").fill("Revisión anual");
+  await page.getByRole("button", { name: "Guardar proyecto" }).click();
+  await page.getByLabel("Archivos del proyecto").setInputFiles({ name: "guia.txt",
+    mimeType: "text/plain", buffer: Buffer.from("Riesgo de proveedor presente.") });
+  await expect(page.getByRole("option", { name: "guia.txt · proyecto" })).toBeAttached();
+  await page.getByLabel("Tu pregunta").fill("¿Qué dice la guía?");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("La guía menciona un riesgo de proveedor.")).toBeVisible();
+  await expect(page.getByLabel("Consultar archivo")).toHaveValue(fileId);
+  const access = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(access.violations.map(({ id }) => id)).toEqual([]);
+  await page.getByRole("button", { name: "Quitar" }).click();
+  await expect(page.getByRole("option", { name: "guia.txt · proyecto" })).toHaveCount(0);
+});
+
 test("Copiloto: reabre, renombra y elimina un historial privado persistente", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
