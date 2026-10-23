@@ -78,6 +78,9 @@ const extractEvidenceText = async (bytes, mime) => {
   globalThis.DOMMatrix ||= DOMMatrix;
   globalThis.Path2D ||= Path2D;
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  // Import the worker explicitly: PDF.js otherwise resolves a sibling file
+  // dynamically, which Vercel's function trace omits.
+  await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
   // Vercel traces the reader but not pdfjs-dist/package.json; do not resolve
   // that auxiliary path just to pass standardFontDataUrl.
   const task = getDocument({ data: new Uint8Array(data), isEvalSupported: false,
