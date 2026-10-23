@@ -152,5 +152,28 @@ const removeProject = async (user, projectId, id) => {
   return attachments.delete(id);
 };
 
+const updateExtraction = async (user, container, containerId, id, result) => {
+  if (!UUID.test(containerId) || !UUID.test(id)) return null;
+  const patch = { chunks: result.chunks, status: result.status, truncated: result.truncated };
+  if (remote()) {
+    const rows = await request("PATCH", { select: "*", ...ownerQuery(user),
+      [container]: `eq.${containerId}`, id: `eq.${id}`, status: "eq.no-text" }, patch);
+    if (!Array.isArray(rows)) throw new AttachmentStorageError("El OCR no pudo guardar su resultado.");
+    return rows[0] ? publicRow(rows[0]) : null;
+  }
+  const row = attachments.get(id);
+  if (!row || row.owner_id !== Number(user.id) || row.owner_role !== user.role ||
+      row[container] !== containerId || row.status !== "no-text") return null;
+  const updated = { ...row, ...patch };
+  attachments.set(id, updated);
+  return publicRow(updated);
+};
+
+const updateConversationExtraction = (user, conversationId, id, result) =>
+  updateExtraction(user, "conversation_id", conversationId, id, result);
+const updateProjectExtraction = (user, projectId, id, result) =>
+  updateExtraction(user, "project_id", projectId, id, result);
+
 module.exports = { AttachmentStorageError, MAX_PER_CONVERSATION, MAX_PER_PROJECT, MAX_PER_USER,
-  list, listProject, countForUser, get, getProject, create, createProject, remove, removeProject };
+  list, listProject, countForUser, get, getProject, create, createProject, remove, removeProject,
+  updateConversationExtraction, updateProjectExtraction };

@@ -69,6 +69,9 @@ export const deleteAssistantProjectFile = async (id, fileId) =>
   projectRequest(`/${encodeURIComponent(id)}/files/${encodeURIComponent(fileId)}`, { method: "DELETE" });
 export const getAssistantProjectFileDownload = async (id, fileId) =>
   (await projectRequest(`/${encodeURIComponent(id)}/files/${encodeURIComponent(fileId)}/download`)).url;
+export const ocrAssistantProjectFile = async (id, fileId) =>
+  (await projectRequest(`/${encodeURIComponent(id)}/files/${encodeURIComponent(fileId)}/ocr`,
+    { method: "POST" })).file;
 const memoryRequest = async (path = "", options = {}) => {
   const response = await fetch(`/api/assistant/memories${path}`, {
     ...options, headers: { ...headers(), ...(options.body ? { "Content-Type": "application/json" } : {}) },
@@ -111,6 +114,9 @@ export const deleteAssistantAttachment = async (id, attachmentId) =>
   });
 export const getAssistantAttachmentDownload = async (id, attachmentId) =>
   (await conversationRequest(`/${encodeURIComponent(id)}/attachments/${encodeURIComponent(attachmentId)}/download`)).url;
+export const ocrAssistantAttachment = async (id, attachmentId) =>
+  (await conversationRequest(`/${encodeURIComponent(id)}/attachments/${encodeURIComponent(attachmentId)}/ocr`,
+    { method: "POST" })).attachment;
 
 export const getAssistantBrief = async () => {
   const response = await fetch("/api/assistant/brief", { headers: headers() });

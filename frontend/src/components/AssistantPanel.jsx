@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Bot, FileText, Pencil, RotateCcw, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
-import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantAttachment, deleteAssistantConversation, deleteAssistantProject, deleteAssistantProjectFile, getAssistantAttachmentDownload, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantProjectFileDownload, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantAttachments, listAssistantConversations, listAssistantProjectFiles, listAssistantProjects, moveAssistantConversation, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject, uploadAssistantAttachment, uploadAssistantProjectFile } from "../services/assistantService";
+import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantAttachment, deleteAssistantConversation, deleteAssistantProject, deleteAssistantProjectFile, getAssistantAttachmentDownload, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantProjectFileDownload, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantAttachments, listAssistantConversations, listAssistantProjectFiles, listAssistantProjects, moveAssistantConversation, ocrAssistantAttachment, ocrAssistantProjectFile, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject, uploadAssistantAttachment, uploadAssistantProjectFile } from "../services/assistantService";
 import { AssistantConversationContext } from "../contexts/AssistantConversationContext";
 import AssistantMemoryPanel from "./AssistantMemoryPanel";
 import "../pages/Asistente.css";
@@ -57,6 +57,7 @@ function AssistantPanel({ focus = null }) {
   const [attachmentMode, setAttachmentMode] = useState(false);
   const [projectFilesMode, setProjectFilesMode] = useState(false);
   const [projectKnowledgeMode, setProjectKnowledgeMode] = useState(false);
+  const [pdfOcrMode, setPdfOcrMode] = useState(false);
   const [attachmentList, setAttachmentList] = useState([]);
   const [projectFiles, setProjectFiles] = useState([]);
   const [selectedAttachmentId, setSelectedAttachmentId] = useState(null);
@@ -77,7 +78,7 @@ function AssistantPanel({ focus = null }) {
         setPersistent(Boolean(result.conversations)); setHistoryBusy(Boolean(result.conversations));
         setProjectMode(Boolean(result.projects)); setMemoryMode(Boolean(result.memory));
         setAttachmentMode(Boolean(result.attachments)); setProjectFilesMode(Boolean(result.projectFiles));
-        setProjectKnowledgeMode(Boolean(result.projectKnowledge)); }
+        setProjectKnowledgeMode(Boolean(result.projectKnowledge)); setPdfOcrMode(Boolean(result.pdfOcr)); }
     }).catch((cause) => { if (active) { setAvailable(false); setError(cause.message); } });
     getAssistantBrief().then((result) => { if (active) setBrief(result.signals || []); })
       .catch(() => { /* Las prioridades no bloquean las preguntas. */ });
@@ -330,6 +331,20 @@ function AssistantPanel({ focus = null }) {
     finally { setAttachmentBusy(false); }
   };
 
+  const ocrFile = async (item) => {
+    if (attachmentBusy || busy || item.mime !== "application/pdf" || item.status !== "no-text") return;
+    setAttachmentBusy(true); setAttachmentError("");
+    try {
+      const saved = item.projectId ? await ocrAssistantProjectFile(item.projectId, item.id)
+        : await ocrAssistantAttachment(thread.id, item.id);
+      if (item.projectId) setProjectFiles((items) => items.map((current) => current.id === saved.id ? saved : current));
+      else setAttachmentList((items) => items.map((current) => current.id === saved.id ? saved : current));
+      if (saved.status === "ready") { setSelectedAttachmentId(saved.id); setWithEvidence(false); }
+      else setAttachmentError("No se encontró texto legible. Revisa el PDF original.");
+    } catch (cause) { setAttachmentError(cause.message); }
+    finally { setAttachmentBusy(false); }
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     const value = question.trim();
@@ -496,10 +511,14 @@ function AssistantPanel({ focus = null }) {
             {visibleAttachments.map((item) => <option key={item.id} value={item.id}>{item.name}{item.projectId ? " · proyecto" : " · conversación"}</option>)}
           </select>
           <ul>{visibleAttachments.map((item) => <li key={item.id}>
-            <span>{item.name} · {item.projectId ? "proyecto" : "conversación"} · {(item.size / 1024).toFixed(0)} KB{item.truncated ? " · lectura parcial" : ""}</span>
+            <span>{item.name} · {item.projectId ? "proyecto" : "conversación"} · {(item.size / 1024).toFixed(0)} KB{item.status === "no-text" ? " · sin texto legible" : ""}{item.truncated ? " · lectura parcial" : ""}</span>
             <button type="button" onClick={() => downloadFile(item.id)}>Abrir original</button>
+            {pdfOcrMode && item.mime === "application/pdf" && item.status === "no-text" &&
+              <button type="button" disabled={attachmentBusy || busy} onClick={() => ocrFile(item)}>Extraer texto del PDF</button>}
             <button type="button" disabled={attachmentBusy || busy} onClick={() => removeFile(item.id)}>Quitar</button>
           </li>)}</ul></>}
+        {pdfOcrMode && visibleAttachments.some((item) => item.mime === "application/pdf" && item.status === "no-text") &&
+          <small>La extracción es opcional: al pulsarla, VERA envía como máximo las dos primeras páginas a Azure. Puede generar consumo y siempre debes revisar el PDF original.</small>}
         {attachmentBusy && <small role="status">Procesando archivo privado...</small>}
         {attachmentError && <p className="assistant-error" role="alert">{attachmentError}</p>}
       </section>}
