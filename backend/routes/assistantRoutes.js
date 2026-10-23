@@ -135,10 +135,13 @@ router.post("/conversations/:id/attachments", attachmentEnabled,
       if (SEARCHABLE_MIME.has(mime)) {
         try { extracted = await extractEvidenceText(fileBytes, mime); }
         catch (error) {
+          const moduleMessage = String(error?.message || "");
           if (mime === "application/pdf") console.error(JSON.stringify({
             event: "VERA_AI_PDF_EXTRACT_FAILURE", error: error?.name || "unknown",
             code: error?.code || null,
-            dependency: /@napi-rs\/canvas|pdfjs-dist|DOMMatrix|Path2D/.exec(String(error?.message || ""))?.[0] || null
+            dependency: /@napi-rs\/canvas|pdfjs-dist|DOMMatrix|Path2D/.exec(moduleMessage)?.[0] || null,
+            detail: error?.name === "Error" && /@napi-rs\/canvas|pdfjs-dist/.test(moduleMessage)
+              ? moduleMessage.split("\n", 1)[0].slice(0, 260) : null
           }));
           return res.status(422).json({ message: "No se pudo extraer texto de este archivo." });
         }
