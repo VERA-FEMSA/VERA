@@ -72,6 +72,9 @@ test("OCR PDF: fallo de compatibilidad no genera texto ni simula éxito", async 
   await assert.rejects(() => extractScannedPdf(onePage, {
     fetchImpl: async () => new Response("unsupported", { status: 400 })
   }), (error) => error.status === 415);
+  await assert.rejects(() => extractScannedPdf(onePage, {
+    fetchImpl: async () => new Response("rate limited", { status: 429 })
+  }), (error) => error.status === 429);
   const empty = await extractScannedPdf(onePage, { fetchImpl: async () =>
     Response.json({ status: "completed", output: [{ content: [{ type: "output_text", text: "" }] }] }) });
   assert.equal(empty.status, "no-text");

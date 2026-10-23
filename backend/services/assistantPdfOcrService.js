@@ -48,7 +48,10 @@ const extractScannedPdf = async (bytes, { fetchImpl = fetch } = {}) => {
   } catch { throw new PdfOcrError("El OCR del PDF no respondió a tiempo.", 504); }
   if (!response.ok) throw new PdfOcrError(response.status === 400
     ? "El despliegue de Azure no admite PDF en Responses o esta entrada."
-    : "El OCR del PDF no está disponible en este momento.", response.status === 400 ? 415 : 502);
+    : response.status === 429
+      ? "El OCR llegó a su límite temporal. Intenta de nuevo más tarde."
+      : "El OCR del PDF no está disponible en este momento.",
+  response.status === 400 ? 415 : response.status === 429 ? 429 : 502);
   let data;
   try { data = await response.json(); }
   catch { throw new PdfOcrError("El OCR devolvió una respuesta inválida.", 502); }
