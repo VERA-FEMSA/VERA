@@ -77,7 +77,7 @@ const extractEvidenceText = async (bytes, mime) => {
   const { DOMMatrix, Path2D } = require("@napi-rs/canvas");
   globalThis.DOMMatrix ||= DOMMatrix;
   globalThis.Path2D ||= Path2D;
-  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const { getDocument } = require("pdfjs-dist/legacy/build/pdf.mjs");
   // Vercel traces the reader but not pdfjs-dist/package.json; do not resolve
   // that auxiliary path just to pass standardFontDataUrl.
   const task = getDocument({ data: new Uint8Array(data), isEvalSupported: false,
