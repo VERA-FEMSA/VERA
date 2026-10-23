@@ -17,11 +17,12 @@ const makePdf = async (pages = 3) => {
 
 test("OCR PDF: solo dos páginas privadas llegan a Azure y el resultado queda acotado", async (t) => {
   const keys = ["VERA_AI_ENABLED", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY",
-    "AZURE_OPENAI_DEPLOYMENT"];
+    "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_OCR_DEPLOYMENT"];
   const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   Object.assign(process.env, { VERA_AI_ENABLED: "true",
     AZURE_OPENAI_ENDPOINT: "https://vera-test.openai.azure.com",
-    AZURE_OPENAI_API_KEY: "test-only-key", AZURE_OPENAI_DEPLOYMENT: "vera-chat" });
+    AZURE_OPENAI_API_KEY: "test-only-key", AZURE_OPENAI_DEPLOYMENT: "vera-chat",
+    AZURE_OPENAI_OCR_DEPLOYMENT: "vera-ocr" });
   t.after(() => { for (const [key, value] of Object.entries(previous)) {
     if (value === undefined) delete process.env[key]; else process.env[key] = value;
   } });
@@ -32,6 +33,7 @@ test("OCR PDF: solo dos páginas privadas llegan a Azure y el resultado queda ac
     assert.equal(options.headers["api-key"], "test-only-key");
     const body = JSON.parse(options.body);
     assert.equal(body.store, false);
+    assert.equal(body.model, "vera-ocr");
     const input = body.input[0].content[0];
     assert.equal(input.type, "input_file");
     const selected = Buffer.from(input.file_data.split(",")[1], "base64");
@@ -51,16 +53,22 @@ test("OCR PDF: solo dos páginas privadas llegan a Azure y el resultado queda ac
 
 test("OCR PDF: fallo de compatibilidad no genera texto ni simula éxito", async (t) => {
   const previous = { enabled: process.env.VERA_AI_ENABLED, endpoint: process.env.AZURE_OPENAI_ENDPOINT,
-    key: process.env.AZURE_OPENAI_API_KEY, deployment: process.env.AZURE_OPENAI_DEPLOYMENT };
+    key: process.env.AZURE_OPENAI_API_KEY, deployment: process.env.AZURE_OPENAI_DEPLOYMENT,
+    ocrDeployment: process.env.AZURE_OPENAI_OCR_DEPLOYMENT };
   Object.assign(process.env, { VERA_AI_ENABLED: "true",
     AZURE_OPENAI_ENDPOINT: "https://vera-test.openai.azure.com",
-    AZURE_OPENAI_API_KEY: "test-only-key", AZURE_OPENAI_DEPLOYMENT: "vera-chat" });
+    AZURE_OPENAI_API_KEY: "test-only-key", AZURE_OPENAI_DEPLOYMENT: "vera-chat",
+    AZURE_OPENAI_OCR_DEPLOYMENT: "vera-ocr" });
   t.after(() => { for (const [key, value] of [["VERA_AI_ENABLED", previous.enabled],
     ["AZURE_OPENAI_ENDPOINT", previous.endpoint], ["AZURE_OPENAI_API_KEY", previous.key],
-    ["AZURE_OPENAI_DEPLOYMENT", previous.deployment]]) {
+    ["AZURE_OPENAI_DEPLOYMENT", previous.deployment],
+    ["AZURE_OPENAI_OCR_DEPLOYMENT", previous.ocrDeployment]]) {
     if (value === undefined) delete process.env[key]; else process.env[key] = value;
   } });
   const onePage = await makePdf(1);
+  delete process.env.AZURE_OPENAI_OCR_DEPLOYMENT;
+  await assert.rejects(() => extractScannedPdf(onePage), (error) => error.status === 503);
+  process.env.AZURE_OPENAI_OCR_DEPLOYMENT = "vera-ocr";
   await assert.rejects(() => extractScannedPdf(onePage, {
     fetchImpl: async () => new Response("unsupported", { status: 400 })
   }), (error) => error.status === 415);
@@ -96,7 +104,7 @@ test("OCR PDF: la ruta exige dueño y bandera antes de descargar y llamar a Azur
   const keys = ["VERA_USER_STORE", "VERA_AI_ENABLED", "VERA_AI_CONVERSATIONS_ENABLED",
     "VERA_AI_PROJECTS_ENABLED", "VERA_AI_ATTACHMENTS_ENABLED", "VERA_AI_PROJECT_FILES_ENABLED",
     "VERA_AI_PDF_OCR_ENABLED", "SUPABASE_URL", "SUPABASE_SECRET_KEY", "AZURE_OPENAI_ENDPOINT",
-    "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_DEPLOYMENT"];
+    "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_DEPLOYMENT", "AZURE_OPENAI_OCR_DEPLOYMENT"];
   const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   const originalFetch = global.fetch;
   Object.assign(process.env, { VERA_USER_STORE: "memory", VERA_AI_ENABLED: "true",
@@ -104,7 +112,8 @@ test("OCR PDF: la ruta exige dueño y bandera antes de descargar y llamar a Azur
     VERA_AI_ATTACHMENTS_ENABLED: "true", VERA_AI_PROJECT_FILES_ENABLED: "true",
     VERA_AI_PDF_OCR_ENABLED: "true", SUPABASE_URL: "https://supabase.example",
     SUPABASE_SECRET_KEY: "sb_secret_test_only", AZURE_OPENAI_ENDPOINT: "https://vera-test.openai.azure.com",
-    AZURE_OPENAI_API_KEY: "test-only-key", AZURE_OPENAI_DEPLOYMENT: "vera-chat" });
+    AZURE_OPENAI_API_KEY: "test-only-key", AZURE_OPENAI_DEPLOYMENT: "vera-chat",
+    AZURE_OPENAI_OCR_DEPLOYMENT: "vera-ocr" });
   t.after(() => {
     global.fetch = originalFetch;
     for (const [key, value] of Object.entries(previous)) {
