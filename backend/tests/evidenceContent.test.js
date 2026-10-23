@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const jwt = require("jsonwebtoken");
 const fs = require("node:fs");
 const path = require("node:path");
+const { PDFDocument } = require("pdf-lib");
 
 process.env.JWT_SECRET ||= "evidence-content-test-secret-32-characters";
 const app = require("../server");
@@ -45,6 +46,11 @@ test("Evidencias IA: extrae UTF-8 y páginas PDF sin superar los límites", asyn
   assert.equal(pdf.status, "ready");
   assert.equal(pdf.chunks[0].pageNumber, 1);
   assert.match(pdf.chunks[0].content, /Hallazgo documentado/);
+  const imageOnly = await PDFDocument.create();
+  imageOnly.addPage([200, 200]);
+  const scanned = await extractEvidenceText(Buffer.from(await imageOnly.save()), "application/pdf");
+  assert.equal(scanned.status, "no-text");
+  assert.equal(scanned.chunks.length, 0);
   const capped = makePdfChunks([{ pageNumber: 1, text: "A".repeat(40_000) }], 2);
   assert.equal(capped.status, "ready");
   assert.equal(capped.truncated, true);

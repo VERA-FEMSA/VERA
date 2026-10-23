@@ -73,6 +73,11 @@ const extractEvidenceText = async (bytes, mime) => {
     return { ...result, truncated: result.truncated || extracted.truncated,
       status: result.chunks.length ? "ready" : "no-text" };
   }
+  // PDF.js needs these globals even when only extracting text. Importing the
+  // canvas package directly also makes Vercel trace its native Linux binary.
+  const { DOMMatrix, Path2D } = require("@napi-rs/canvas");
+  globalThis.DOMMatrix ||= DOMMatrix;
+  globalThis.Path2D ||= Path2D;
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const standardFontDataUrl = path.join(path.dirname(require.resolve("pdfjs-dist/package.json")),
     "standard_fonts").replace(/\\/g, "/") + "/";
