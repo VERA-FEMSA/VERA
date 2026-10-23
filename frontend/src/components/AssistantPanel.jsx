@@ -429,7 +429,7 @@ function AssistantPanel({ focus = null, compact = false }) {
       "¿Qué requiere atención en este expediente?", "Prepara un borrador de próximos pasos para revisión."]
     : promptsByRole[user?.role] || ["Resume mis pendientes."];
 
-  return <section className={`assistant-chat ${compact ? "assistant-chat--compact" : "assistant-chat--page"} ${historyOpen ? "assistant-chat--history-open" : ""}`} aria-label="Conversación con el asistente">
+  return <section className={`assistant-chat ${compact ? "assistant-chat--compact" : "assistant-chat--page"} ${persistent && historyOpen ? "assistant-chat--history-open" : ""}`} aria-label="Conversación con el asistente">
     {persistent && <aside id="assistant-history-panel" className="assistant-history" aria-label="Historial privado">
       <div className="assistant-rail-heading"><div><b>VERA</b><span>Espacio de IA</span></div><button type="button" onClick={() => setHistoryOpen(false)} aria-label="Ocultar historial"><PanelLeftClose size={18} aria-hidden="true" /></button></div>
       <button className="assistant-new-button" type="button" onClick={newThread} disabled={historyBusy || busy}><Plus size={18} aria-hidden="true" /> Nueva conversación</button>

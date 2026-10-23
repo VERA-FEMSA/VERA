@@ -62,6 +62,7 @@ test("Espacio de IA: Enter envía y Shift+Enter conserva una nueva línea", asyn
   });
   await page.goto("/asistente");
   const input = page.getByLabel("Tu pregunta");
+  await expect(page.locator(".assistant-chat")).not.toHaveClass(/assistant-chat--history-open/);
   await input.fill("¿Qué auditorías tengo?");
   await input.press("Shift+Enter");
   await expect(input).toHaveValue("¿Qué auditorías tengo?\n");
