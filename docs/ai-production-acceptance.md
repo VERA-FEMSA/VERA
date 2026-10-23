@@ -56,7 +56,7 @@ La revisión visual del copiloto debe mostrar la hora de consulta y, cuando haya
 
 Con cada rol real que se quiera aceptar, entra en VERA y verifica en escritorio y móvil:
 
-1. **Preguntar a VERA** abre el panel desde una ruta protegida y se cierra con Escape. El chat general conserva sus mensajes al navegar o reabrir el panel, cada expediente conserva su propio hilo y **Nueva conversación** elimina solo el hilo actual. Al recargar o cerrar sesión, se elimina el historial.
+1. **Preguntar a VERA** abre el panel desde una ruta protegida y se cierra con Escape. Con el historial privado habilitado, las conversaciones de la cuenta persisten en Supabase y pueden reabrirse tras recargar o volver a iniciar sesión. **Nueva conversación** inicia otro hilo; eliminar uno borra únicamente ese hilo. Comprueba que otra cuenta no puede leerlo.
 2. **Analizar con IA** abre el riesgo, control o auditoría seleccionado; la respuesta puede citar un registro y el enlace lleva al expediente correcto.
 3. Una cuenta `AUDITOR` ve solo sus auditorías y riesgos asignados, y no obtiene información de un expediente ajeno al intentar abrir su enlace. Para demostrar separación entre roles se necesitan, como mínimo, dos cuentas aprobadas con datos de prueba conocidos.
 4. Si faltan datos, el asistente lo reconoce. Una propuesta de acción se presenta como borrador y no modifica el expediente.
@@ -65,6 +65,18 @@ Esta verificación no certifica exactitud general del modelo, ausencia completa 
 
 ## Estado comprobado
 
-El [corte de aceptación del 21 de octubre de 2026](testing/production-acceptance-2026-10-21.md) añade una sesión real de Auditor con respuesta de Azure OpenAI, tres escenarios de modelo real y pruebas de lectura de los cinco roles. En esa cuenta no había riesgos visibles: la calidad factual con citas y la lectura de archivos privados siguen pendientes, tal como marca el script con `SKIP`.
+### Aceptación de archivos privados y OCR: 23 de octubre de 2026
 
-El 16 de octubre de 2026, después de fusionar el PR #75 y sincronizar el fork, Vercel marcó `READY` el commit `b755ffbb5ae415fb99a91ddfaeb48193571eb119`. La ejecución **pública** del script devolvió HTTP 200 para la portada y HTTP 401 para el asistente sin sesión. La parte autenticada, el briefing y la consulta de archivos privados siguen pendientes de cuentas activas de VERA con datos de prueba conocidos.
+En el despliegue Production del commit [`06ca35b`](https://github.com/VERA-GRC-IRM/VERA/commit/06ca35b7ab689cb7e6e77cc05618cd1bda32a8f0), con `VERA_AI_PDF_OCR_ENABLED=true`, una cuenta demo `AUDITOR` completó estos recorridos con documentos sintéticos:
+
+| Recorrido | Resultado observado | Límite de la evidencia |
+| --- | --- | --- |
+| PDF con texto seleccionable en chat | Carga `ready`, un fragmento persistido. | No cubre todos los tipos de fuentes o codificaciones PDF. |
+| PDF escaneado en chat | Carga inicial `no-text`, cero fragmentos; OCR solicitado explícitamente `ready`, una página y un fragmento. La pregunta respondió en modo `attachment-text`, incluyó una cita y se recuperaron dos mensajes persistidos; la conversación se eliminó. | Es una sola página sintética; el OCR puede transcribir mal otros documentos. |
+| PDF escaneado en biblioteca privada de proyecto | Carga inicial `no-text`; OCR explícito procesó una página y creó un fragmento; el chat del proyecto respondió en modo `attachment-text`. | Los registros del servidor muestran procesamiento y respuesta; esta comprobación no prueba aislamiento entre dos cuentas. |
+
+Los registros del despliegue registraron 735 tokens de entrada y 22 de salida para cada OCR, y 2,835/2,868 ms para las dos respuestas de chat observadas. No almacenan texto del PDF ni de la respuesta. Las consultas de errores agregadas de Vercel aún pueden mostrar fallos del worker PDF.js de despliegues anteriores; el [PR #199](https://github.com/VERA-GRC-IRM/VERA/pull/199) documenta la causa y el arreglo. **Este corte no demuestra precisión general, resistencia a documentos hostiles ni permisos cruzados entre usuarios y roles.** La prueba de dos cuentas y los límites siguen pendientes de una aceptación separada.
+
+El [corte de aceptación del 21 de octubre de 2026](testing/production-acceptance-2026-10-21.md) añade una sesión real de Auditor con respuesta de Azure OpenAI, tres escenarios de modelo real y pruebas de lectura de los cinco roles. En esa cuenta no había riesgos visibles: la calidad factual con citas y la lectura de archivos privados quedaron pendientes en **ese corte**, tal como marca el script con `SKIP`.
+
+El 16 de octubre de 2026, después de fusionar el PR #75 y sincronizar el fork, Vercel marcó `READY` el commit `b755ffbb5ae415fb99a91ddfaeb48193571eb119`. La ejecución **pública** del script devolvió HTTP 200 para la portada y HTTP 401 para el asistente sin sesión. La parte autenticada, el briefing y la consulta de archivos privados estaban pendientes en **ese corte histórico**.
