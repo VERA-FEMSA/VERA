@@ -108,10 +108,7 @@ function AssistantPanel({ focus = null }) {
     if (attachmentBusy) return undefined;
     if (!attachmentMode || !thread?.id) return undefined;
     let active = true;
-    listAssistantAttachments(thread.id).then((items) => { if (active) {
-      setAttachmentList(items);
-      setSelectedAttachmentId((current) => items.some((item) => item.id === current) ? current : null);
-    } })
+    listAssistantAttachments(thread.id).then((items) => { if (active) setAttachmentList(items); })
       .catch((cause) => { if (active) setAttachmentError(cause.message); });
     return () => { active = false; };
   }, [attachmentMode, thread?.id, attachmentBusy]);
@@ -185,7 +182,7 @@ function AssistantPanel({ focus = null }) {
   };
 
   const openThread = async (id) => {
-    setSelectedAttachmentId(null);
+    setSelectedAttachmentId(null); setAttachmentList([]);
     setHistoryBusy(true); setHistoryError(""); setConfirmDelete(false); setEditingTitle(false);
     try {
       const opened = await getAssistantConversation(id);

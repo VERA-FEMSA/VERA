@@ -252,6 +252,7 @@ test("Copiloto: biblioteca privada de proyecto disponible en chats nuevos", asyn
   await page.getByLabel("Tu pregunta").fill("¿Qué dice la guía?");
   await page.getByRole("button", { name: "Enviar pregunta" }).click();
   await expect(page.getByText("La guía menciona un riesgo de proveedor.")).toBeVisible();
+  await expect(page.getByLabel("Consultar archivo")).toHaveValue(fileId);
   const access = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(access.violations.map(({ id }) => id)).toEqual([]);
   await page.getByRole("button", { name: "Quitar" }).click();
