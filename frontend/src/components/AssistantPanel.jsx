@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, FileText, PanelLeftClose, PanelLeftOpen, Pencil, Plus, RotateCcw, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
-import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantAttachment, deleteAssistantConversation, deleteAssistantProject, deleteAssistantProjectFile, getAssistantAttachmentDownload, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantProjectFileDownload, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantAttachments, listAssistantConversations, listAssistantProjectFiles, listAssistantProjects, moveAssistantConversation, ocrAssistantAttachment, ocrAssistantProjectFile, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject, uploadAssistantAttachment, uploadAssistantProjectFile } from "../services/assistantService";
+import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantAttachment, deleteAssistantConversation, deleteAssistantProject, deleteAssistantProjectFile, getAssistantAttachmentDownload, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantProjectFileDownload, getAssistantStatus, getAuditDossier, getProposalDraft, indexAssistantProjectFile, listAssistantAttachments, listAssistantConversations, listAssistantProjectFiles, listAssistantProjects, moveAssistantConversation, ocrAssistantAttachment, ocrAssistantProjectFile, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject, uploadAssistantAttachment, uploadAssistantProjectFile } from "../services/assistantService";
 import { AssistantConversationContext } from "../contexts/AssistantConversationContext";
 import AssistantMemoryPanel from "./AssistantMemoryPanel";
 import "../pages/Asistente.css";
@@ -57,6 +57,7 @@ function AssistantPanel({ focus = null, compact = false }) {
   const [attachmentMode, setAttachmentMode] = useState(false);
   const [projectFilesMode, setProjectFilesMode] = useState(false);
   const [projectKnowledgeMode, setProjectKnowledgeMode] = useState(false);
+  const [projectSemanticMode, setProjectSemanticMode] = useState(false);
   const [pdfOcrMode, setPdfOcrMode] = useState(false);
   const [attachmentList, setAttachmentList] = useState([]);
   const [projectFiles, setProjectFiles] = useState([]);
@@ -84,7 +85,8 @@ function AssistantPanel({ focus = null, compact = false }) {
         setPersistent(Boolean(result.conversations)); setHistoryBusy(Boolean(result.conversations));
         setProjectMode(Boolean(result.projects)); setMemoryMode(Boolean(result.memory));
         setAttachmentMode(Boolean(result.attachments)); setProjectFilesMode(Boolean(result.projectFiles));
-        setProjectKnowledgeMode(Boolean(result.projectKnowledge)); setPdfOcrMode(Boolean(result.pdfOcr)); }
+        setProjectKnowledgeMode(Boolean(result.projectKnowledge)); setProjectSemanticMode(Boolean(result.projectSemantic));
+        setPdfOcrMode(Boolean(result.pdfOcr)); }
     }).catch((cause) => { if (active) { setAvailable(false); setError(cause.message); } });
     getAssistantBrief().then((result) => { if (active) setBrief(result.signals || []); })
       .catch(() => { /* Las prioridades no bloquean las preguntas. */ });
@@ -357,6 +359,17 @@ function AssistantPanel({ focus = null, compact = false }) {
     finally { setAttachmentBusy(false); }
   };
 
+  const indexProjectFile = async (item) => {
+    if (attachmentBusy || busy || !item.projectId || item.status !== "ready" || item.semanticReady) return;
+    setAttachmentBusy(true); setAttachmentError("");
+    try {
+      await indexAssistantProjectFile(item.projectId, item.id);
+      setProjectFiles((items) => items.map((current) => current.id === item.id
+        ? { ...current, semanticReady: true } : current));
+    } catch (cause) { setAttachmentError(cause.message); }
+    finally { setAttachmentBusy(false); }
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     const value = question.trim();
@@ -554,6 +567,10 @@ function AssistantPanel({ focus = null, compact = false }) {
       {message.role === "assistant" && <><small className="assistant-answer-note">{message.mode === "computed" ? "Dato calculado desde registros autorizados" : message.mode?.startsWith("attachment-") ? "Respuesta sobre un archivo privado · comprueba el original" : message.mode === "document-search" ? "Respuesta con fragmentos de evidencias · comprueba el archivo" : ["no-match", "uncited", "no-text", "scope-limited"].includes(message.mode) ? "Sin respuesta documental respaldada" : "Respuesta generada · comprueba el expediente"}{Number.isFinite(message.durationMs) ? ` · ${(message.durationMs / 1000).toFixed(1)} s` : ""}</small>
         {message.asOf && <time className="assistant-answer-note" dateTime={message.asOf}>Datos consultados: {new Date(message.asOf).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}</time>}
         {message.coverage?.indexedOnly && <small className="assistant-answer-note">Se buscaron fragmentos ya indexados en {message.coverage.searchedFiles} de {message.coverage.visibleFiles} archivos visibles. Los archivos antiguos pueden requerir una consulta individual para indexarse.</small>}
+        {message.mode === "attachment-project" && message.coverage?.retrieval === "lexical+semantic" &&
+          <small className="assistant-answer-note">Se combinaron coincidencias de texto y búsqueda por significado en {message.coverage.semanticIndexedFiles} archivo(s) preparado(s) de esta biblioteca.</small>}
+        {message.coverage?.semanticUnavailable &&
+          <small className="assistant-answer-note">La búsqueda por significado no estuvo disponible; se usaron coincidencias de texto.</small>}
         {message.mode !== "computed" && message.coverage?.partial && <small className="assistant-answer-note">{message.mode === "attachment-project" ? "La lectura de la biblioteca fue parcial; revisa los archivos originales antes de concluir." : message.mode?.startsWith("attachment-") || ["no-text", "scope-limited"].includes(message.mode) ? "La lectura del archivo fue parcial; revisa el original antes de concluir." : message.coverage.indexedOnly ? "La cantidad de archivos superó el límite de esta búsqueda; el resultado puede ser parcial." : "Se consultó una muestra de expedientes visibles; los conteos abarcan el total de tu alcance."}</small>}
         {message.metric && <div className="assistant-citations"><b>Indicador calculado</b><ul><li><Link to={message.metric.path}>{message.metric.label}: {message.metric.count} <ArrowRight size={13} aria-hidden="true" /></Link></li></ul></div>}
         {message.citations?.length > 0 && <div className="assistant-citations"><b>Registros citados</b><small>Campos consultados al responder; abre el expediente o archivo para ver su estado actual.</small><ul>{message.citations.map((item) => <li key={item.sourceId}>{item.attachmentId
@@ -586,6 +603,10 @@ function AssistantPanel({ focus = null, compact = false }) {
           <ul>{visibleAttachments.map((item) => <li key={item.id}>
             <span>{item.name} · {item.projectId ? "proyecto" : "conversación"} · {(item.size / 1024).toFixed(0)} KB{item.status === "no-text" ? " · sin texto legible" : ""}{item.truncated ? " · lectura parcial" : ""}</span>
             <button type="button" onClick={() => downloadFile(item.id)}>Abrir original</button>
+            {projectSemanticMode && item.projectId && item.status === "ready" && item.chunks > 0 &&
+              (item.semanticReady ? <small>Búsqueda semántica lista</small>
+                : <button type="button" disabled={attachmentBusy || busy}
+                  onClick={() => indexProjectFile(item)}>Mejorar búsqueda</button>)}
             {pdfOcrMode && item.mime === "application/pdf" && item.status === "no-text" &&
               <button type="button" disabled={attachmentBusy || busy} onClick={() => ocrFile(item)}>Extraer texto del PDF</button>}
             <button type="button" disabled={attachmentBusy || busy} onClick={() => removeFile(item.id)}>Quitar</button>

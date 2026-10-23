@@ -72,6 +72,9 @@ export const getAssistantProjectFileDownload = async (id, fileId) =>
 export const ocrAssistantProjectFile = async (id, fileId) =>
   (await projectRequest(`/${encodeURIComponent(id)}/files/${encodeURIComponent(fileId)}/ocr`,
     { method: "POST" })).file;
+export const indexAssistantProjectFile = async (id, fileId) =>
+  projectRequest(`/${encodeURIComponent(id)}/files/${encodeURIComponent(fileId)}/semantic`,
+    { method: "POST" });
 const memoryRequest = async (path = "", options = {}) => {
   const response = await fetch(`/api/assistant/memories${path}`, {
     ...options, headers: { ...headers(), ...(options.body ? { "Content-Type": "application/json" } : {}) },

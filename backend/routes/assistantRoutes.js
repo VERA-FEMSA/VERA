@@ -11,7 +11,9 @@ const attachments = require("../repositories/assistantAttachmentRepository");
 const evidenceStorage = require("../services/evidenceStorage");
 const { extractEvidenceText, SEARCHABLE_MIME } = require("../services/evidenceTextExtraction");
 const { askAttachment, IMAGE_MIME } = require("../services/assistantAttachmentService");
-const { askProjectKnowledge } = require("../services/assistantProjectKnowledgeService");
+const { askProjectKnowledge, indexProjectFile } = require("../services/assistantProjectKnowledgeService");
+const semanticIndex = require("../repositories/assistantSemanticIndexRepository");
+const { embeddingConfiguration } = require("../services/azureEmbeddingService");
 const { extractScannedPdf } = require("../services/assistantPdfOcrService");
 const { currentScope } = require("../services/assistantConversationScope");
 const { buildAuditDossier } = require("../services/assistantDossierService");
@@ -40,7 +42,8 @@ router.get("/status", (req, res) => {
             ...(process.env.VERA_AI_PROJECTS_ENABLED === "true" &&
               process.env.VERA_AI_PROJECT_FILES_ENABLED === "true" ? { projectFiles: true,
                 ...(process.env.VERA_AI_PROJECT_KNOWLEDGE_ENABLED === "true"
-                  ? { projectKnowledge: true } : {}) } : {}),
+                  ? { projectKnowledge: true,
+                    ...(embeddingConfiguration() ? { projectSemantic: true } : {}) } : {}) } : {}),
             ...(process.env.VERA_AI_PDF_OCR_ENABLED === "true" ? { pdfOcr: true } : {}) } : {}) } : {}) });
   } catch {
     res.json({ available: false, reason: "invalid-configuration", mode: "read-only" });
@@ -213,9 +216,34 @@ router.get("/projects/:id/files", projectFilesEnabled, async (req, res) => {
     if (!await projects.get(req.user, req.params.id)) {
       return res.status(404).json({ message: "Proyecto no disponible." });
     }
-    return res.json({ files: await attachments.listProject(req.user, req.params.id) });
+    const files = await attachments.listProject(req.user, req.params.id);
+    if (!embeddingConfiguration()) return res.json({ files });
+    const indexed = await semanticIndex.status(req.user, req.params.id);
+    return res.json({ files: files.map((file) => ({ ...file,
+      semanticReady: file.chunks > 0 && indexed.get(file.id) === file.chunks })) });
   } catch (error) { return conversationError(res, error); }
 });
+
+router.post("/projects/:id/files/:fileId/semantic", projectFilesEnabled,
+  rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, keyGenerator: (req) => String(req.user.id),
+    standardHeaders: "draft-8", legacyHeaders: false }), async (req, res) => {
+    try {
+      if (!embeddingConfiguration()) return res.status(503).json({ message: "La búsqueda semántica no está habilitada." });
+      if (!await projects.get(req.user, req.params.id)) {
+        return res.status(404).json({ message: "Proyecto no disponible." });
+      }
+      const file = await attachments.getProject(req.user, req.params.id, req.params.fileId);
+      if (!file) return res.status(404).json({ message: "Archivo no disponible." });
+      const result = await indexProjectFile(req.user, req.params.id, file);
+      console.info(JSON.stringify({ event: "VERA_AI_PROJECT_SEMANTIC_INDEX", role: req.user.role,
+        chunks: result.chunks, alreadyIndexed: result.alreadyIndexed,
+        promptTokens: result.usage?.prompt_tokens ?? null }));
+      return res.json({ indexedChunks: result.chunks, alreadyIndexed: result.alreadyIndexed });
+    } catch (error) {
+      if (error.status === 502) return res.status(502).json({ message: error.message });
+      return conversationError(res, error);
+    }
+  });
 
 router.post("/projects/:id/files", projectFilesEnabled,
   rateLimit({ windowMs: 15 * 60 * 1000, limit: 4, keyGenerator: (req) => String(req.user.id),
@@ -306,6 +334,7 @@ router.delete("/projects/:id/files/:fileId", projectFilesEnabled, async (req, re
     if (!row) return res.status(404).json({ message: "Archivo no disponible." });
     await evidenceStorage.remove(row.file);
     await attachments.removeProject(req.user, req.params.id, row.id);
+    semanticIndex.forget(row.id);
     return res.status(204).end();
   } catch (error) { return conversationError(res, error); }
 });
@@ -397,6 +426,7 @@ router.delete("/projects/:id", projectEnabled, async (req, res) => {
         const stored = await attachments.getProject(req.user, req.params.id, item.id);
         await evidenceStorage.remove(stored.file);
         await attachments.removeProject(req.user, req.params.id, item.id);
+        semanticIndex.forget(item.id);
       }
     }
     if (!await projects.remove(req.user, req.params.id)) {
@@ -524,7 +554,8 @@ router.post("/conversations/:id/ask", conversationEnabled,
       const projectRows = useProjectFiles ? await Promise.all(projectFiles.map((item) =>
         attachments.getProject(req.user, thread.projectId, item.id))) : [];
       const result = attached ? await askAttachment(attached, question.trim())
-        : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim())
+        : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
+          { user: req.user })
           : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
             project?.instructions || "");
       if (attached?.project_id) result.citations = (result.citations || []).map((citation) => ({
