@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Bot, FileText, Pencil, RotateCcw, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
-import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantAttachment, deleteAssistantConversation, deleteAssistantProject, getAssistantAttachmentDownload, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantAttachments, listAssistantConversations, listAssistantProjects, moveAssistantConversation, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject, uploadAssistantAttachment } from "../services/assistantService";
+import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantAttachment, deleteAssistantConversation, deleteAssistantProject, deleteAssistantProjectFile, getAssistantAttachmentDownload, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantProjectFileDownload, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantAttachments, listAssistantConversations, listAssistantProjectFiles, listAssistantProjects, moveAssistantConversation, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject, uploadAssistantAttachment, uploadAssistantProjectFile } from "../services/assistantService";
 import { AssistantConversationContext } from "../contexts/AssistantConversationContext";
 import AssistantMemoryPanel from "./AssistantMemoryPanel";
 import "../pages/Asistente.css";
@@ -54,7 +54,9 @@ function AssistantPanel({ focus = null }) {
   const [projectMode, setProjectMode] = useState(false);
   const [memoryMode, setMemoryMode] = useState(false);
   const [attachmentMode, setAttachmentMode] = useState(false);
+  const [projectFilesMode, setProjectFilesMode] = useState(false);
   const [attachmentList, setAttachmentList] = useState([]);
+  const [projectFiles, setProjectFiles] = useState([]);
   const [selectedAttachmentId, setSelectedAttachmentId] = useState(null);
   const [attachmentBusy, setAttachmentBusy] = useState(false);
   const [attachmentError, setAttachmentError] = useState("");
@@ -72,7 +74,7 @@ function AssistantPanel({ focus = null }) {
       if (active) { setAvailable(result.available); setReason(result.reason);
         setPersistent(Boolean(result.conversations)); setHistoryBusy(Boolean(result.conversations));
         setProjectMode(Boolean(result.projects)); setMemoryMode(Boolean(result.memory));
-        setAttachmentMode(Boolean(result.attachments)); }
+        setAttachmentMode(Boolean(result.attachments)); setProjectFilesMode(Boolean(result.projectFiles)); }
     }).catch((cause) => { if (active) { setAvailable(false); setError(cause.message); } });
     getAssistantBrief().then((result) => { if (active) setBrief(result.signals || []); })
       .catch(() => { /* Las prioridades no bloquean las preguntas. */ });
@@ -114,17 +116,26 @@ function AssistantPanel({ focus = null }) {
     return () => { active = false; };
   }, [attachmentMode, thread?.id, attachmentBusy]);
 
+  useEffect(() => {
+    if (attachmentBusy) return undefined;
+    if (!projectFilesMode || !selectedProjectId) return undefined;
+    let active = true;
+    listAssistantProjectFiles(selectedProjectId).then((items) => { if (active) setProjectFiles(items); })
+      .catch((cause) => { if (active) setAttachmentError(cause.message); });
+    return () => { active = false; };
+  }, [projectFilesMode, selectedProjectId, attachmentBusy]);
+
   const projectThreads = projectMode
     ? threadList.filter((item) => (item.projectId || null) === selectedProjectId) : threadList;
   const normalizedQuery = threadQuery.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es");
   const visibleThreads = normalizedQuery ? projectThreads.filter((item) =>
     item.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es").includes(normalizedQuery))
     : projectThreads;
-  const visibleAttachments = thread ? attachmentList : [];
+  const visibleAttachments = [...(thread ? attachmentList : []), ...projectFiles];
 
   const chooseProject = async (id) => {
     const projectId = id || null;
-    setSelectedProjectId(projectId); setProjectForm(null); setConfirmDeleteProject(false); setThreadQuery("");
+    setSelectedProjectId(projectId); setProjectFiles([]); setProjectForm(null); setConfirmDeleteProject(false); setThreadQuery("");
     setThread(null); setMessages([]); setHistoryStale(false); setSelectedAttachmentId(null);
     const first = threadList.find((item) => (item.projectId || null) === projectId);
     if (first) await openThread(first.id);
@@ -141,7 +152,7 @@ function AssistantPanel({ focus = null }) {
           projectInstructions.trim(), projectForm.version);
       setProjects((items) => projectForm === "new" ? [saved, ...items]
         : items.map((item) => item.id === saved.id ? saved : item));
-      if (projectForm === "new") { setSelectedProjectId(saved.id); setThreadQuery(""); setThread(null); setMessages([]); setSelectedAttachmentId(null); }
+      if (projectForm === "new") { setSelectedProjectId(saved.id); setProjectFiles([]); setThreadQuery(""); setThread(null); setMessages([]); setSelectedAttachmentId(null); }
       setProjectForm(null); setProjectName(""); setProjectDescription(""); setProjectInstructions("");
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
@@ -156,7 +167,7 @@ function AssistantPanel({ focus = null }) {
       const items = await listAssistantConversations();
       setThreadList(items.filter((item) => focusType
         ? item.focus?.type === focusType && item.focus?.id === focusId : !item.focus));
-      setSelectedProjectId(null); setThreadQuery(""); setThread(null); setMessages([]); setHistoryStale(false); setSelectedAttachmentId(null);
+      setSelectedProjectId(null); setProjectFiles([]); setThreadQuery(""); setThread(null); setMessages([]); setHistoryStale(false); setSelectedAttachmentId(null);
       setConfirmDeleteProject(false);
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
@@ -274,11 +285,28 @@ function AssistantPanel({ focus = null }) {
     finally { setAttachmentBusy(false); }
   };
 
-  const downloadFile = async (attachmentId) => {
-    if (!thread) return;
+  const uploadProjectFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !selectedProjectId || attachmentBusy || historyBusy || busy) return;
+    if (file.size > 2 * 1024 * 1024 || file.size === 0) {
+      setAttachmentError("El archivo debe tener entre 1 byte y 2 MB."); return;
+    }
+    setAttachmentBusy(true); setAttachmentError("");
+    try {
+      const saved = await uploadAssistantProjectFile(selectedProjectId, file);
+      setProjectFiles((items) => [saved, ...items]); setSelectedAttachmentId(saved.id); setWithEvidence(false);
+    } catch (cause) { setAttachmentError(cause.message); }
+    finally { setAttachmentBusy(false); }
+  };
+
+  const downloadFile = async (attachmentId, projectIdOverride = null) => {
     setAttachmentError("");
     try {
-      const url = await getAssistantAttachmentDownload(thread.id, attachmentId);
+      const projectId = projectIdOverride || projectFiles.find((item) => item.id === attachmentId)?.projectId;
+      if (!projectId && !thread) return;
+      const url = projectId ? await getAssistantProjectFileDownload(projectId, attachmentId)
+        : await getAssistantAttachmentDownload(thread.id, attachmentId);
       const link = document.createElement("a");
       link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer";
       document.body.appendChild(link); link.click(); link.remove();
@@ -286,11 +314,17 @@ function AssistantPanel({ focus = null }) {
   };
 
   const removeFile = async (attachmentId) => {
-    if (!thread || attachmentBusy) return;
+    if (attachmentBusy) return;
     setAttachmentBusy(true); setAttachmentError("");
     try {
-      await deleteAssistantAttachment(thread.id, attachmentId);
-      setAttachmentList((items) => items.filter((item) => item.id !== attachmentId));
+      const projectId = projectFiles.find((item) => item.id === attachmentId)?.projectId;
+      if (projectId) {
+        await deleteAssistantProjectFile(projectId, attachmentId);
+        setProjectFiles((items) => items.filter((item) => item.id !== attachmentId));
+      } else if (thread) {
+        await deleteAssistantAttachment(thread.id, attachmentId);
+        setAttachmentList((items) => items.filter((item) => item.id !== attachmentId));
+      }
       if (selectedAttachmentId === attachmentId) setSelectedAttachmentId(null);
     } catch (cause) { setAttachmentError(cause.message); }
     finally { setAttachmentBusy(false); }
@@ -309,8 +343,7 @@ function AssistantPanel({ focus = null }) {
       if (persistent) {
         const active = thread || await createAssistantConversation(selectedFocus, selectedProjectId);
         if (!thread) { setThread(active); setThreadList((items) => [active, ...items]); }
-        const saved = await askAssistantConversation(active.id, value, withEvidence,
-          thread ? selectedAttachmentId : null);
+        const saved = await askAssistantConversation(active.id, value, withEvidence, selectedAttachmentId);
         setMessages((current) => [...current, saved.userMessage, saved.message]);
         setThread((item) => ({ ...item, version: saved.version, updatedAt: new Date().toISOString() }));
         return;
@@ -404,10 +437,17 @@ function AssistantPanel({ focus = null }) {
           <button type="button" onClick={() => setProjectForm(null)}>Cancelar</button>
         </form>}
         {confirmDeleteProject && <div className="assistant-history-confirm" role="group" aria-label="Confirmar eliminación del proyecto">
-          <span>Las conversaciones se conservarán sin proyecto. ¿Eliminar esta carpeta?</span>
+          <span>Las conversaciones se conservarán sin proyecto. Sus archivos privados se eliminarán. ¿Eliminar esta carpeta?</span>
           <button type="button" onClick={removeProject}>Sí, eliminar proyecto</button>
           <button type="button" onClick={() => setConfirmDeleteProject(false)}>Cancelar</button>
         </div>}
+        {projectFilesMode && selectedProjectId && <section className="assistant-attachments" aria-label="Biblioteca privada del proyecto">
+          <label htmlFor="assistant-project-file">Archivos del proyecto</label>
+          <input id="assistant-project-file" type="file" accept=".pdf,.docx,.txt,.csv,.png,.jpg,.jpeg,.webp"
+            disabled={historyBusy || busy || attachmentBusy || projectFiles.length >= 4}
+            onChange={uploadProjectFile} />
+          <small>{projectFiles.length}/4 archivos · 2 MB por archivo. Disponibles para consultar desde los chats de este proyecto; no se envían a la IA hasta que eliges uno y preguntas.</small>
+        </section>}
       </div>}
       <div className="assistant-history-main"><label htmlFor="assistant-thread-query">Buscar conversaciones por título</label>
         <input id="assistant-thread-query" type="search" value={threadQuery} maxLength={80}
@@ -442,17 +482,17 @@ function AssistantPanel({ focus = null }) {
       {attachmentMode && <section className="assistant-attachments" aria-label="Archivos de esta conversación">
         <label htmlFor="assistant-attachment-file">Adjuntar archivo privado</label>
         <input id="assistant-attachment-file" type="file" accept=".pdf,.docx,.txt,.csv,.png,.jpg,.jpeg,.webp"
-          disabled={historyBusy || busy || attachmentBusy || visibleAttachments.length >= 2 || historyStale}
+          disabled={historyBusy || busy || attachmentBusy || attachmentList.length >= 2 || historyStale}
           onChange={uploadFile} />
-        <small>Hasta 2 archivos por conversación, 2 MB cada uno. PDF, DOCX, TXT, CSV o imagen. No adjuntes claves. La imagen se envía a Azure solo cuando preguntas por ella.</small>
+        <small>Hasta 2 archivos por conversación, 4 por proyecto y 20 en total; 2 MB cada uno. PDF, DOCX, TXT, CSV o imagen. No adjuntes claves. La imagen se envía a Azure solo cuando preguntas por ella.</small>
         {visibleAttachments.length > 0 && <><label htmlFor="assistant-attachment-choice">Consultar archivo</label>
           <select id="assistant-attachment-choice" value={selectedAttachmentId || ""}
             onChange={(event) => { setSelectedAttachmentId(event.target.value || null); if (event.target.value) setWithEvidence(false); }}>
             <option value="">Ninguno: consultar VERA</option>
-            {visibleAttachments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            {visibleAttachments.map((item) => <option key={item.id} value={item.id}>{item.name}{item.projectId ? " · proyecto" : " · conversación"}</option>)}
           </select>
           <ul>{visibleAttachments.map((item) => <li key={item.id}>
-            <span>{item.name} · {(item.size / 1024).toFixed(0)} KB{item.truncated ? " · lectura parcial" : ""}</span>
+            <span>{item.name} · {item.projectId ? "proyecto" : "conversación"} · {(item.size / 1024).toFixed(0)} KB{item.truncated ? " · lectura parcial" : ""}</span>
             <button type="button" onClick={() => downloadFile(item.id)}>Abrir original</button>
             <button type="button" disabled={attachmentBusy || busy} onClick={() => removeFile(item.id)}>Quitar</button>
           </li>)}</ul></>}
@@ -507,7 +547,7 @@ function AssistantPanel({ focus = null }) {
         {message.mode !== "computed" && message.coverage?.partial && <small className="assistant-answer-note">{message.mode?.startsWith("attachment-") || ["no-text", "scope-limited"].includes(message.mode) ? "La lectura del archivo fue parcial; revisa el original antes de concluir." : message.coverage.indexedOnly ? "La cantidad de archivos superó el límite de esta búsqueda; el resultado puede ser parcial." : "Se consultó una muestra de expedientes visibles; los conteos abarcan el total de tu alcance."}</small>}
         {message.metric && <div className="assistant-citations"><b>Indicador calculado</b><ul><li><Link to={message.metric.path}>{message.metric.label}: {message.metric.count} <ArrowRight size={13} aria-hidden="true" /></Link></li></ul></div>}
         {message.citations?.length > 0 && <div className="assistant-citations"><b>Registros citados</b><small>Campos consultados al responder; abre el expediente o archivo para ver su estado actual.</small><ul>{message.citations.map((item) => <li key={item.sourceId}>{item.attachmentId
-          ? <button type="button" onClick={() => downloadFile(item.attachmentId)}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></button>
+          ? <button type="button" onClick={() => downloadFile(item.attachmentId, item.projectId)}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></button>
           : <Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link>}{item.facts?.length > 0 && <span className="assistant-source-facts">{item.facts.map((fact) => `${fact.label}: ${fact.value}`).join(" · ")}</span>}{item.excerpt && <span className="assistant-source-facts">{item.pageNumber ? `Página ${item.pageNumber} · ` : ""}{item.excerpt}</span>}</li>)}</ul></div>}
         {message.citations?.length === 0 && message.mode !== "computed" && <small className="assistant-answer-note">Sin registros citados en esta respuesta.</small>}
         {message.references?.length > 0 && <details><summary>Registros relacionados ({message.references.length})</summary><ul>{message.references.map((item) => <li key={item.sourceId || `${item.type}:${item.id}`}><Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link></li>)}</ul></details>}

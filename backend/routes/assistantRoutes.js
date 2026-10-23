@@ -34,7 +34,9 @@ router.get("/status", (req, res) => {
         ? { conversations: true,
           ...(process.env.VERA_AI_PROJECTS_ENABLED === "true" ? { projects: true } : {}),
           ...(process.env.VERA_AI_MEMORY_ENABLED === "true" ? { memory: true } : {}),
-          ...(process.env.VERA_AI_ATTACHMENTS_ENABLED === "true" ? { attachments: true } : {}) } : {}) });
+          ...(process.env.VERA_AI_ATTACHMENTS_ENABLED === "true" ? { attachments: true,
+            ...(process.env.VERA_AI_PROJECTS_ENABLED === "true" &&
+              process.env.VERA_AI_PROJECT_FILES_ENABLED === "true" ? { projectFiles: true } : {}) } : {}) } : {}) });
   } catch {
     res.json({ available: false, reason: "invalid-configuration", mode: "read-only" });
   }
@@ -54,6 +56,10 @@ const memoryEnabled = (req, res, next) => process.env.VERA_AI_MEMORY_ENABLED ===
 const attachmentEnabled = (req, res, next) => process.env.VERA_AI_ATTACHMENTS_ENABLED === "true"
   ? conversationEnabled(req, res, next)
   : res.status(503).json({ message: "Los archivos privados del chat aún no están habilitados." });
+const projectFilesEnabled = (req, res, next) => process.env.VERA_AI_PROJECT_FILES_ENABLED === "true" &&
+  process.env.VERA_AI_ATTACHMENTS_ENABLED === "true" && process.env.VERA_AI_PROJECTS_ENABLED === "true"
+  ? conversationEnabled(req, res, next)
+  : res.status(503).json({ message: "La biblioteca privada del proyecto aún no está habilitada." });
 const conversationError = (res, error) => {
   if ([400, 404, 409, 415, 422, 429, 503, 504].includes(error.status)) return res.status(error.status).json({ message: error.message });
   return res.status(502).json({ message: "No se pudo consultar el historial privado." });
@@ -161,6 +167,86 @@ router.delete("/conversations/:id/attachments/:attachmentId", attachmentEnabled,
   } catch (error) { return conversationError(res, error); }
 });
 
+router.get("/projects/:id/files", projectFilesEnabled, async (req, res) => {
+  try {
+    if (!await projects.get(req.user, req.params.id)) {
+      return res.status(404).json({ message: "Proyecto no disponible." });
+    }
+    return res.json({ files: await attachments.listProject(req.user, req.params.id) });
+  } catch (error) { return conversationError(res, error); }
+});
+
+router.post("/projects/:id/files", projectFilesEnabled,
+  rateLimit({ windowMs: 15 * 60 * 1000, limit: 4, keyGenerator: (req) => String(req.user.id),
+    standardHeaders: "draft-8", legacyHeaders: false }),
+  express.raw({ type: () => true, limit: "2mb" }), async (req, res) => {
+    const mime = String(req.headers["content-type"] || "").split(";")[0].toLowerCase();
+    if (!Buffer.isBuffer(req.body)) return res.status(400).json({ message: "El cuerpo del archivo no es válido." });
+    const fileBytes = Buffer.from(req.body);
+    let name;
+    try { name = decodeURIComponent(String(req.headers["x-file-name"] || "")); }
+    catch { return res.status(400).json({ message: "El nombre del archivo no es válido." }); }
+    name = name.replace(/[\\/\x00-\x1f\x7f]/g, "").trim();
+    if (!name || name.length > 120 || fileBytes.length === 0 ||
+        fileBytes.length > 2 * 1024 * 1024 || !(SEARCHABLE_MIME.has(mime) || IMAGE_MIME.has(mime))) {
+      return res.status(400).json({ message: "Adjunta un PDF, DOCX, TXT, CSV, PNG, JPEG o WebP de hasta 2 MB." });
+    }
+    try {
+      if (!await projects.get(req.user, req.params.id)) {
+        return res.status(404).json({ message: "Proyecto no disponible." });
+      }
+      if ((process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production") &&
+          process.env.VERA_EVIDENCE_COMMENT_STORE !== "supabase") {
+        return res.status(503).json({ message: "Los archivos requieren almacenamiento privado persistente." });
+      }
+      if ((await attachments.listProject(req.user, req.params.id)).length >= attachments.MAX_PER_PROJECT ||
+          await attachments.countForUser(req.user) >= attachments.MAX_PER_USER) {
+        return res.status(409).json({ message: "Alcanzaste el límite de archivos privados." });
+      }
+      let extracted = { chunks: [], status: "ready", truncated: false };
+      if (SEARCHABLE_MIME.has(mime)) {
+        try { extracted = await extractEvidenceText(fileBytes, mime); }
+        catch { return res.status(422).json({ message: "No se pudo extraer texto de este archivo." }); }
+      }
+      const file = await evidenceStorage.upload({ entityType: "ai", entityId: req.params.id,
+        mime, bytes: fileBytes });
+      try {
+        const saved = await attachments.createProject(req.user, req.params.id,
+          { name, file, chunks: extracted.chunks, status: extracted.status, truncated: extracted.truncated });
+        console.info(JSON.stringify({ event: "VERA_AI_PROJECT_FILE", role: req.user.role,
+          mime, bytes: file.size, chunks: extracted.chunks.length }));
+        return res.status(201).json({ file: saved });
+      } catch (error) {
+        try { await evidenceStorage.remove(file); } catch { /* Cleanup may require operator review. */ }
+        throw error;
+      }
+    } catch (error) { return conversationError(res, error); }
+  });
+
+router.get("/projects/:id/files/:fileId/download", projectFilesEnabled, async (req, res) => {
+  try {
+    if (!await projects.get(req.user, req.params.id)) {
+      return res.status(404).json({ message: "Proyecto no disponible." });
+    }
+    const row = await attachments.getProject(req.user, req.params.id, req.params.fileId);
+    if (!row) return res.status(404).json({ message: "Archivo no disponible." });
+    return res.json({ url: await evidenceStorage.signedDownloadUrl(row.file), expiresIn: 60 });
+  } catch (error) { return conversationError(res, error); }
+});
+
+router.delete("/projects/:id/files/:fileId", projectFilesEnabled, async (req, res) => {
+  try {
+    if (!await projects.get(req.user, req.params.id)) {
+      return res.status(404).json({ message: "Proyecto no disponible." });
+    }
+    const row = await attachments.getProject(req.user, req.params.id, req.params.fileId);
+    if (!row) return res.status(404).json({ message: "Archivo no disponible." });
+    await evidenceStorage.remove(row.file);
+    await attachments.removeProject(req.user, req.params.id, row.id);
+    return res.status(204).end();
+  } catch (error) { return conversationError(res, error); }
+});
+
 router.get("/memories", memoryEnabled, async (req, res) => {
   try { return res.json({ memories: await memory.list(req.user) }); }
   catch (error) { return conversationError(res, error); }
@@ -240,6 +326,16 @@ router.patch("/projects/:id", projectEnabled, async (req, res) => {
 
 router.delete("/projects/:id", projectEnabled, async (req, res) => {
   try {
+    if (!await projects.get(req.user, req.params.id)) {
+      return res.status(404).json({ message: "Proyecto no disponible." });
+    }
+    if (process.env.VERA_AI_PROJECT_FILES_ENABLED === "true") {
+      for (const item of await attachments.listProject(req.user, req.params.id)) {
+        const stored = await attachments.getProject(req.user, req.params.id, item.id);
+        await evidenceStorage.remove(stored.file);
+        await attachments.removeProject(req.user, req.params.id, item.id);
+      }
+    }
     if (!await projects.remove(req.user, req.params.id)) {
       return res.status(404).json({ message: "Proyecto no disponible." });
     }
@@ -348,12 +444,16 @@ router.post("/conversations/:id/ask", conversationEnabled,
       if (scopeHash !== thread.scopeHash) return res.status(409).json({
         message: "Cambió el alcance de tus expedientes. Inicia una conversación nueva." });
       const history = thread.messages.slice(-6).map(({ role, text }) => ({ role, text: text.slice(0, 800) }));
-      const attached = attachmentId ? await attachments.get(req.user, thread.id, attachmentId) : null;
+      const attached = attachmentId ? await attachments.get(req.user, thread.id, attachmentId) ||
+        (process.env.VERA_AI_PROJECT_FILES_ENABLED === "true" && thread.projectId
+          ? await attachments.getProject(req.user, thread.projectId, attachmentId) : null) : null;
       if (attachmentId && !attached) return res.status(404).json({ message: "Archivo no disponible." });
       const project = thread.projectId ? await projects.get(req.user, thread.projectId) : null;
       const result = attached ? await askAttachment(attached, question.trim())
         : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
           project?.instructions || "");
+      if (attached?.project_id) result.citations = (result.citations || []).map((citation) => ({
+        ...citation, projectId: attached.project_id }));
       const currentUser = await userRepository.findById(req.user.id);
       if (currentUser?.status !== "ACTIVE" || currentUser.role !== req.user.role ||
           await currentScope(req.user, thread.focus) !== scopeHash) {
