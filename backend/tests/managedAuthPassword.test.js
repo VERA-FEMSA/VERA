@@ -1,6 +1,5 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const crypto = require("node:crypto");
 const { enabled, config, getUser, normalizePassword, validateNewPassword } = require("../services/managedAuth");
 
 const email = "sample@example.com";
@@ -16,7 +15,8 @@ test("new passwords are normalized and must meet the length and identity rules",
 
 test("password screening rejects exposed secrets and fails closed when unavailable", async () => {
   const originalFetch = global.fetch;
-  const hash = crypto.createHash("sha1").update(password).digest("hex").toUpperCase();
+  // Fixed HIBP range-protocol fixture for the synthetic password above.
+  const hash = "DC77D2CA9052AA826DB278035390250F6D81DE97";
   const suffix = hash.slice(5);
   try {
     global.fetch = async (url, options) => {
