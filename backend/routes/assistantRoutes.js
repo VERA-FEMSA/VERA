@@ -134,7 +134,14 @@ router.post("/conversations/:id/attachments", attachmentEnabled,
       let extracted = { chunks: [], status: "ready", truncated: false };
       if (SEARCHABLE_MIME.has(mime)) {
         try { extracted = await extractEvidenceText(fileBytes, mime); }
-        catch { return res.status(422).json({ message: "No se pudo extraer texto de este archivo." }); }
+        catch (error) {
+          if (mime === "application/pdf") console.error(JSON.stringify({
+            event: "VERA_AI_PDF_EXTRACT_FAILURE", error: error?.name || "unknown",
+            code: error?.code || null,
+            dependency: /@napi-rs\/canvas|pdfjs-dist|DOMMatrix|Path2D/.exec(String(error?.message || ""))?.[0] || null
+          }));
+          return res.status(422).json({ message: "No se pudo extraer texto de este archivo." });
+        }
       }
       const file = await evidenceStorage.upload({ entityType: "ai", entityId: req.params.id,
         mime, bytes: fileBytes });
