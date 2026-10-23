@@ -1,5 +1,4 @@
 const { MAX_BYTES } = require("./evidenceStorage");
-const path = require("node:path");
 const { parse } = require("csv-parse/sync");
 const { extractDocxParagraphs } = require("./docxTextExtraction");
 
@@ -79,10 +78,10 @@ const extractEvidenceText = async (bytes, mime) => {
   globalThis.DOMMatrix ||= DOMMatrix;
   globalThis.Path2D ||= Path2D;
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const standardFontDataUrl = path.join(path.dirname(require.resolve("pdfjs-dist/package.json")),
-    "standard_fonts").replace(/\\/g, "/") + "/";
+  // Vercel traces the reader but not pdfjs-dist/package.json; do not resolve
+  // that auxiliary path just to pass standardFontDataUrl.
   const task = getDocument({ data: new Uint8Array(data), isEvalSupported: false,
-    disableFontFace: true, useSystemFonts: false, standardFontDataUrl });
+    disableFontFace: true, useSystemFonts: false });
   try {
     const document = await task.promise;
     const pages = [];
