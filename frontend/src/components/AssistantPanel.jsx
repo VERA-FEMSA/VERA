@@ -1,6 +1,6 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Bot, FileText, Pencil, RotateCcw, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
+import { ArrowRight, FileText, PanelLeftClose, PanelLeftOpen, Pencil, Plus, RotateCcw, Send, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
 import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantAttachment, deleteAssistantConversation, deleteAssistantProject, deleteAssistantProjectFile, getAssistantAttachmentDownload, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantProjectFileDownload, getAssistantStatus, getAuditDossier, getProposalDraft, listAssistantAttachments, listAssistantConversations, listAssistantProjectFiles, listAssistantProjects, moveAssistantConversation, ocrAssistantAttachment, ocrAssistantProjectFile, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject, uploadAssistantAttachment, uploadAssistantProjectFile } from "../services/assistantService";
 import { AssistantConversationContext } from "../contexts/AssistantConversationContext";
 import AssistantMemoryPanel from "./AssistantMemoryPanel";
@@ -15,7 +15,7 @@ const promptsByRole = {
 };
 const PROJECT_LIBRARY = "__project_library__";
 
-function AssistantPanel({ focus = null }) {
+function AssistantPanel({ focus = null, compact = false }) {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const canDraftProposal = ["SUPER_ADMIN", "GERENTE", "JEFATURA"].includes(user?.role);
@@ -70,6 +70,12 @@ function AssistantPanel({ focus = null }) {
   const [projectDescription, setProjectDescription] = useState("");
   const [projectInstructions, setProjectInstructions] = useState("");
   const [confirmDeleteProject, setConfirmDeleteProject] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(() => !compact && window.matchMedia("(min-width: 1080px)").matches);
+  const streamRef = useRef(null);
+
+  useEffect(() => {
+    if (streamRef.current) streamRef.current.scrollTop = streamRef.current.scrollHeight;
+  }, [messages.length, busy]);
 
   useEffect(() => {
     let active = true;
@@ -133,6 +139,9 @@ function AssistantPanel({ focus = null }) {
     item.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es").includes(normalizedQuery))
     : projectThreads;
   const visibleAttachments = [...(thread ? attachmentList : []), ...projectFiles];
+  const closeHistoryOnNarrow = () => {
+    if (compact || window.matchMedia("(max-width: 1080px)").matches) setHistoryOpen(false);
+  };
 
   const chooseProject = async (id) => {
     const projectId = id || null;
@@ -192,6 +201,7 @@ function AssistantPanel({ focus = null }) {
       const opened = await getAssistantConversation(id);
       setThread(opened); setHistoryStale(Boolean(opened.stale));
       setMessages(opened.messages || []);
+      closeHistoryOnNarrow();
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
   };
@@ -205,6 +215,7 @@ function AssistantPanel({ focus = null }) {
         selectedProjectId);
       setThreadQuery(""); setThread(created); setThreadList((items) => [created, ...items]);
       setHistoryStale(false); setMessages([]); setError("");
+      closeHistoryOnNarrow();
     } catch (cause) { setHistoryError(cause.message); }
     finally { setHistoryBusy(false); }
   };
@@ -297,6 +308,7 @@ function AssistantPanel({ focus = null }) {
     try {
       const saved = await uploadAssistantProjectFile(selectedProjectId, file);
       setProjectFiles((items) => [saved, ...items]); setSelectedAttachmentId(saved.id); setWithEvidence(false);
+      closeHistoryOnNarrow();
     } catch (cause) { setAttachmentError(cause.message); }
     finally { setAttachmentBusy(false); }
   };
@@ -417,8 +429,10 @@ function AssistantPanel({ focus = null }) {
       "¿Qué requiere atención en este expediente?", "Prepara un borrador de próximos pasos para revisión."]
     : promptsByRole[user?.role] || ["Resume mis pendientes."];
 
-  return <section className="assistant-chat" aria-label="Conversación con el asistente">
-    {persistent && <div className="assistant-history" aria-label="Historial privado">
+  return <section className={`assistant-chat ${compact ? "assistant-chat--compact" : "assistant-chat--page"} ${persistent && historyOpen ? "assistant-chat--history-open" : ""}`} aria-label="Conversación con el asistente">
+    {persistent && <aside id="assistant-history-panel" className="assistant-history" aria-label="Historial privado">
+      <div className="assistant-rail-heading"><div><b>VERA</b><span>Espacio de IA</span></div><button type="button" onClick={() => setHistoryOpen(false)} aria-label="Ocultar historial"><PanelLeftClose size={18} aria-hidden="true" /></button></div>
+      <button className="assistant-new-button" type="button" onClick={newThread} disabled={historyBusy || busy}><Plus size={18} aria-hidden="true" /> Nueva conversación</button>
       {memoryMode && <AssistantMemoryPanel />}
       {projectMode && <div className="assistant-projects" aria-label="Proyectos privados">
         <div className="assistant-history-main"><label htmlFor="assistant-project">Proyecto</label>
@@ -470,62 +484,35 @@ function AssistantPanel({ focus = null }) {
         <input id="assistant-thread-query" type="search" value={threadQuery} maxLength={80}
           onChange={(event) => setThreadQuery(event.target.value)} placeholder="Buscar en este proyecto" />
         <small role="status">{visibleThreads.length} de {projectThreads.length} conversaciones</small></div>
-      <div className="assistant-history-main"><label htmlFor="assistant-thread">Conversaciones privadas</label>
-        <select id="assistant-thread" value={visibleThreads.some((item) => item.id === thread?.id) ? thread.id : ""}
-          disabled={historyBusy || busy || !visibleThreads.length}
-          onChange={(event) => openThread(event.target.value)}><option value="">Selecciona una conversación</option>
-          {visibleThreads.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select>
-        <button type="button" onClick={newThread} disabled={historyBusy || busy}>Nueva conversación</button></div>
+      <nav className="assistant-thread-list" aria-label="Conversaciones privadas"><h3>Conversaciones privadas</h3><ul>{visibleThreads.map((item) => <li key={item.id}><button type="button" className={thread?.id === item.id ? "is-active" : ""} aria-current={thread?.id === item.id ? "page" : undefined} disabled={historyBusy || busy} onClick={() => openThread(item.id)}><span>{item.title}</span></button></li>)}</ul></nav>
+      {!historyBusy && visibleThreads.length === 0 && <p className="assistant-rail-empty">{normalizedQuery ? "No hay conversaciones con ese título." : "Aquí aparecerán tus conversaciones."}</p>}
       {projectMode && thread && <div className="assistant-history-main"><label htmlFor="assistant-move-thread">Mover conversación a</label>
         <select id="assistant-move-thread" value={thread.projectId || ""} disabled={historyBusy || busy}
           onChange={moveThread}><option value="">Sin proyecto</option>
           {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select></div>}
-      {thread && <div className="assistant-history-actions"><button type="button" onClick={() => {
-        setDraftTitle(thread.title); setEditingTitle(true); setConfirmDelete(false);
-      }} disabled={historyBusy || busy} aria-label="Renombrar conversación"><Pencil size={15} aria-hidden="true" /> Renombrar</button>
-        <button type="button" onClick={exportThread} disabled={historyBusy || busy || exportBusy || historyStale}
-          aria-label="Exportar conversación privada">{exportBusy ? "Preparando exportación..." : "Exportar JSON"}</button>
-        <button type="button" onClick={() => { setConfirmDelete(true); setEditingTitle(false); }}
-          disabled={historyBusy || busy} aria-label="Eliminar conversación"><Trash2 size={15} aria-hidden="true" /> Eliminar</button></div>}
-      {thread && <small>La exportación contiene texto y fuentes privadas de esta conversación; los archivos adjuntos se descargan por separado.</small>}
-      {editingTitle && <form className="assistant-history-edit" onSubmit={renameThread}><label htmlFor="assistant-thread-title">Nuevo nombre</label>
+    </aside>}
+    <div className="assistant-conversation">
+      <header className="assistant-conversation-header"><div className="assistant-conversation-title">
+        {persistent && <button className="assistant-icon-button" type="button" onClick={() => setHistoryOpen((open) => !open)} aria-label={historyOpen ? "Ocultar historial" : "Mostrar historial"} aria-expanded={historyOpen} aria-controls="assistant-history-panel">{historyOpen ? <PanelLeftClose size={19} aria-hidden="true" /> : <PanelLeftOpen size={19} aria-hidden="true" />}</button>}
+        <div><span className="assistant-kicker">VERA · ASISTENTE</span><h2>{thread?.title || (focus ? "Consulta de expediente" : "Nueva conversación")}</h2></div>
+      </div><div className="assistant-conversation-tools"><span className="assistant-availability">{available === null ? "Conectando" : available ? "Solo lectura" : "No disponible"}</span>
+        {thread && <><button type="button" onClick={() => { setDraftTitle(thread.title); setEditingTitle(true); setConfirmDelete(false); }} disabled={historyBusy || busy} aria-label="Renombrar conversación" title="Renombrar conversación"><Pencil size={16} aria-hidden="true" /></button>
+          <button type="button" onClick={exportThread} disabled={historyBusy || busy || exportBusy || historyStale} aria-label="Exportar conversación privada" title="Exportar JSON"><FileText size={16} aria-hidden="true" /></button>
+          <button type="button" onClick={() => { setConfirmDelete(true); setEditingTitle(false); }} disabled={historyBusy || busy} aria-label="Eliminar conversación" title="Eliminar conversación"><Trash2 size={16} aria-hidden="true" /></button></>}
+      </div></header>
+      {thread && <small className="assistant-export-notice">La exportación contiene texto y fuentes privadas de esta conversación; los archivos adjuntos se descargan por separado.</small>}
+      {editingTitle && <form className="assistant-history-edit assistant-inline-action" onSubmit={renameThread}><label htmlFor="assistant-thread-title">Nuevo nombre</label>
         <input id="assistant-thread-title" value={draftTitle} maxLength={80} onChange={(event) => setDraftTitle(event.target.value)} />
         <button type="submit" disabled={!draftTitle.trim() || historyBusy}>Guardar</button>
         <button type="button" onClick={() => setEditingTitle(false)}>Cancelar</button></form>}
-      {confirmDelete && <div className="assistant-history-confirm" role="group" aria-label="Confirmar eliminación">
+      {confirmDelete && <div className="assistant-history-confirm assistant-inline-action" role="group" aria-label="Confirmar eliminación">
         <span>¿Eliminar esta conversación de forma permanente?</span><button type="button" onClick={removeThread}>Sí, eliminar</button>
         <button type="button" onClick={() => setConfirmDelete(false)}>Cancelar</button></div>}
-      {attachmentMode && <section className="assistant-attachments" aria-label="Archivos de esta conversación">
-        <label htmlFor="assistant-attachment-file">Adjuntar archivo privado</label>
-        <input id="assistant-attachment-file" type="file" accept=".pdf,.docx,.txt,.csv,.png,.jpg,.jpeg,.webp"
-          disabled={historyBusy || busy || attachmentBusy || attachmentList.length >= 2 || historyStale}
-          onChange={uploadFile} />
-        <small>Hasta 2 archivos por conversación, 4 por proyecto y 20 en total; 2 MB cada uno. PDF, DOCX, TXT, CSV o imagen. No adjuntes claves. La imagen se envía a Azure solo cuando preguntas por ella.</small>
-        {visibleAttachments.length > 0 && <><label htmlFor="assistant-attachment-choice">Consultar archivo</label>
-          <select id="assistant-attachment-choice" value={selectedAttachmentId || ""}
-            onChange={(event) => { setSelectedAttachmentId(event.target.value || null); if (event.target.value) setWithEvidence(false); }}>
-            <option value="">Ninguno: consultar VERA</option>
-            {projectKnowledgeMode && projectFiles.some((item) => item.status === "ready") &&
-              <option value={PROJECT_LIBRARY}>Biblioteca del proyecto · fragmentos de archivos legibles</option>}
-            {visibleAttachments.map((item) => <option key={item.id} value={item.id}>{item.name}{item.projectId ? " · proyecto" : " · conversación"}</option>)}
-          </select>
-          <ul>{visibleAttachments.map((item) => <li key={item.id}>
-            <span>{item.name} · {item.projectId ? "proyecto" : "conversación"} · {(item.size / 1024).toFixed(0)} KB{item.status === "no-text" ? " · sin texto legible" : ""}{item.truncated ? " · lectura parcial" : ""}</span>
-            <button type="button" onClick={() => downloadFile(item.id)}>Abrir original</button>
-            {pdfOcrMode && item.mime === "application/pdf" && item.status === "no-text" &&
-              <button type="button" disabled={attachmentBusy || busy} onClick={() => ocrFile(item)}>Extraer texto del PDF</button>}
-            <button type="button" disabled={attachmentBusy || busy} onClick={() => removeFile(item.id)}>Quitar</button>
-          </li>)}</ul></>}
-        {pdfOcrMode && visibleAttachments.some((item) => item.mime === "application/pdf" && item.status === "no-text") &&
-          <small>La extracción es opcional: al pulsarla, VERA envía como máximo las dos primeras páginas a Azure. Puede generar consumo y siempre debes revisar el PDF original.</small>}
-        {attachmentBusy && <small role="status">Procesando archivo privado...</small>}
-        {attachmentError && <p className="assistant-error" role="alert">{attachmentError}</p>}
-      </section>}
-      {historyBusy && <small role="status">Cargando historial...</small>}
-      {historyError && <p className="assistant-error" role="alert">{historyError}</p>}
-      {historyStale && <p className="assistant-state" role="status">Cambió tu alcance de datos. Por protección, esta conversación ya no muestra respuestas anteriores. Inicia una conversación nueva.</p>}
-    </div>}
+      <div className="assistant-stream" ref={streamRef}>
+    {historyBusy && <p className="assistant-state" role="status">Cargando historial...</p>}
+    {historyError && <p className="assistant-error" role="alert">{historyError}</p>}
+    {historyStale && <p className="assistant-state" role="status">Cambió tu alcance de datos. Por protección, esta conversación ya no muestra respuestas anteriores. Inicia una conversación nueva.</p>}
     {focus && <div className="assistant-focus"><b>Expediente en contexto</b><span>{focus.title || focus.id}</span><small>La respuesta usará solo los registros que tu cuenta puede consultar.</small></div>}
     {focus?.type === "audit" && <section className="assistant-dossier" aria-label="Briefing de auditoría">
       <div className="assistant-dossier-header"><div><h2>Briefing del expediente</h2><p>Estado y relaciones calculados desde registros visibles.</p></div>
@@ -554,7 +541,7 @@ function AssistantPanel({ focus = null }) {
     {available === false && <p className="assistant-state" role="status">{reason === "persistent-stores-required"
       ? "El asistente requiere activar los almacenes persistentes de cuentas, auditorías y riesgos en este entorno."
       : "El asistente todavía no está habilitado en este entorno. Un administrador debe configurar Azure OpenAI."}</p>}
-    {available && messages.length === 0 && <div className="assistant-welcome"><Bot size={28} aria-hidden="true" />
+    {available && messages.length === 0 && <div className="assistant-welcome"><img className="assistant-welcome-mark" src="/vera-logo.svg" alt="" />
       <h2>{focus ? "Analiza este expediente" : "¿Qué quieres consultar?"}</h2>
       <p>Respondo con datos visibles para tu cuenta. Comprueba las fuentes antes de tomar una decisión.</p>
       <div className="assistant-suggestions">{prompts.map((item) => <button key={item} type="button" onClick={() => setQuestion(item)}>{item}</button>)}</div>
@@ -580,7 +567,37 @@ function AssistantPanel({ focus = null }) {
     {busy && <p className="assistant-state" role="status">Consultando información autorizada...</p>}
     {error && <p className="assistant-error" role="alert">{error}</p>}
     {!persistent && messages.length > 0 && <button className="assistant-clear" type="button" onClick={() => { setMessages([]); setError(""); }}><RotateCcw size={14} aria-hidden="true" /> Nueva conversación</button>}
-    <form className="assistant-form" onSubmit={submit}><label htmlFor="assistant-question">Tu pregunta</label><label className="assistant-search-option"><input type="checkbox" checked={withEvidence} onChange={(event) => setWithEvidence(event.target.checked)} disabled={!available || busy || Boolean(selectedAttachmentId)} /> Buscar también en textos de evidencias visibles</label><div><textarea id="assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={withEvidence ? 500 : 800} rows={3} placeholder={selectedAttachmentId === PROJECT_LIBRARY ? "Pregunta sobre fragmentos de la biblioteca..." : selectedAttachmentId ? "Pregunta sobre el archivo seleccionado..." : "Escribe una pregunta sobre VERA..."} disabled={!available || busy || historyBusy || attachmentBusy || Boolean(historyError) || historyStale} /><button type="submit" disabled={!available || busy || historyBusy || attachmentBusy || Boolean(historyError) || historyStale || question.trim().length < 3 || question.trim().length > (withEvidence ? 500 : 800)} aria-label="Enviar pregunta"><Send size={19} aria-hidden="true" /></button></div><small>{question.length}/{withEvidence ? 500 : 800} caracteres · No escribas contraseñas ni claves.</small></form>
+      </div>
+      <div className="assistant-compose-dock">
+      {attachmentMode && <section className="assistant-attachments" aria-label="Archivos de esta conversación">
+        <div className="assistant-attachments-heading"><label htmlFor="assistant-attachment-file">Adjuntar archivo privado</label><span>PDF, documentos e imágenes</span></div>
+        <input id="assistant-attachment-file" type="file" accept=".pdf,.docx,.txt,.csv,.png,.jpg,.jpeg,.webp"
+          disabled={historyBusy || busy || attachmentBusy || attachmentList.length >= 2 || historyStale}
+          onChange={uploadFile} />
+        <small>Hasta 2 archivos por conversación, 4 por proyecto y 20 en total; 2 MB cada uno. PDF, DOCX, TXT, CSV o imagen. No adjuntes claves. La imagen se envía a Azure solo cuando preguntas por ella.</small>
+        {visibleAttachments.length > 0 && <><label htmlFor="assistant-attachment-choice">Consultar archivo</label>
+          <select id="assistant-attachment-choice" value={selectedAttachmentId || ""}
+            onChange={(event) => { setSelectedAttachmentId(event.target.value || null); if (event.target.value) setWithEvidence(false); }}>
+            <option value="">Ninguno: consultar VERA</option>
+            {projectKnowledgeMode && projectFiles.some((item) => item.status === "ready") &&
+              <option value={PROJECT_LIBRARY}>Biblioteca del proyecto · fragmentos de archivos legibles</option>}
+            {visibleAttachments.map((item) => <option key={item.id} value={item.id}>{item.name}{item.projectId ? " · proyecto" : " · conversación"}</option>)}
+          </select>
+          <ul>{visibleAttachments.map((item) => <li key={item.id}>
+            <span>{item.name} · {item.projectId ? "proyecto" : "conversación"} · {(item.size / 1024).toFixed(0)} KB{item.status === "no-text" ? " · sin texto legible" : ""}{item.truncated ? " · lectura parcial" : ""}</span>
+            <button type="button" onClick={() => downloadFile(item.id)}>Abrir original</button>
+            {pdfOcrMode && item.mime === "application/pdf" && item.status === "no-text" &&
+              <button type="button" disabled={attachmentBusy || busy} onClick={() => ocrFile(item)}>Extraer texto del PDF</button>}
+            <button type="button" disabled={attachmentBusy || busy} onClick={() => removeFile(item.id)}>Quitar</button>
+          </li>)}</ul></>}
+        {pdfOcrMode && visibleAttachments.some((item) => item.mime === "application/pdf" && item.status === "no-text") &&
+          <small>La extracción es opcional: al pulsarla, VERA envía como máximo las dos primeras páginas a Azure. Puede generar consumo y siempre debes revisar el PDF original.</small>}
+        {attachmentBusy && <small role="status">Procesando archivo privado...</small>}
+        {attachmentError && <p className="assistant-error" role="alert">{attachmentError}</p>}
+      </section>}
+      <form className="assistant-form" onSubmit={submit}><label htmlFor="assistant-question">Tu pregunta</label><label className="assistant-search-option"><input type="checkbox" checked={withEvidence} onChange={(event) => setWithEvidence(event.target.checked)} disabled={!available || busy || Boolean(selectedAttachmentId)} /> Buscar también en textos de evidencias visibles</label><div><textarea id="assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} maxLength={withEvidence ? 500 : 800} rows={2} placeholder={selectedAttachmentId === PROJECT_LIBRARY ? "Pregunta sobre fragmentos de la biblioteca..." : selectedAttachmentId ? "Pregunta sobre el archivo seleccionado..." : "Escribe una pregunta sobre VERA..."} disabled={!available || busy || historyBusy || attachmentBusy || Boolean(historyError) || historyStale} /><button type="submit" disabled={!available || busy || historyBusy || attachmentBusy || Boolean(historyError) || historyStale || question.trim().length < 3 || question.trim().length > (withEvidence ? 500 : 800)} aria-label="Enviar pregunta"><Send size={19} aria-hidden="true" /></button></div><small>{question.length}/{withEvidence ? 500 : 800} caracteres · Enter para enviar · Shift + Enter para nueva línea · No escribas contraseñas ni claves.</small></form>
+      </div>
+    </div>
   </section>;
 }
 
