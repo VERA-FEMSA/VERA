@@ -8,6 +8,70 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/assistant/insights", (route) => route.fulfill({ json: { insights: [], partial: false } }));
 });
 
+async function showHistory(page) {
+  const header = page.locator(".assistant-conversation-header");
+  await expect(header.getByRole("button", { name: /historial/i })).toBeVisible();
+  const toggle = header.getByRole("button", { name: "Mostrar historial" });
+  if (await toggle.isVisible()) await toggle.click();
+  await expect(page.locator(".assistant-history")).toBeVisible();
+}
+
+async function hideHistoryOnNarrow(page) {
+  if (page.viewportSize()?.width > 1080) return;
+  const toggle = page.locator(".assistant-rail-heading").getByRole("button", { name: "Ocultar historial" });
+  if (await toggle.isVisible()) await toggle.click();
+}
+
+test("Espacio de IA: la lista lateral permite cambiar de conversación y cerrarse", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "read-only", conversations: true
+  } }));
+  const threads = [
+    { id: "11111111-1111-4111-8111-111111111111", title: "Riesgos del trimestre", focus: null, version: 1 },
+    { id: "22222222-2222-4222-8222-222222222222", title: "Pendientes de auditoría", focus: null, version: 1 }
+  ];
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/conversations")) return route.fulfill({ json: { conversations: threads } });
+    const selected = threads.find((item) => path.endsWith(`/${item.id}`));
+    if (selected) return route.fulfill({ json: { conversation: { ...selected, messages: [], stale: false } } });
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await showHistory(page);
+  const recent = page.getByRole("navigation", { name: "Conversaciones privadas" });
+  await expect(recent.getByRole("button", { name: "Riesgos del trimestre" })).toBeVisible();
+  await recent.getByRole("button", { name: "Pendientes de auditoría" }).click();
+  await expect(page.getByRole("heading", { name: "Pendientes de auditoría" })).toBeVisible();
+  await showHistory(page);
+  await expect(recent.getByRole("button", { name: "Pendientes de auditoría" })).toHaveAttribute("aria-current", "page");
+  await page.locator(".assistant-rail-heading").getByRole("button", { name: "Ocultar historial" }).click();
+  await expect(page.locator(".assistant-conversation-header").getByRole("button", { name: "Mostrar historial" })).toBeVisible();
+});
+
+test("Espacio de IA: Enter envía y Shift+Enter conserva una nueva línea", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "read-only", conversations: false
+  } }));
+  let sent = null;
+  await page.route("**/api/assistant/ask", (route) => {
+    sent = route.request().postDataJSON().question;
+    return route.fulfill({ json: { answer: "Respuesta de prueba", mode: "generated", citations: [] } });
+  });
+  await page.goto("/asistente");
+  const input = page.getByLabel("Tu pregunta");
+  await input.fill("¿Qué auditorías tengo?");
+  await input.press("Shift+Enter");
+  await expect(input).toHaveValue("¿Qué auditorías tengo?\n");
+  expect(sent).toBeNull();
+  await input.type("Resume mis pendientes");
+  await input.press("Enter");
+  await expect(page.getByText("Respuesta de prueba")).toBeVisible();
+  expect(sent).toBe("¿Qué auditorías tengo?\nResume mis pendientes");
+});
+
 test("Copiloto: OCR opcional de PDF escaneado mantiene la consulta explícita", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
@@ -138,12 +202,14 @@ test("Copiloto: memoria visible, editable, pausada y borrable", async ({ page })
     return route.abort();
   });
   await page.goto("/asistente");
+  await showHistory(page);
   await page.getByRole("button", { name: /Memoria personalizada/ }).click();
   await page.getByRole("button", { name: "Añadir nota" }).click();
   await page.getByLabel("Nota para futuras conversaciones").fill("Prefiero respuestas breves");
   await page.getByRole("button", { name: "Guardar nota" }).click();
   await expect(page.getByText("Prefiero respuestas breves")).toBeVisible();
   await page.reload();
+  await showHistory(page);
   await page.getByRole("button", { name: /Memoria personalizada/ }).click();
   await expect(page.getByText("Prefiero respuestas breves")).toBeVisible();
   await page.getByRole("button", { name: "Pausar" }).click();
@@ -203,23 +269,29 @@ test("Copiloto: proyectos privados agrupan hilos y borrarlos conserva el histori
     return route.abort();
   });
   await page.goto("/asistente");
+  await showHistory(page);
   await page.getByRole("button", { name: "Nuevo proyecto" }).click();
   await page.getByLabel("Nombre del proyecto").fill("Auditoría anual");
   await page.getByLabel("Preferencias para respuestas de este proyecto (opcional)").fill("Responde en tres puntos");
   await page.getByRole("button", { name: "Guardar proyecto" }).click();
   await expect(page.getByLabel("Proyecto", { exact: true })).toHaveValue(projectId);
   await page.getByRole("button", { name: "Nueva conversación" }).click();
-  await expect(page.getByLabel("Conversaciones privadas")).toHaveValue(threadId);
+  await showHistory(page);
+  await expect(page.getByRole("navigation", { name: "Conversaciones privadas" }).getByRole("button", { name: "Nueva conversación" })).toHaveAttribute("aria-current", "page");
   await page.reload();
+  await showHistory(page);
   await page.getByLabel("Proyecto", { exact: true }).selectOption(projectId);
-  await expect(page.getByRole("option", { name: "Nueva conversación" })).toBeAttached();
+  await showHistory(page);
+  await expect(page.getByRole("navigation", { name: "Conversaciones privadas" }).getByRole("button", { name: "Nueva conversación" })).toBeVisible();
   await page.getByRole("button", { name: "Editar proyecto" }).click();
   await expect(page.getByLabel("Preferencias para respuestas de este proyecto (opcional)"))
     .toHaveValue("Responde en tres puntos");
   await page.getByLabel("Preferencias para respuestas de este proyecto (opcional)").fill("Cita primero las fuentes");
   await page.getByRole("button", { name: "Guardar proyecto" }).click();
   await page.reload();
+  await showHistory(page);
   await page.getByLabel("Proyecto", { exact: true }).selectOption(projectId);
+  await showHistory(page);
   await page.getByRole("button", { name: "Editar proyecto" }).click();
   await expect(page.getByLabel("Preferencias para respuestas de este proyecto (opcional)"))
     .toHaveValue("Cita primero las fuentes");
@@ -227,7 +299,7 @@ test("Copiloto: proyectos privados agrupan hilos y borrarlos conserva el histori
   await page.getByRole("button", { name: "Eliminar proyecto" }).click();
   await page.getByRole("button", { name: "Sí, eliminar proyecto" }).click();
   await expect(page.getByLabel("Proyecto", { exact: true })).toHaveValue("");
-  await expect(page.getByRole("option", { name: "Nueva conversación" })).toBeAttached();
+  await expect(page.getByRole("navigation", { name: "Conversaciones privadas" }).getByRole("button", { name: "Nueva conversación" })).toBeVisible();
   const access = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(access.violations.map(({ id }) => id)).toEqual([]);
 });
@@ -305,6 +377,7 @@ test("Copiloto: biblioteca privada de proyecto disponible en chats nuevos", asyn
     return route.abort();
   });
   await page.goto("/asistente");
+  await showHistory(page);
   await page.getByRole("button", { name: "Nuevo proyecto" }).click();
   await page.getByLabel("Nombre del proyecto").fill("Revisión anual");
   await page.getByRole("button", { name: "Guardar proyecto" }).click();
@@ -367,7 +440,9 @@ test("Copiloto: reabre, renombra y elimina un historial privado persistente", as
     return route.abort();
   });
   await page.goto("/asistente");
-  await expect(page.getByLabel("Conversaciones privadas")).toBeVisible();
+  await showHistory(page);
+  await expect(page.getByRole("navigation", { name: "Conversaciones privadas" })).toBeVisible();
+  await hideHistoryOnNarrow(page);
   await page.getByLabel("Tu pregunta").fill("¿Cuántos riesgos altos tengo?");
   await page.getByRole("button", { name: "Enviar pregunta" }).click();
   await expect(page.getByText("Riesgos altos en tu alcance: 2.")).toBeVisible();
@@ -378,12 +453,14 @@ test("Copiloto: reabre, renombra y elimina un historial privado persistente", as
   await page.getByRole("button", { name: "Renombrar conversación" }).click();
   await page.getByLabel("Nuevo nombre").fill("Riesgos del período");
   await page.getByRole("button", { name: "Guardar", exact: true }).click();
-  await expect(page.getByLabel("Conversaciones privadas")).toHaveValue(id);
+  await showHistory(page);
+  await expect(page.getByRole("navigation", { name: "Conversaciones privadas" }).getByRole("button", { name: "Riesgos del período" })).toHaveAttribute("aria-current", "page");
   await page.getByLabel("Buscar conversaciones por título").fill("periodo");
-  await expect(page.getByRole("option", { name: "Riesgos del período" })).toBeAttached();
+  await expect(page.getByRole("navigation", { name: "Conversaciones privadas" }).getByRole("button", { name: "Riesgos del período" })).toBeVisible();
   await page.getByLabel("Buscar conversaciones por título").fill("inexistente");
   await expect(page.getByText("0 de 1 conversaciones")).toBeVisible();
   await page.getByLabel("Buscar conversaciones por título").clear();
+  await hideHistoryOnNarrow(page);
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Exportar conversación privada" }).click();
   const download = await downloadPromise;

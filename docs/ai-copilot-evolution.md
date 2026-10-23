@@ -49,6 +49,14 @@ La ejecución con Azure requiere `VERA_AI_ENABLED=true`, `AZURE_OPENAI_ENDPOINT`
 
 Los escenarios automatizados de API y navegador cubren contexto, permisos, memoria de conversación, citas con campos y hora de consulta, conteos exactos sin llamada a Azure, filtro de área exacto con enlace al registro, filtros que deben volver al modelo, indisponibilidad, navegación y diseño móvil. CI no llama a Azure; usa un proveedor simulado para evitar costo y resultados variables.
 
+## Experiencia del espacio de IA
+
+La pantalla `/asistente` organiza la experiencia en tres zonas: historial y proyectos privados a la izquierda, conversación en el centro y cuadro de escritura fijo al pie. En pantallas estrechas, el historial se abre como un panel superpuesto y se cierra al elegir un chat. El acceso rápido desde otros módulos conserva la misma conversación en un panel lateral.
+
+Se puede buscar una conversación por título, crear una nueva, abrir otra, cambiar su nombre, exportarla o eliminarla. La exportación contiene texto y fuentes de ese chat; los archivos privados se descargan por separado. Los proyectos, la memoria, los archivos, el briefing, las fuentes y la retroalimentación mantienen sus controles existentes. En el cuadro de escritura, `Enter` envía y `Shift + Enter` crea una línea nueva. Los estados de carga y error se muestran junto a la conversación. El diseño utiliza los colores de apariencia VERA/FEMSA sin alterar permisos, rutas de API ni persistencia.
+
+Los textos del asistente son apoyo a la consulta. La persona debe comprobar expedientes y fuentes antes de actuar; el asistente permanece en modo de solo lectura.
+
 ## Publicación y operación
 
 1. Revisar el PR y sus controles de calidad antes de fusionar con `main`.
