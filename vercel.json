@@ -3,7 +3,12 @@
   "services": {
     "backend": {
       "root": "backend",
-      "framework": "express"
+      "framework": "express",
+      "functions": {
+        "server.js": {
+          "includeFiles": "node_modules/pdfjs-dist/**"
+        }
+      }
     },
     "frontend": {
       "root": "frontend",
