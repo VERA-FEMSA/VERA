@@ -8,6 +8,56 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/assistant/insights", (route) => route.fulfill({ json: { insights: [], partial: false } }));
 });
 
+test("Copiloto: OCR opcional de PDF escaneado mantiene la consulta explícita", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "read-only", conversations: true, attachments: true, pdfOcr: true
+  } }));
+  const threadId = "11111111-1111-4111-8111-111111111111";
+  const fileId = "22222222-2222-4222-8222-222222222222";
+  let thread = null;
+  let file = null;
+  let ocrCalls = 0;
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") {
+      return route.fulfill({ json: { conversations: thread ? [thread] : [] } });
+    }
+    if (path.endsWith("/conversations") && method === "POST") {
+      thread = { id: threadId, title: "Nueva conversación", focus: null, messages: [], version: 1 };
+      return route.fulfill({ status: 201, json: { conversation: thread } });
+    }
+    if (path.endsWith(`/${threadId}/attachments`) && method === "GET") {
+      return route.fulfill({ json: { attachments: file ? [file] : [] } });
+    }
+    if (path.endsWith(`/${threadId}/attachments`) && method === "POST") {
+      file = { id: fileId, name: "escaneo.pdf", mime: "application/pdf", size: 1200,
+        status: "no-text", truncated: false, chunks: 0 };
+      return route.fulfill({ status: 201, json: { attachment: file } });
+    }
+    if (path.endsWith(`/${threadId}/attachments/${fileId}/ocr`) && method === "POST") {
+      ocrCalls += 1;
+      file = { ...file, status: "ready", truncated: true, chunks: 1 };
+      return route.fulfill({ json: { attachment: file } });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Adjuntar archivo privado").setInputFiles({ name: "escaneo.pdf",
+    mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\nscan") });
+  await expect(page.getByRole("button", { name: "Extraer texto del PDF" })).toBeVisible();
+  expect(ocrCalls).toBe(0);
+  await expect(page.getByText("como máximo las dos primeras páginas", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Extraer texto del PDF" }).click();
+  await expect(page.getByRole("button", { name: "Extraer texto del PDF" })).toHaveCount(0);
+  await expect(page.getByLabel("Consultar archivo")).toHaveValue(fileId);
+  await expect(page.getByText("lectura parcial", { exact: false })).toBeVisible();
+  expect(ocrCalls).toBe(1);
+  const access = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(access.violations.map(({ id }) => id)).toEqual([]);
+});
+
 test("Copiloto: adjunta un documento privado y lo consulta con cita", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {

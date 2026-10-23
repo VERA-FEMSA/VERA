@@ -12,6 +12,7 @@ const evidenceStorage = require("../services/evidenceStorage");
 const { extractEvidenceText, SEARCHABLE_MIME } = require("../services/evidenceTextExtraction");
 const { askAttachment, IMAGE_MIME } = require("../services/assistantAttachmentService");
 const { askProjectKnowledge } = require("../services/assistantProjectKnowledgeService");
+const { extractScannedPdf } = require("../services/assistantPdfOcrService");
 const { currentScope } = require("../services/assistantConversationScope");
 const { buildAuditDossier } = require("../services/assistantDossierService");
 const { searchAssistantEvidence } = require("../services/assistantEvidenceSearchService");
@@ -39,7 +40,8 @@ router.get("/status", (req, res) => {
             ...(process.env.VERA_AI_PROJECTS_ENABLED === "true" &&
               process.env.VERA_AI_PROJECT_FILES_ENABLED === "true" ? { projectFiles: true,
                 ...(process.env.VERA_AI_PROJECT_KNOWLEDGE_ENABLED === "true"
-                  ? { projectKnowledge: true } : {}) } : {}) } : {}) } : {}) });
+                  ? { projectKnowledge: true } : {}) } : {}),
+            ...(process.env.VERA_AI_PDF_OCR_ENABLED === "true" ? { pdfOcr: true } : {}) } : {}) } : {}) });
   } catch {
     res.json({ available: false, reason: "invalid-configuration", mode: "read-only" });
   }
@@ -63,6 +65,10 @@ const projectFilesEnabled = (req, res, next) => process.env.VERA_AI_PROJECT_FILE
   process.env.VERA_AI_ATTACHMENTS_ENABLED === "true" && process.env.VERA_AI_PROJECTS_ENABLED === "true"
   ? conversationEnabled(req, res, next)
   : res.status(503).json({ message: "La biblioteca privada del proyecto aún no está habilitada." });
+const pdfOcrEnabled = (req, res, next) => process.env.VERA_AI_PDF_OCR_ENABLED === "true"
+  ? next() : res.status(503).json({ message: "El OCR de PDF privados aún no está habilitado." });
+const pdfOcrRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 2,
+  keyGenerator: (req) => String(req.user.id), standardHeaders: "draft-8", legacyHeaders: false });
 const conversationError = (res, error) => {
   if ([400, 404, 409, 415, 422, 429, 503, 504].includes(error.status)) return res.status(error.status).json({ message: error.message });
   return res.status(502).json({ message: "No se pudo consultar el historial privado." });
@@ -157,6 +163,28 @@ router.get("/conversations/:id/attachments/:attachmentId/download", attachmentEn
   } catch (error) { return conversationError(res, error); }
 });
 
+router.post("/conversations/:id/attachments/:attachmentId/ocr", attachmentEnabled,
+  pdfOcrEnabled, pdfOcrRateLimit, async (req, res) => {
+    try {
+      if (!await conversations.get(req.user, req.params.id)) {
+        return res.status(404).json({ message: "Conversación no disponible." });
+      }
+      const row = await attachments.get(req.user, req.params.id, req.params.attachmentId);
+      if (!row) return res.status(404).json({ message: "Archivo no disponible." });
+      if (row.file.mime !== "application/pdf" || row.status !== "no-text") {
+        return res.status(409).json({ message: "Este archivo no requiere OCR de PDF." });
+      }
+      const extracted = await extractScannedPdf(await evidenceStorage.downloadBytes(row.file));
+      const saved = await attachments.updateConversationExtraction(req.user, req.params.id, row.id, extracted);
+      if (!saved) return res.status(409).json({ message: "El archivo cambió durante el OCR." });
+      console.info(JSON.stringify({ event: "VERA_AI_PDF_OCR", role: req.user.role,
+        pagesProcessed: extracted.pagesProcessed, totalPages: extracted.totalPages,
+        chunks: saved.chunks, promptTokens: extracted.usage?.input_tokens ?? null,
+        completionTokens: extracted.usage?.output_tokens ?? null }));
+      return res.json({ attachment: saved });
+    } catch (error) { return conversationError(res, error); }
+  });
+
 router.delete("/conversations/:id/attachments/:attachmentId", attachmentEnabled, async (req, res) => {
   try {
     if (!await conversations.get(req.user, req.params.id)) {
@@ -236,6 +264,28 @@ router.get("/projects/:id/files/:fileId/download", projectFilesEnabled, async (r
     return res.json({ url: await evidenceStorage.signedDownloadUrl(row.file), expiresIn: 60 });
   } catch (error) { return conversationError(res, error); }
 });
+
+router.post("/projects/:id/files/:fileId/ocr", projectFilesEnabled,
+  pdfOcrEnabled, pdfOcrRateLimit, async (req, res) => {
+    try {
+      if (!await projects.get(req.user, req.params.id)) {
+        return res.status(404).json({ message: "Proyecto no disponible." });
+      }
+      const row = await attachments.getProject(req.user, req.params.id, req.params.fileId);
+      if (!row) return res.status(404).json({ message: "Archivo no disponible." });
+      if (row.file.mime !== "application/pdf" || row.status !== "no-text") {
+        return res.status(409).json({ message: "Este archivo no requiere OCR de PDF." });
+      }
+      const extracted = await extractScannedPdf(await evidenceStorage.downloadBytes(row.file));
+      const saved = await attachments.updateProjectExtraction(req.user, req.params.id, row.id, extracted);
+      if (!saved) return res.status(409).json({ message: "El archivo cambió durante el OCR." });
+      console.info(JSON.stringify({ event: "VERA_AI_PDF_OCR", role: req.user.role,
+        pagesProcessed: extracted.pagesProcessed, totalPages: extracted.totalPages,
+        chunks: saved.chunks, promptTokens: extracted.usage?.input_tokens ?? null,
+        completionTokens: extracted.usage?.output_tokens ?? null }));
+      return res.json({ file: saved });
+    } catch (error) { return conversationError(res, error); }
+  });
 
 router.delete("/projects/:id/files/:fileId", projectFilesEnabled, async (req, res) => {
   try {
