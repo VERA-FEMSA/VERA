@@ -13,6 +13,7 @@ const promptsByRole = {
   GERENTE: ["Resume las propuestas abiertas.", "¿Qué riesgos altos hay en el portafolio?", "Prepara un borrador de seguimiento para revisión."],
   JEFATURA: ["¿Qué propuestas esperan revisión?", "Resume los riesgos altos del portafolio.", "Prepara un borrador de propuesta para revisión."]
 };
+const PROJECT_LIBRARY = "__project_library__";
 
 function AssistantPanel({ focus = null }) {
   const navigate = useNavigate();
@@ -55,6 +56,7 @@ function AssistantPanel({ focus = null }) {
   const [memoryMode, setMemoryMode] = useState(false);
   const [attachmentMode, setAttachmentMode] = useState(false);
   const [projectFilesMode, setProjectFilesMode] = useState(false);
+  const [projectKnowledgeMode, setProjectKnowledgeMode] = useState(false);
   const [attachmentList, setAttachmentList] = useState([]);
   const [projectFiles, setProjectFiles] = useState([]);
   const [selectedAttachmentId, setSelectedAttachmentId] = useState(null);
@@ -74,7 +76,8 @@ function AssistantPanel({ focus = null }) {
       if (active) { setAvailable(result.available); setReason(result.reason);
         setPersistent(Boolean(result.conversations)); setHistoryBusy(Boolean(result.conversations));
         setProjectMode(Boolean(result.projects)); setMemoryMode(Boolean(result.memory));
-        setAttachmentMode(Boolean(result.attachments)); setProjectFilesMode(Boolean(result.projectFiles)); }
+        setAttachmentMode(Boolean(result.attachments)); setProjectFilesMode(Boolean(result.projectFiles));
+        setProjectKnowledgeMode(Boolean(result.projectKnowledge)); }
     }).catch((cause) => { if (active) { setAvailable(false); setError(cause.message); } });
     getAssistantBrief().then((result) => { if (active) setBrief(result.signals || []); })
       .catch(() => { /* Las prioridades no bloquean las preguntas. */ });
@@ -340,7 +343,9 @@ function AssistantPanel({ focus = null }) {
       if (persistent) {
         const active = thread || await createAssistantConversation(selectedFocus, selectedProjectId);
         if (!thread) { setThread(active); setThreadList((items) => [active, ...items]); }
-        const saved = await askAssistantConversation(active.id, value, withEvidence, selectedAttachmentId);
+        const saved = await askAssistantConversation(active.id, value, withEvidence,
+          selectedAttachmentId === PROJECT_LIBRARY ? null : selectedAttachmentId,
+          selectedAttachmentId === PROJECT_LIBRARY);
         setMessages((current) => [...current, saved.userMessage, saved.message]);
         setThread((item) => ({ ...item, version: saved.version, updatedAt: new Date().toISOString() }));
         return;
@@ -486,6 +491,8 @@ function AssistantPanel({ focus = null }) {
           <select id="assistant-attachment-choice" value={selectedAttachmentId || ""}
             onChange={(event) => { setSelectedAttachmentId(event.target.value || null); if (event.target.value) setWithEvidence(false); }}>
             <option value="">Ninguno: consultar VERA</option>
+            {projectKnowledgeMode && projectFiles.some((item) => item.status === "ready") &&
+              <option value={PROJECT_LIBRARY}>Biblioteca del proyecto · fragmentos de archivos legibles</option>}
             {visibleAttachments.map((item) => <option key={item.id} value={item.id}>{item.name}{item.projectId ? " · proyecto" : " · conversación"}</option>)}
           </select>
           <ul>{visibleAttachments.map((item) => <li key={item.id}>
@@ -541,7 +548,7 @@ function AssistantPanel({ focus = null }) {
       {message.role === "assistant" && <><small className="assistant-answer-note">{message.mode === "computed" ? "Dato calculado desde registros autorizados" : message.mode?.startsWith("attachment-") ? "Respuesta sobre un archivo privado · comprueba el original" : message.mode === "document-search" ? "Respuesta con fragmentos de evidencias · comprueba el archivo" : ["no-match", "uncited", "no-text", "scope-limited"].includes(message.mode) ? "Sin respuesta documental respaldada" : "Respuesta generada · comprueba el expediente"}{Number.isFinite(message.durationMs) ? ` · ${(message.durationMs / 1000).toFixed(1)} s` : ""}</small>
         {message.asOf && <time className="assistant-answer-note" dateTime={message.asOf}>Datos consultados: {new Date(message.asOf).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}</time>}
         {message.coverage?.indexedOnly && <small className="assistant-answer-note">Se buscaron fragmentos ya indexados en {message.coverage.searchedFiles} de {message.coverage.visibleFiles} archivos visibles. Los archivos antiguos pueden requerir una consulta individual para indexarse.</small>}
-        {message.mode !== "computed" && message.coverage?.partial && <small className="assistant-answer-note">{message.mode?.startsWith("attachment-") || ["no-text", "scope-limited"].includes(message.mode) ? "La lectura del archivo fue parcial; revisa el original antes de concluir." : message.coverage.indexedOnly ? "La cantidad de archivos superó el límite de esta búsqueda; el resultado puede ser parcial." : "Se consultó una muestra de expedientes visibles; los conteos abarcan el total de tu alcance."}</small>}
+        {message.mode !== "computed" && message.coverage?.partial && <small className="assistant-answer-note">{message.mode === "attachment-project" ? "La lectura de la biblioteca fue parcial; revisa los archivos originales antes de concluir." : message.mode?.startsWith("attachment-") || ["no-text", "scope-limited"].includes(message.mode) ? "La lectura del archivo fue parcial; revisa el original antes de concluir." : message.coverage.indexedOnly ? "La cantidad de archivos superó el límite de esta búsqueda; el resultado puede ser parcial." : "Se consultó una muestra de expedientes visibles; los conteos abarcan el total de tu alcance."}</small>}
         {message.metric && <div className="assistant-citations"><b>Indicador calculado</b><ul><li><Link to={message.metric.path}>{message.metric.label}: {message.metric.count} <ArrowRight size={13} aria-hidden="true" /></Link></li></ul></div>}
         {message.citations?.length > 0 && <div className="assistant-citations"><b>Registros citados</b><small>Campos consultados al responder; abre el expediente o archivo para ver su estado actual.</small><ul>{message.citations.map((item) => <li key={item.sourceId}>{item.attachmentId
           ? <button type="button" onClick={() => downloadFile(item.attachmentId, item.projectId)}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></button>
@@ -554,7 +561,7 @@ function AssistantPanel({ focus = null }) {
     {busy && <p className="assistant-state" role="status">Consultando información autorizada...</p>}
     {error && <p className="assistant-error" role="alert">{error}</p>}
     {!persistent && messages.length > 0 && <button className="assistant-clear" type="button" onClick={() => { setMessages([]); setError(""); }}><RotateCcw size={14} aria-hidden="true" /> Nueva conversación</button>}
-    <form className="assistant-form" onSubmit={submit}><label htmlFor="assistant-question">Tu pregunta</label><label className="assistant-search-option"><input type="checkbox" checked={withEvidence} onChange={(event) => setWithEvidence(event.target.checked)} disabled={!available || busy || Boolean(selectedAttachmentId)} /> Buscar también en textos de evidencias visibles</label><div><textarea id="assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={withEvidence ? 500 : 800} rows={3} placeholder={selectedAttachmentId ? "Pregunta sobre el archivo seleccionado..." : "Escribe una pregunta sobre VERA..."} disabled={!available || busy || historyBusy || attachmentBusy || Boolean(historyError) || historyStale} /><button type="submit" disabled={!available || busy || historyBusy || attachmentBusy || Boolean(historyError) || historyStale || question.trim().length < 3 || question.trim().length > (withEvidence ? 500 : 800)} aria-label="Enviar pregunta"><Send size={19} aria-hidden="true" /></button></div><small>{question.length}/{withEvidence ? 500 : 800} caracteres · No escribas contraseñas ni claves.</small></form>
+    <form className="assistant-form" onSubmit={submit}><label htmlFor="assistant-question">Tu pregunta</label><label className="assistant-search-option"><input type="checkbox" checked={withEvidence} onChange={(event) => setWithEvidence(event.target.checked)} disabled={!available || busy || Boolean(selectedAttachmentId)} /> Buscar también en textos de evidencias visibles</label><div><textarea id="assistant-question" value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={withEvidence ? 500 : 800} rows={3} placeholder={selectedAttachmentId === PROJECT_LIBRARY ? "Pregunta sobre fragmentos de la biblioteca..." : selectedAttachmentId ? "Pregunta sobre el archivo seleccionado..." : "Escribe una pregunta sobre VERA..."} disabled={!available || busy || historyBusy || attachmentBusy || Boolean(historyError) || historyStale} /><button type="submit" disabled={!available || busy || historyBusy || attachmentBusy || Boolean(historyError) || historyStale || question.trim().length < 3 || question.trim().length > (withEvidence ? 500 : 800)} aria-label="Enviar pregunta"><Send size={19} aria-hidden="true" /></button></div><small>{question.length}/{withEvidence ? 500 : 800} caracteres · No escribas contraseñas ni claves.</small></form>
   </section>;
 }
 

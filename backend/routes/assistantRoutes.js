@@ -11,6 +11,7 @@ const attachments = require("../repositories/assistantAttachmentRepository");
 const evidenceStorage = require("../services/evidenceStorage");
 const { extractEvidenceText, SEARCHABLE_MIME } = require("../services/evidenceTextExtraction");
 const { askAttachment, IMAGE_MIME } = require("../services/assistantAttachmentService");
+const { askProjectKnowledge } = require("../services/assistantProjectKnowledgeService");
 const { currentScope } = require("../services/assistantConversationScope");
 const { buildAuditDossier } = require("../services/assistantDossierService");
 const { searchAssistantEvidence } = require("../services/assistantEvidenceSearchService");
@@ -36,7 +37,9 @@ router.get("/status", (req, res) => {
           ...(process.env.VERA_AI_MEMORY_ENABLED === "true" ? { memory: true } : {}),
           ...(process.env.VERA_AI_ATTACHMENTS_ENABLED === "true" ? { attachments: true,
             ...(process.env.VERA_AI_PROJECTS_ENABLED === "true" &&
-              process.env.VERA_AI_PROJECT_FILES_ENABLED === "true" ? { projectFiles: true } : {}) } : {}) } : {}) });
+              process.env.VERA_AI_PROJECT_FILES_ENABLED === "true" ? { projectFiles: true,
+                ...(process.env.VERA_AI_PROJECT_KNOWLEDGE_ENABLED === "true"
+                  ? { projectKnowledge: true } : {}) } : {}) } : {}) } : {}) });
   } catch {
     res.json({ available: false, reason: "invalid-configuration", mode: "read-only" });
   }
@@ -429,9 +432,16 @@ router.post("/conversations/:id/ask", conversationEnabled,
     const question = req.body?.question;
     const withEvidence = req.body?.withEvidence === true;
     const attachmentId = req.body?.attachmentId ?? null;
+    const useProjectFiles = req.body?.projectFiles === true;
     if (typeof question !== "string" || question.trim().length < 3 ||
         question.length > (withEvidence ? 500 : 800) ||
         (req.body?.withEvidence !== undefined && typeof req.body.withEvidence !== "boolean") ||
+        (req.body?.projectFiles !== undefined && typeof req.body.projectFiles !== "boolean") ||
+        (useProjectFiles && (attachmentId !== null || withEvidence ||
+          process.env.VERA_AI_PROJECT_KNOWLEDGE_ENABLED !== "true" ||
+          process.env.VERA_AI_PROJECT_FILES_ENABLED !== "true" ||
+          process.env.VERA_AI_ATTACHMENTS_ENABLED !== "true" ||
+          process.env.VERA_AI_PROJECTS_ENABLED !== "true")) ||
         (attachmentId !== null && (!validUuid(attachmentId) || withEvidence ||
           process.env.VERA_AI_ATTACHMENTS_ENABLED !== "true"))) {
       return res.status(400).json({ message: "Escribe una pregunta válida para esta conversación." });
@@ -449,9 +459,14 @@ router.post("/conversations/:id/ask", conversationEnabled,
           ? await attachments.getProject(req.user, thread.projectId, attachmentId) : null) : null;
       if (attachmentId && !attached) return res.status(404).json({ message: "Archivo no disponible." });
       const project = thread.projectId ? await projects.get(req.user, thread.projectId) : null;
+      if (useProjectFiles && !project) return res.status(404).json({ message: "Proyecto no disponible." });
+      const projectFiles = useProjectFiles ? await attachments.listProject(req.user, thread.projectId) : [];
+      const projectRows = useProjectFiles ? await Promise.all(projectFiles.map((item) =>
+        attachments.getProject(req.user, thread.projectId, item.id))) : [];
       const result = attached ? await askAttachment(attached, question.trim())
-        : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
-          project?.instructions || "");
+        : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim())
+          : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
+            project?.instructions || "");
       if (attached?.project_id) result.citations = (result.citations || []).map((citation) => ({
         ...citation, projectId: attached.project_id }));
       const currentUser = await userRepository.findById(req.user.id);
@@ -461,7 +476,8 @@ router.post("/conversations/:id/ask", conversationEnabled,
       }
       const durationMs = Date.now() - startedAt;
       const userMessage = { id: randomUUID(), role: "user", text: question.trim(), asOf: new Date().toISOString(),
-        ...(attached ? { attachmentId: attached.id, attachmentName: attached.name } : {}) };
+        ...(attached ? { attachmentId: attached.id, attachmentName: attached.name } : {}),
+        ...(useProjectFiles ? { attachmentName: "Biblioteca del proyecto" } : {}) };
       const assistantMessage = { id: randomUUID(), role: "assistant", text: result.answer.slice(0, 4000),
         mode: result.mode, metric: result.metric || null, citations: (result.citations || []).slice(0, 8),
         references: (result.references || []).slice(0, 15), coverage: result.coverage || null,

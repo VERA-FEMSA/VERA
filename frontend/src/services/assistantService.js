@@ -89,9 +89,10 @@ export const updateAssistantMemory = async (id, content, enabled, version) =>
 export const deleteAssistantMemory = async (id) => memoryRequest(`/${encodeURIComponent(id)}`, {
   method: "DELETE"
 });
-export const askAssistantConversation = async (id, question, withEvidence = false, attachmentId = null) =>
+export const askAssistantConversation = async (id, question, withEvidence = false,
+  attachmentId = null, projectFiles = false) =>
   conversationRequest(`/${encodeURIComponent(id)}/ask`, {
-    method: "POST", body: JSON.stringify({ question, withEvidence, attachmentId })
+    method: "POST", body: JSON.stringify({ question, withEvidence, attachmentId, projectFiles })
   });
 export const listAssistantAttachments = async (id) =>
   (await conversationRequest(`/${encodeURIComponent(id)}/attachments`)).attachments;

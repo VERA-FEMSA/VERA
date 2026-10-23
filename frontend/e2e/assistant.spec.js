@@ -186,7 +186,7 @@ test("Copiloto: biblioteca privada de proyecto disponible en chats nuevos", asyn
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
     available: true, mode: "read-only", conversations: true, projects: true,
-    attachments: true, projectFiles: true
+    attachments: true, projectFiles: true, projectKnowledge: true
   } }));
   const projectId = "22222222-2222-4222-8222-222222222222";
   const threadId = "11111111-1111-4111-8111-111111111111";
@@ -232,7 +232,19 @@ test("Copiloto: biblioteca privada de proyecto disponible en chats nuevos", asyn
       return route.fulfill({ json: { attachments: [] } });
     }
     if (path.endsWith(`/${threadId}/ask`) && method === "POST") {
-      expect(route.request().postDataJSON().attachmentId).toBe(fileId);
+      const payload = route.request().postDataJSON();
+      if (payload.projectFiles) {
+        expect(payload.attachmentId).toBeNull();
+        const userMessage = { id: "user-2", role: "user", text: "¿Qué indica la biblioteca?",
+          attachmentName: "Biblioteca del proyecto" };
+        const message = { id: "answer-2", role: "assistant", text: "La biblioteca indica un riesgo de proveedor.",
+          mode: "attachment-project", citations: [{ sourceId: `attachment:${fileId}:chunk:0`,
+            attachmentId: fileId, projectId, type: "Archivo del proyecto", title: "guia.txt",
+            excerpt: "Riesgo de proveedor" }], coverage: { partial: true } };
+        thread.messages.push(userMessage, message);
+        return route.fulfill({ json: { version: 3, userMessage, message } });
+      }
+      expect(payload.attachmentId).toBe(fileId);
       const userMessage = { id: "user-1", role: "user", text: "¿Qué dice la guía?", attachmentName: "guia.txt" };
       const message = { id: "answer-1", role: "assistant", text: "La guía menciona un riesgo de proveedor.",
         mode: "attachment-text", citations: [{ sourceId: `attachment:${fileId}:chunk:0`, attachmentId: fileId,
@@ -253,6 +265,11 @@ test("Copiloto: biblioteca privada de proyecto disponible en chats nuevos", asyn
   await page.getByRole("button", { name: "Enviar pregunta" }).click();
   await expect(page.getByText("La guía menciona un riesgo de proveedor.")).toBeVisible();
   await expect(page.getByLabel("Consultar archivo")).toHaveValue(fileId);
+  await page.getByLabel("Consultar archivo").selectOption("__project_library__");
+  await page.getByLabel("Tu pregunta").fill("¿Qué indica la biblioteca?");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("La biblioteca indica un riesgo de proveedor.")).toBeVisible();
+  await expect(page.getByText("La lectura de la biblioteca fue parcial", { exact: false })).toBeVisible();
   const access = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(access.violations.map(({ id }) => id)).toEqual([]);
   await page.getByRole("button", { name: "Quitar" }).click();
