@@ -739,6 +739,42 @@ test("Copiloto: registra un control desde el chat con vista previa y confirmaci�
   await expect(page).toHaveURL(/\/asistente$/);
 });
 
+test("Copiloto: registra una referencia de evidencia desde el chat", async ({ page }) => {
+  await useSession(page, "GERENTE", 3);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "consult-and-confirm", conversations: true
+  } }));
+  const id = "11111111-1111-4111-8111-111111111127";
+  let version = 1;
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") return route.fulfill({ json: { conversations: [] } });
+    if (path.endsWith("/conversations") && method === "POST") return route.fulfill({ status: 201,
+      json: { conversation: { id, title: "Nueva conversación", focus: null, messages: [], version } } });
+    if (path.endsWith(`/${id}/ask`) && method === "POST") {
+      const question = route.request().postDataJSON().question;
+      const executed = question === "Confirmar evidencia";
+      version += 1;
+      return route.fulfill({ json: { conversationId: id, version,
+        userMessage: { id: `user-evidence-create-${version}`, role: "user", text: question },
+        message: { id: `assistant-evidence-create-${version}`, role: "assistant",
+          text: executed ? "Quedó registrada la evidencia «Acta de revisión» con identificador EVD-004." :
+            "Revisa la evidencia: Acta de revisión. Escribe «Confirmar evidencia».",
+          mode: executed ? "action-executed" : "action-preview", citations: [], references: [] } } });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Tu pregunta").fill("Registrar evidencia para la auditoría AUD-01");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Vista previa · no se ha modificado ningún registro")).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("Confirmar evidencia");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText(/Quedó registrada la evidencia «Acta de revisión»/)).toBeVisible();
+  await expect(page).toHaveURL(/\/asistente$/);
+});
+
 test("Copiloto: registra un hallazgo desde el chat con vista previa y confirmación", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
