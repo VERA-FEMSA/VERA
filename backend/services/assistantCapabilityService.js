@@ -26,6 +26,7 @@ const capabilityAnswer = (user, persistent) => {
   }
   if (AUDIT_PROPOSAL_CREATE_ROLES.includes(user.role)) {
     lines.push("• Crear una propuesta de auditoría: escribe «Crear propuesta» y completa los campos que pediré aquí mismo.");
+    lines.push("• Editar título, objetivo, alcance, justificación o área de una propuesta abierta indicando ID, valor y motivo; revisa la vista previa antes de confirmar.");
   }
   if (PLANNING_APPROVE_ROLES.includes(user.role)) {
     lines.push("• Reasignar compromisos, aprobar o rechazar propuestas, e iniciar o cerrar auditorías, indicando expediente y motivo.");

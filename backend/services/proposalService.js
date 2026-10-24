@@ -96,4 +96,43 @@ const createProposalForUser = async (user, input, operationId = null) => {
   return proposal;
 };
 
-module.exports = { parseProposal, activeAuditors, createProposalForUser, DUPLICATE_MESSAGE };
+const prepareProposalEdit = async (user, id, changes, expectedVersion, expectedValues = null) => {
+  const currentUser = await userRepository.findById(user.id);
+  if (currentUser?.status !== USER_STATUS.ACTIVE || currentUser.role !== user.role) {
+    throw errorFor("Cambió tu acceso. Inicia sesión de nuevo.", 409);
+  }
+  if (!AUDIT_PROPOSAL_CREATE_ROLES.includes(user.role)) throw errorFor("Tu rol no puede editar propuestas.", 403);
+  const current = await planningRepository.findById(id);
+  if (!current) throw errorFor("Propuesta no encontrada.", 404);
+  if (user.role === ROLES.JEFATURA && current.createdBy?.id !== user.id) {
+    throw errorFor("Solo puedes editar las propuestas que creaste.", 403);
+  }
+  if (["APPROVED", "ACTIVE", "CLOSED", "REJECTED"].includes(current.status)) {
+    throw errorFor("Una propuesta resuelta ya no se puede editar.", 409);
+  }
+  if (expectedVersion !== undefined && current.storageVersion !== expectedVersion) {
+    throw errorFor("La propuesta cambió desde la vista previa. Consulta el expediente y vuelve a intentarlo.", 409);
+  }
+  if (expectedValues && Object.entries(expectedValues).some(([field, value]) =>
+    String(current[field] ?? "") !== String(value ?? ""))) {
+    throw errorFor("La propuesta cambió desde la vista previa. Consulta el expediente y vuelve a intentarlo.", 409);
+  }
+  const { data, error } = await parseProposal({ ...current, ...changes });
+  if (error) throw errorFor(error, 400);
+  if (await planningRepository.findDuplicate(data, current.id)) throw errorFor(DUPLICATE_MESSAGE, 409);
+  if (!Object.keys(changes).some((key) => String(current[key] ?? "") !== String(data[key] ?? ""))) {
+    throw errorFor("No hay cambios que guardar.", 400);
+  }
+  return { current, data };
+};
+
+const updateProposalForUser = async (user, id, changes, expectedVersion, reason = null, expectedValues = null) => {
+  const { current, data } = await prepareProposalEdit(user, id, changes, expectedVersion, expectedValues);
+  const proposal = await planningRepository.update(current.id, data, current.storageVersion);
+  await logActivity({ actor: user, action: "AUDIT_PROPOSAL_UPDATED",
+    details: { proposalId: proposal.id, title: proposal.title, ...(reason ? { reason } : {}) } });
+  return proposal;
+};
+
+module.exports = { parseProposal, activeAuditors, createProposalForUser,
+  prepareProposalEdit, updateProposalForUser, DUPLICATE_MESSAGE };

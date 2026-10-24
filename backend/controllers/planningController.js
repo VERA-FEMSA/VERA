@@ -4,7 +4,7 @@ const { ROLES } = require("../config/roles");
 const { EDITABLE_FIELDS_BY_STATUS, FIELD_LABELS, STATUS_LABELS } = require("../config/auditEditRules");
 const { parseAuditFilters, searchAudits } = require("../services/auditSearch");
 const { applyTransition } = require("../services/planningTransitionService");
-const { parseProposal, activeAuditors, createProposalForUser, DUPLICATE_MESSAGE } = require("../services/proposalService");
+const { parseProposal, activeAuditors, createProposalForUser, updateProposalForUser } = require("../services/proposalService");
 
 const isTerminal = (proposal) => ["APPROVED", "ACTIVE", "CLOSED", "REJECTED"].includes(proposal.status);
 
@@ -52,31 +52,11 @@ const createProposal = async (req, res) => {
 
 // PUT /api/planning/:id  (solo propuestas abiertas)
 const updateProposal = async (req, res) => {
-  const current = await planningRepository.findById(req.params.id);
-  if (!current) return res.status(404).json({ message: "Propuesta no encontrada." });
-  if (req.user.role === ROLES.JEFATURA && current.createdBy?.id !== req.user.id) {
-    return res.status(403).json({ message: "Solo puedes editar las propuestas que creaste." });
+  try { return res.json({ proposal: await updateProposalForUser(req.user, req.params.id, req.body || {}) }); }
+  catch (error) {
+    if ([400, 403, 404, 409].includes(error.status)) return res.status(error.status).json({ message: error.message });
+    throw error;
   }
-  if (isTerminal(current)) {
-    return res.status(409).json({ message: "Una propuesta resuelta ya no se puede editar." });
-  }
-
-  const { data, error } = await parseProposal(req.body);
-  if (error) return res.status(400).json({ message: error });
-
-  if (await planningRepository.findDuplicate(data, current.id)) {
-    return res.status(409).json({ message: DUPLICATE_MESSAGE });
-  }
-
-  const proposal = await planningRepository.update(current.id, data, current.storageVersion);
-
-  await logActivity({
-    actor: req.user,
-    action: "AUDIT_PROPOSAL_UPDATED",
-    details: { proposalId: proposal.id, title: proposal.title }
-  });
-
-  res.json({ proposal });
 };
 
 // La interfaz y el chat comparten las mismas reglas y la misma bitácora.
