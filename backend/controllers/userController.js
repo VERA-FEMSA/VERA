@@ -4,6 +4,7 @@ const { ROLES, ASSIGNABLE_ROLES } = require("../config/roles");
 const { USER_STATUS } = require("../config/accountRules");
 const roleRequests = require("../repositories/roleRequestRepository");
 const { createRoleRequestForUser, reviewRoleRequestForUser } = require("../services/roleRequestService");
+const { changeUserStatus } = require("../services/userStatusService");
 
 // Reglas de quién puede modificar a quién.
 // Regresa un mensaje de error, o null si la acción está permitida.
@@ -76,28 +77,7 @@ const updateUserStatus = async (req, res) => {
   if (typeof active !== "boolean") {
     return res.status(400).json({ message: "El campo active debe ser true o false." });
   }
-
-  const target = await userRepository.findById(req.params.id);
-  if (!target) {
-    return res.status(404).json({ message: "Usuario no encontrado." });
-  }
-
-  const manageError = getManageError(req.user, target);
-  if (manageError) {
-    return res.status(403).json({ message: manageError });
-  }
-
-  const user = await userRepository.setStatus(
-    target.id,
-    active ? USER_STATUS.ACTIVE : USER_STATUS.DISABLED,
-    target.storageVersion
-  );
-
-  await logAccessChange({
-    actor: req.user,
-    action: active ? "USER_ENABLED" : "USER_DISABLED",
-    target: user
-  });
+  const user = await changeUserStatus(req.user, Number(req.params.id), active);
 
   res.json({
     message: active ? "Cuenta habilitada." : "Cuenta deshabilitada.",

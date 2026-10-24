@@ -32,6 +32,9 @@ const capabilityAnswer = (user, persistent) => {
   if (USER_VIEW_ROLES.includes(user.role)) {
     lines.push("• Consultar cuentas visibles sin abrir Usuarios: «Usuarios del sistema», «Usuarios con rol Auditor» o «Busca usuario correo@ejemplo.com». La lista respeta tu rol.");
   }
+  if (user.role === "SUPER_ADMIN") {
+    lines.push("• Habilitar o deshabilitar otra cuenta por ID: «Deshabilita cuenta #5». El cambio exige vista previa y «Confirmar cambio de cuenta».");
+  }
   if (RECORD_CREATE_ROLES.includes(user.role)) {
     lines.push("• Marcar un aviso visible como leído o sin leer, con vista previa y confirmación. La tarea de origen no se completa por ello.");
     lines.push("• Crear compromisos propios y cambiar el estado de los que puedas gestionar; primero mostraré una vista previa.");
