@@ -103,6 +103,20 @@ test("Espacio de IA: explora expedientes y continúa sin salir del chat", async 
   expect(requests[1].lastBrowse).toMatchObject({ type: "risks", filter: "high", offset: 0, hasMore: true });
 });
 
+test("Espacio de IA: avisa si faltan compromisos en las prioridades", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "read-only", conversations: false
+  } }));
+  await page.route("**/api/assistant/brief", (route) => route.fulfill({ json: {
+    role: "AUDITOR", pendingActionsUnavailable: true,
+    signals: [{ key: "highRisks", label: "Riesgos altos", count: 2, path: "/riesgos" }]
+  } }));
+  await page.goto("/asistente");
+  await expect(page.getByText("Los compromisos no están disponibles", { exact: false })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Prioridades actuales" }).getByText("Riesgos altos")).toBeVisible();
+});
+
 test("Copiloto: OCR opcional de PDF escaneado mantiene la consulta explícita", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {

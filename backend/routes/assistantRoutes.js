@@ -602,8 +602,10 @@ router.get("/brief", async (req, res) => {
     if (readiness().reason === "persistent-stores-required") {
       return res.status(503).json({ message: "Las prioridades requieren almacenes persistentes en producción." });
     }
-    const { brief } = await buildAssistantContext(req.user, "prioridades de mi portafolio");
-    return res.json({ role: req.user.role, signals: brief });
+    const { brief, coverage } = await buildAssistantContext(req.user, "prioridades de mi portafolio");
+    return res.json({ role: req.user.role,
+      signals: coverage.pendingActionsUnavailable ? brief.filter((item) => item.key !== "urgentPending") : brief,
+      pendingActionsUnavailable: coverage.pendingActionsUnavailable });
   } catch {
     return res.status(502).json({ message: "No se pudieron consultar las prioridades." });
   }

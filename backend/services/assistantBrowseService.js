@@ -51,7 +51,7 @@ const matches = (type, filter, item) => {
 const browseAssistant = async (user, question, focus = null, previous = null) => {
   const intent = parseBrowse(question, previous);
   if (!intent) return null;
-  const { visibleRecords, asOf } = await buildAssistantContext(user, question, focus);
+  const { visibleRecords, coverage, asOf } = await buildAssistantContext(user, question, focus);
   const type = TYPES.find((item) => item.key === intent.type);
   const name = intent.type === "audits" && intent.filter === "open" ? "propuestas abiertas"
     : intent.type === "audits" && intent.filter === "rejected" ? "propuestas rechazadas" : type.name;
@@ -59,10 +59,13 @@ const browseAssistant = async (user, question, focus = null, previous = null) =>
   const offset = Math.min(intent.offset, rows.length);
   const items = rows.slice(offset, offset + PAGE_SIZE).map((item) => sourceFor(intent.type, item));
   const hasMore = offset + items.length < rows.length;
+  const incompletePending = intent.type === "pending" && coverage.pendingActionsUnavailable;
   const answer = rows.length === 0
     ? `No encontré ${name} con ese filtro en tu alcance actual.`
     : `Encontré ${rows.length} ${name} en tu alcance. Muestro ${offset + 1}–${offset + items.length} de ${rows.length}.${hasMore ? " Escribe «siguientes» para continuar." : ""}`;
-  return { answer, mode: "browse", citations: [], references: [], coverage: { partial: hasMore },
+  const note = incompletePending ? " Los compromisos no estuvieron disponibles; esta lista puede estar incompleta." : "";
+  return { answer: answer + note, mode: "browse", citations: [], references: [],
+    coverage: { partial: hasMore || incompletePending, pendingActionsUnavailable: incompletePending },
     asOf, usage: null, browse: { ...intent, total: rows.length, hasMore, items } };
 };
 

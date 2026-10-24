@@ -18,6 +18,10 @@ function getVerifiedAnswer({ question, context, brief, sourceCatalog, verifiedDa
   for (const { key, subject } of countQuestions) {
     const pattern = new RegExp(`^cuant[oa]s ${subject}${allowedSuffix}$`);
     if (!pattern.test(normalized)) continue;
+    if (key === "urgentPending" && context.pendingActionsAvailable === false) {
+      return { answer: "No puedo calcular todos tus pendientes prioritarios ahora porque los compromisos no están disponibles. Intenta de nuevo más tarde.",
+        sourceIds: [], references: [], mode: "scope-limited" };
+    }
     const metric = brief.find((item) => item.key === key);
     if (!metric || !Number.isSafeInteger(metric.count) || metric.count < 0) return null;
     return { answer: `${metric.label} en tu alcance: ${metric.count}.`, sourceIds: [], metric, mode: "computed" };

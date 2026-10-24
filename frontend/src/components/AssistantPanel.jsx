@@ -29,6 +29,7 @@ function AssistantPanel({ focus = null, compact = false }) {
   const [available, setAvailable] = useState(null);
   const [reason, setReason] = useState(null);
   const [brief, setBrief] = useState([]);
+  const [pendingAlertsUnavailable, setPendingAlertsUnavailable] = useState(false);
   const [insights, setInsights] = useState(null);
   const [question, setQuestion] = useState("");
   const [withEvidence, setWithEvidence] = useState(false);
@@ -88,7 +89,8 @@ function AssistantPanel({ focus = null, compact = false }) {
         setProjectKnowledgeMode(Boolean(result.projectKnowledge)); setProjectSemanticMode(Boolean(result.projectSemantic));
         setPdfOcrMode(Boolean(result.pdfOcr)); }
     }).catch((cause) => { if (active) { setAvailable(false); setError(cause.message); } });
-    getAssistantBrief().then((result) => { if (active) setBrief(result.signals || []); })
+    getAssistantBrief().then((result) => { if (active) { setBrief(result.signals || []);
+      setPendingAlertsUnavailable(Boolean(result.pendingActionsUnavailable)); } })
       .catch(() => { /* Las prioridades no bloquean las preguntas. */ });
     if (!focused) getAssistantInsights().then((result) => { if (active) setInsights(result); })
       .catch(() => { /* Las prioridades no bloquean las preguntas. */ });
@@ -561,7 +563,7 @@ function AssistantPanel({ focus = null, compact = false }) {
       <h2>{focus ? "Analiza este expediente" : "¿Qué quieres consultar?"}</h2>
       <p>Respondo con datos visibles para tu cuenta. Comprueba las fuentes antes de tomar una decisión.</p>
       <div className="assistant-suggestions">{prompts.map((item) => <button key={item} type="button" onClick={() => setQuestion(item)}>{item}</button>)}</div>
-      {!focus && brief.length > 0 && <section className="assistant-brief" aria-label="Prioridades actuales"><h3>Señales del portafolio</h3><p>Conteos calculados con registros visibles, sin generación de IA.</p><div>{brief.map((item) => <Link key={item.key} to={item.path}><strong>{item.count}</strong><span>{item.label}</span><ArrowRight size={14} aria-hidden="true" /></Link>)}</div></section>}
+      {!focus && brief.length > 0 && <section className="assistant-brief" aria-label="Prioridades actuales"><h3>Señales del portafolio</h3><p>Conteos calculados con registros visibles, sin generación de IA.</p><div>{brief.map((item) => <Link key={item.key} to={item.path}><strong>{item.count}</strong><span>{item.label}</span><ArrowRight size={14} aria-hidden="true" /></Link>)}</div>{pendingAlertsUnavailable && <small role="status">Los compromisos no están disponibles; se omite su conteo hasta poder consultarlos.</small>}</section>}
     </div>}
     {!focus && messages.length === 0 && insights?.insights?.length > 0 && <section className="assistant-insights" aria-label="Prioridades explicables"><h3>Qué revisar primero</h3><p>Orden orientativo calculado desde tus registros visibles. Confirma cada dato antes de decidir; no representa riesgo residual.</p><ol>{insights.insights.map((item) => <li key={item.key}><Link to={item.source.path}><strong>{item.title}</strong><ArrowRight size={13} aria-hidden="true" /></Link><span>{item.reason}</span><small>{item.factors.join(" · ")}</small></li>)}</ol>{insights.partial && <small>Se muestran {insights.totalShown} de {insights.evaluated} señales; abre los módulos para revisar las demás.</small>}</section>}
     <div className="assistant-messages" aria-live="polite">{messages.map((message) => <article key={message.id} className={`assistant-message ${message.role}`}>
@@ -574,6 +576,8 @@ function AssistantPanel({ focus = null, compact = false }) {
           <small className="assistant-answer-note">Se combinaron coincidencias de texto y búsqueda por significado en {message.coverage.semanticIndexedFiles} archivo(s) preparado(s) de esta biblioteca.</small>}
         {message.coverage?.semanticUnavailable &&
           <small className="assistant-answer-note">La búsqueda por significado no estuvo disponible; se usaron coincidencias de texto.</small>}
+        {message.mode !== "browse" && message.coverage?.pendingActionsUnavailable &&
+          <small className="assistant-answer-note">Los compromisos no estuvieron disponibles; ningún conteo de pendientes debe tomarse como completo.</small>}
         {message.mode !== "computed" && message.mode !== "browse" && message.coverage?.partial && <small className="assistant-answer-note">{message.mode === "attachment-project" ? "La lectura de la biblioteca fue parcial; revisa los archivos originales antes de concluir." : message.mode?.startsWith("attachment-") || ["no-text", "scope-limited"].includes(message.mode) ? "La lectura del archivo fue parcial; revisa el original antes de concluir." : message.coverage.indexedOnly ? "La cantidad de archivos superó el límite de esta búsqueda; el resultado puede ser parcial." : "Se consultó una muestra de expedientes visibles; los conteos abarcan el total de tu alcance."}</small>}
         {message.browse?.items?.length > 0 && <div className="assistant-citations"><b>Resultados en esta conversación</b><ul>{message.browse.items.map((item) => <li key={item.sourceId}><span>{item.type}: {item.title}</span>{item.facts?.length > 0 && <span className="assistant-source-facts">{item.facts.map((fact) => `${fact.label}: ${fact.value}`).join(" · ")}</span>}<small><Link to={item.path}>Abrir expediente <ArrowRight size={13} aria-hidden="true" /></Link></small></li>)}</ul></div>}
         {message.metric && <div className="assistant-citations"><b>Indicador calculado</b><ul><li><Link to={message.metric.path}>{message.metric.label}: {message.metric.count} <ArrowRight size={13} aria-hidden="true" /></Link></li></ul></div>}

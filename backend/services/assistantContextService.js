@@ -4,6 +4,7 @@ const controlRepository = require("../repositories/controlRepository");
 const findingRepository = require("../repositories/findingRepository");
 const { ROLES } = require("../config/roles");
 const { buildNotifications } = require("./notificationService");
+const { listActions } = require("./actionService");
 
 const LIMIT_PER_TYPE = 20;
 const clean = (value, limit = 160) => String(value ?? "").slice(0, limit);
@@ -22,7 +23,7 @@ const factsFor = (type, item) => {
     risks: [["Nivel", item.level], ["Puntaje", item.score]],
     controls: [["Efectividad", item.effectiveness]],
     findings: [["Estado", item.status]],
-    pending: [["Prioridad", item.priority]]
+    pending: [["Prioridad", item.priority], ["Detalle", item.description], ["Vence", item.dueAt]]
   }[type] || [];
   return fields.filter(([, value]) => value !== null && value !== undefined && value !== "")
     .map(([label, value]) => ({ label, value: clean(value, 80) }));
@@ -35,7 +36,7 @@ const sourceFor = (type, item) => {
     : { risks: `/riesgos#risk-${encodeURIComponent(item.id)}`,
       controls: `/controles#control-${encodeURIComponent(item.id)}`,
       findings: `/controles#finding-${encodeURIComponent(item.id)}`,
-      pending: "/notificaciones" }[type];
+      pending: item.path || "/notificaciones" }[type];
   return { sourceId: `${type}:${item.id}`, type: label, id: item.id, title: item.title, path,
     facts: factsFor(type, item) };
 };
@@ -90,7 +91,11 @@ const buildAssistantContext = async (user, question, focus = null) => {
     ? allControls.filter((item) => item.riskIds.some((id) => riskIds.has(id)))
     : allControls;
   const findings = auditor ? allFindings.filter((item) => riskIds.has(item.riskId)) : allFindings;
-  const notifications = buildNotifications({ proposals: allAudits, user });
+  let actions = [];
+  let pendingActionsAvailable = true;
+  try { actions = await listActions(user); }
+  catch { pendingActionsAvailable = false; }
+  const notifications = buildNotifications({ proposals: allAudits, actions, user });
   // Este alcance coincide con los endpoints de lectura de cada módulo. El
   // expediente se resuelve después de filtrar, para no revelar su existencia.
   const visibleByType = { audit: audits, risk: risks, control: controls, finding: findings };
@@ -166,6 +171,7 @@ const buildAssistantContext = async (user, question, focus = null) => {
   return {
     context: {
       role: user.role,
+      pendingActionsAvailable,
       scope: auditor ? "Solo auditorías asignadas y riesgos bajo responsabilidad del usuario" : "Portafolio completo según los módulos de lectura actuales",
       counts: Object.fromEntries(Object.entries(records).map(([type, items]) => [type, items.length])),
       selection,
@@ -188,7 +194,9 @@ const buildAssistantContext = async (user, question, focus = null) => {
     visibleRecords: { audits, risks, controls, findings, pending: notifications },
     verifiedData: { risks: risks.map((item) => ({ area: clean(item.area, 100), level: item.level })) },
     asOf: new Date().toISOString(),
-    coverage: { partial: coverageTypes.some((type) => selection[type].included < selection[type].visible), selection }
+    coverage: { partial: coverageTypes.some((type) => selection[type].included < selection[type].visible) ||
+      (requested.pending && !pendingActionsAvailable), selection,
+    pendingActionsUnavailable: !pendingActionsAvailable }
   };
 };
 

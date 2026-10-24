@@ -12,6 +12,8 @@ const { askAzureOpenAi, configuration, readiness } = require("../services/azureO
 const riskRepository = require("../repositories/riskRepository");
 const controlRepository = require("../repositories/controlRepository");
 const findingRepository = require("../repositories/findingRepository");
+const { createAction } = require("../services/actionService");
+const { browseAssistant } = require("../services/assistantBrowseService");
 
 const auth = (id, method = "GET", body) => ({ method, headers: {
   Authorization: `Bearer ${jwt.sign({ id }, process.env.JWT_SECRET)}`,
@@ -32,6 +34,29 @@ test("Copiloto: responde conteos exactos autorizados y rechaza filtros no calcul
   assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos residuales hay?" }), null);
   assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos hay este trimestre?" }), null);
   assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuántos riesgos altos hay?", brief: [{ ...brief[0], count: -1 }] }), null);
+  assert.equal(getVerifiedAnswer({ ...input, question: "¿Cuántos pendientes prioritarios hay?",
+    context: { focus: null, pendingActionsAvailable: false } }).mode, "scope-limited");
+});
+
+test("Copiloto: incluye compromisos pendientes visibles sin ampliar el rol", async () => {
+  const user = { id: 5, role: "AUDITOR", username: "auditor", name: "Auditor de prueba" };
+  const risk = riskRepository.create({ title: `Riesgo con compromiso ${Date.now()}`, ownerId: 5,
+    level: "Alto", score: 6, likelihood: 3, impact: 2, createdBy: { id: 3 } });
+  const dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const action = await createAction(user, { sourceType: "RISK", sourceId: risk.id,
+    title: "Verificar avance del tratamiento", rationale: "Revisar evidencia y registrar avance.",
+    dueDate, assigneeId: 5 });
+  const own = await buildAssistantContext(user, "mis actividades pendientes");
+  assert.equal(own.context.pendingActionsAvailable, true);
+  assert.ok(own.visibleRecords.pending.some((item) => item.id === `ACTION_DUE_SOON:${action.id}`));
+  assert.equal(own.coverage.pendingActionsUnavailable, false);
+  const browsed = await browseAssistant(user, "Muéstrame mis pendientes");
+  const result = browsed.browse.items.find((item) => item.id === `ACTION_DUE_SOON:${action.id}`);
+  assert.ok(result);
+  assert.ok(result.path.includes(encodeURIComponent(action.id)));
+  assert.ok(result.facts.some((fact) => fact.label === "Detalle" && fact.value.includes(action.title)));
+  const other = await buildAssistantContext({ id: 4, role: "JEFATURA" }, "mis actividades pendientes");
+  assert.ok(!other.visibleRecords.pending.some((item) => item.id === `ACTION_DUE_SOON:${action.id}`));
 });
 
 test("Copiloto: cuenta todos los riesgos del área exacta y distingue un área desconocida", () => {
