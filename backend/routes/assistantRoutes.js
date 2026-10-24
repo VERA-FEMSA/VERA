@@ -218,9 +218,15 @@ router.get("/projects/:id/files", projectFilesEnabled, async (req, res) => {
     }
     const files = await attachments.listProject(req.user, req.params.id);
     if (!embeddingConfiguration()) return res.json({ files });
-    const indexed = await semanticIndex.status(req.user, req.params.id);
-    return res.json({ files: files.map((file) => ({ ...file,
-      semanticReady: file.chunks > 0 && indexed.get(file.id) === file.chunks })) });
+    try {
+      const indexed = await semanticIndex.status(req.user, req.params.id);
+      return res.json({ files: files.map((file) => ({ ...file,
+        semanticReady: file.chunks > 0 && indexed.get(file.id) === file.chunks })) });
+    } catch {
+      return res.json({ files: files.map((file) => ({ ...file, semanticReady: false,
+        semanticUnavailable: true })),
+        semanticUnavailable: true });
+    }
   } catch (error) { return conversationError(res, error); }
 });
 

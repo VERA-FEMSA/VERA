@@ -604,9 +604,10 @@ function AssistantPanel({ focus = null, compact = false }) {
             <span>{item.name} · {item.projectId ? "proyecto" : "conversación"} · {(item.size / 1024).toFixed(0)} KB{item.status === "no-text" ? " · sin texto legible" : ""}{item.truncated ? " · lectura parcial" : ""}</span>
             <button type="button" onClick={() => downloadFile(item.id)}>Abrir original</button>
             {projectSemanticMode && item.projectId && item.status === "ready" && item.chunks > 0 &&
-              (item.semanticReady ? <small>Búsqueda semántica lista</small>
-                : <button type="button" disabled={attachmentBusy || busy}
-                  onClick={() => indexProjectFile(item)}>Mejorar búsqueda</button>)}
+              (item.semanticUnavailable ? <small>La búsqueda semántica no está disponible. Puedes seguir consultando el archivo por palabras.</small>
+                : item.semanticReady ? <small>Búsqueda semántica lista</small>
+                  : <button type="button" disabled={attachmentBusy || busy}
+                    onClick={() => indexProjectFile(item)}>Mejorar búsqueda</button>)}
             {pdfOcrMode && item.mime === "application/pdf" && item.status === "no-text" &&
               <button type="button" disabled={attachmentBusy || busy} onClick={() => ocrFile(item)}>Extraer texto del PDF</button>}
             <button type="button" disabled={attachmentBusy || busy} onClick={() => removeFile(item.id)}>Quitar</button>

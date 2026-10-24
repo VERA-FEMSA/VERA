@@ -157,5 +157,14 @@ test("API de preparación: archivo ajeno devuelve 404 y el propio puede preparar
   assert.equal((await originalFetch(path, auth(5, {}))).status, 200);
   const files = await (await originalFetch(`${base}/api/assistant/projects/${project.id}/files`, auth(5))).json();
   assert.equal(files.files[0].semanticReady, true);
+  const originalStatus = index.status;
+  try {
+    index.status = async () => { throw new Error("Índice temporalmente no disponible"); };
+    const fallbackResponse = await originalFetch(`${base}/api/assistant/projects/${project.id}/files`, auth(5));
+    const fallback = await fallbackResponse.json();
+    assert.equal(fallbackResponse.status, 200);
+    assert.equal(fallback.files[0].semanticReady, false);
+    assert.equal(fallback.files[0].semanticUnavailable, true);
+  } finally { index.status = originalStatus; }
   assert.equal((await originalFetch(`${base}/api/assistant/projects/${project.id}/files`, auth(4))).status, 404);
 });
