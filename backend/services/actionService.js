@@ -154,7 +154,7 @@ const listAssignees = async (user, sourceType, sourceId) => {
   return visible;
 };
 
-const createAction = async (user, body) => {
+const createAction = async (user, body, { operationId } = {}) => {
   const sourceType = text(body.sourceType);
   const sourceId = text(body.sourceId);
   const source = await requiredSource(user, sourceType, sourceId);
@@ -170,10 +170,19 @@ const createAction = async (user, body) => {
   if (!dateIsValid(dueDate)) throw new ActionError("Indica una fecha objetivo válida (AAAA-MM-DD).", 400);
   if (!Number.isSafeInteger(assigneeId) || assigneeId < 1) throw new ActionError("Selecciona una persona responsable.", 400);
   const assignee = await activeAssignee(assigneeId, sourceType, sourceId);
+  if (operationId) {
+    if (typeof operationId !== "string" ||
+        !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(operationId)) {
+      throw new ActionError("Identificador de operación inválido.", 400);
+    }
+    const existing = (await actionRepository.getAll()).find((item) => item.aiOperationId === operationId);
+    if (existing) return existing;
+  }
   const now = new Date().toISOString();
   const action = await actionRepository.create({
     sourceType, sourceId, sourceTitle: source.title,
     title, rationale, dueDate, assigneeId, assigneeName: assignee.name,
+    ...(operationId ? { aiOperationId: operationId } : {}),
     status: "OPEN", createdBy: { id: user.id, name: user.name || user.username },
     createdAt: now, updatedAt: now, completedAt: null,
     history: [{ type: "CREATED", actorId: user.id, actorName: user.name || user.username, at: now }]
@@ -239,4 +248,4 @@ const reassign = async (user, id, body) => {
   return updated;
 };
 
-module.exports = { ActionError, listActions, listActionsForAudit, listSources, getAction, listAssignees, createAction, changeStatus, reassign, canTransition };
+module.exports = { ActionError, listActions, listActionsForAudit, listSources, getAction, listAssignees, createAction, changeStatus, reassign, canTransition, dateIsValid };
