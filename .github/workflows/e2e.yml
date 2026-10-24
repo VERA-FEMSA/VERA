@@ -16,9 +16,19 @@ concurrency:
 
 jobs:
   e2e:
-    name: UI E2E (Chrome, Edge, Firefox, mobile/tablet)
+    name: Browser E2E / ${{ matrix.label }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { project: chromium, browser: chromium, label: desktop-chromium }
+          - { project: firefox, browser: firefox, label: desktop-firefox }
+          - { project: mobile-chrome, browser: chromium, label: mobile-chromium }
+          - { project: tablet-chromium, browser: chromium, label: tablet-chromium }
+          - { project: "Google Chrome", browser: chrome, label: google-chrome }
+          - { project: "Microsoft Edge", browser: msedge, label: microsoft-edge }
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,11 +47,11 @@ jobs:
         working-directory: frontend
 
       - name: Install browser binaries
-        run: npx playwright install chromium firefox chrome msedge
+        run: npx playwright install ${{ matrix.browser }}
         working-directory: frontend
 
       - name: Run browser, viewport and accessibility tests
-        run: npm run test:e2e
+        run: npm run test:e2e -- --project="${{ matrix.project }}"
         working-directory: frontend
         env:
           CI: "true"
@@ -51,9 +61,24 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: vera-e2e-${{ github.run_id }}-${{ github.run_attempt }}
+          name: vera-e2e-${{ matrix.label }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             frontend/playwright-report/
             frontend/test-results/
           if-no-files-found: warn
           retention-days: 14
+
+  e2e-result:
+    name: UI E2E (Chrome, Edge, Firefox, mobile/tablet)
+    needs: e2e
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every browser and viewport to pass
+        run: |
+          if [ "${{ needs.e2e.result }}" != "success" ]; then
+            echo "One or more browser projects did not pass. Review the six Browser E2E jobs and their separate artifacts."
+            exit 1
+          fi
+          echo "All six browser and viewport projects passed."
