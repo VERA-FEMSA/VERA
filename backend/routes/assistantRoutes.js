@@ -7,6 +7,7 @@ const { answerAssistant } = require("../services/assistantAnswerService");
 const { handleAssistantAction, isActionCommand, isCommitmentList } = require("../services/assistantActionService");
 const { createAction, listActions } = require("../services/actionService");
 const { handleAssistantReport, parseReportRequest } = require("../services/assistantReportService");
+const { handlePlanningTransition, isPlanningCommand } = require("../services/assistantPlanningService");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -564,11 +565,14 @@ router.post("/conversations/:id/ask", conversationEnabled,
       const projectFiles = useProjectFiles ? await attachments.listProject(req.user, thread.projectId) : [];
       const projectRows = useProjectFiles ? await Promise.all(projectFiles.map((item) =>
         attachments.getProject(req.user, thread.projectId, item.id))) : [];
-      const actionResult = !attached && !useProjectFiles && !withEvidence
+      const planningResult = !attached && !useProjectFiles && !withEvidence &&
+        isPlanningCommand(question.trim(), thread)
+        ? await handlePlanningTransition(req.user, question.trim(), thread) : null;
+      const actionResult = !planningResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantAction(req.user, question.trim(), thread) : null;
-      const reportResult = !actionResult && !attached && !useProjectFiles && !withEvidence
+      const reportResult = !planningResult && !actionResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantReport(req.user, question.trim()) : null;
-      const result = actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
+      const result = planningResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
         : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
           { user: req.user })
           : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
@@ -576,8 +580,9 @@ router.post("/conversations/:id/ask", conversationEnabled,
       if (attached?.project_id) result.citations = (result.citations || []).map((citation) => ({
         ...citation, projectId: attached.project_id }));
       const currentUser = await userRepository.findById(req.user.id);
+      const scopeAfter = await currentScope(req.user, thread.focus);
       if (currentUser?.status !== "ACTIVE" || currentUser.role !== req.user.role ||
-          await currentScope(req.user, thread.focus) !== scopeHash) {
+          (result.mode !== "action-executed" && scopeAfter !== scopeHash)) {
         return res.status(409).json({ message: "Cambió tu acceso. Inicia una conversación nueva." });
       }
       if (result.mode === "action-pending") return res.status(409).json({ message: result.answer });
@@ -621,7 +626,8 @@ router.post("/conversations/:id/ask", conversationEnabled,
         let historySaved = false;
         try {
           saved = await conversations.update(req.user, thread.id, reserved.version,
-            { messages: [...messages.slice(0, -1), finalMessage] });
+            { messages: [...messages.slice(0, -1), finalMessage],
+              scope_hash: createdAction ? await currentScope(req.user, thread.focus) : scopeHash });
           historySaved = true;
         } catch {
           console.warn(JSON.stringify({ event: "VERA_AI_ACTION_HISTORY_STALE", operationId: draft.operationId }));
@@ -631,7 +637,8 @@ router.post("/conversations/:id/ask", conversationEnabled,
         return res.json({ conversationId: thread.id, version: saved.version, userMessage,
           message: finalMessage, historySaved });
       }
-      const updated = await conversations.update(req.user, thread.id, thread.version, { messages });
+      const updated = await conversations.update(req.user, thread.id, thread.version,
+        { messages, scope_hash: result.mode === "action-executed" ? scopeAfter : scopeHash });
       const channel = withEvidence ? "evidence-search" : "ask";
       const feedbackToken = issueFeedbackToken(req.user, channel, result.mode);
       console.info(JSON.stringify({ event: "VERA_AI_CONVERSATION", role: req.user.role,
@@ -798,6 +805,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     return res.status(400).json({ message: "El historial o el expediente solicitado no es válido." });
   }
   try {
+    if (isPlanningCommand(question.trim(), { messages: [] })) {
+      return res.json({ answer: "Para decidir propuestas o cambiar estados de auditoría, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
     if (parseReportRequest(question.trim())) {
       const result = await handleAssistantReport(req.user, question.trim());
       return res.json({ ...result, durationMs: Date.now() - startedAt });

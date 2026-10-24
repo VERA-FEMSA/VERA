@@ -6,6 +6,7 @@ const { USER_STATUS } = require("../config/accountRules");
 const { classifyRisk } = require("../config/riskRules");
 const { EDITABLE_FIELDS_BY_STATUS, FIELD_LABELS, STATUS_LABELS } = require("../config/auditEditRules");
 const { parseAuditFilters, searchAudits } = require("../services/auditSearch");
+const { applyTransition } = require("../services/planningTransitionService");
 
 
 const TYPES = ["Interna", "Externa"];
@@ -187,97 +188,20 @@ const updateProposal = async (req, res) => {
   res.json({ proposal });
 };
 
-// POST /api/planning/:id/approve
-const approveProposal = async (req, res) => {
-  const current = await planningRepository.findById(req.params.id);
-  if (!current) return res.status(404).json({ message: "Propuesta no encontrada." });
-  if (isTerminal(current)) {
-    return res.status(409).json({ message: "Esta propuesta ya fue resuelta." });
+// La interfaz y el chat comparten las mismas reglas y la misma bitácora.
+const respondToTransition = async (req, res, operation) => {
+  try {
+    const { kind, record } = await applyTransition(req.user, req.params.id, operation, req.body || {});
+    return res.json({ [kind]: record });
+  } catch (error) {
+    if ([400, 403, 404, 409].includes(error.status)) return res.status(error.status).json({ message: error.message });
+    throw error;
   }
-
-  const quarter = text(req.body.quarter) || current.quarter;
-  if (!QUARTERS.includes(quarter)) {
-    return res.status(400).json({ message: "Selecciona un trimestre para completar la aprobación." });
-  }
-
-  const proposal = await planningRepository.approve(current.id, {
-    quarter,
-    approvedBy: { id: req.user.id, name: req.user.username }
-  }, current.storageVersion);
-
-  await logActivity({
-    actor: req.user,
-    action: "AUDIT_PROPOSAL_APPROVED",
-    details: { proposalId: proposal.id, title: proposal.title, quarter }
-  });
-
-  res.json({ proposal });
 };
-
-// POST /api/planning/:id/start
-const startAudit = async (req, res) => {
-  const current = await planningRepository.findById(req.params.id);
-  if (!current) return res.status(404).json({ message: "Auditoría no encontrada." });
-  if (current.status !== "APPROVED") {
-    return res.status(409).json({ message: "Solo se pueden iniciar auditorías aprobadas y pendientes de ejecución." });
-  }
-
-  const audit = await planningRepository.start(current.id, {
-    startedBy: { id: req.user.id, name: req.user.username }
-  }, current.storageVersion);
-  await logActivity({
-    actor: req.user,
-    action: "AUDIT_STARTED",
-    details: { auditId: audit.id, title: audit.title }
-  });
-  res.json({ audit });
-};
-
-// POST /api/planning/:id/close
-const closeAudit = async (req, res) => {
-  const current = await planningRepository.findById(req.params.id);
-  if (!current) return res.status(404).json({ message: "Auditoría no encontrada." });
-  if (current.status !== "ACTIVE") {
-    return res.status(409).json({ message: "Solo se pueden cerrar auditorías en curso." });
-  }
-
-  const audit = await planningRepository.close(current.id, {
-    closedBy: { id: req.user.id, name: req.user.username }
-  }, current.storageVersion);
-  await logActivity({
-    actor: req.user,
-    action: "AUDIT_CLOSED",
-    details: { auditId: audit.id, title: audit.title }
-  });
-  res.json({ audit });
-};
-
-// POST /api/planning/:id/reject
-const rejectProposal = async (req, res) => {
-  const current = await planningRepository.findById(req.params.id);
-  if (!current) return res.status(404).json({ message: "Propuesta no encontrada." });
-  if (isTerminal(current)) {
-    return res.status(409).json({ message: "Esta propuesta ya fue resuelta." });
-  }
-
-  const rejectionReason = text(req.body.reason);
-  if (!rejectionReason) {
-    return res.status(400).json({ message: "Escribe el motivo del rechazo." });
-  }
-
-  const proposal = await planningRepository.reject(current.id, {
-    rejectionReason,
-    rejectedBy: { id: req.user.id, name: req.user.username }
-  }, current.storageVersion);
-
-  await logActivity({
-    actor: req.user,
-    action: "AUDIT_PROPOSAL_REJECTED",
-    details: { proposalId: proposal.id, title: proposal.title, reason: rejectionReason }
-  });
-
-  res.json({ proposal });
-};
+const approveProposal = (req, res) => respondToTransition(req, res, "approve");
+const rejectProposal = (req, res) => respondToTransition(req, res, "reject");
+const startAudit = (req, res) => respondToTransition(req, res, "start");
+const closeAudit = (req, res) => respondToTransition(req, res, "close");
 
 // DELETE /api/planning/:id  (solo propuestas abiertas)
 const deleteProposal = async (req, res) => {
