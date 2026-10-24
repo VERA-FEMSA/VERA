@@ -631,6 +631,40 @@ test("Copiloto: confirma una decisión de planificación sin salir del chat", as
   await expect(page).toHaveURL(/\/asistente$/);
 });
 
+test("Copiloto: confirma una evaluación de riesgo sin salir del chat", async ({ page }) => {
+  await useSession(page, "GERENTE", 3);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "consult-and-confirm", conversations: true
+  } }));
+  const id = "11111111-1111-4111-8111-111111111115";
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") return route.fulfill({ json: { conversations: [] } });
+    if (path.endsWith("/conversations") && method === "POST") return route.fulfill({ status: 201,
+      json: { conversation: { id, title: "Nueva conversación", focus: null, messages: [], version: 1 } } });
+    if (path.endsWith(`/${id}/ask`) && method === "POST") {
+      const question = route.request().postDataJSON().question;
+      const executed = question === "Confirmar evaluación";
+      return route.fulfill({ json: { conversationId: id, version: executed ? 3 : 2,
+        userMessage: { id: executed ? "user-risk-2" : "user-risk-1", role: "user", text: question },
+        message: { id: executed ? "assistant-risk-2" : "assistant-risk-1", role: "assistant",
+          text: executed ? "Quedó evaluado «Acceso indebido»: Alto (6/9)." :
+            "Revisa antes de ejecutar: evaluar «Acceso indebido». Escribe «Confirmar evaluación».",
+          mode: executed ? "action-executed" : "action-preview", citations: [], references: [] } } });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Tu pregunta").fill("Evalúa el riesgo «Acceso indebido» con probabilidad 3 e impacto 2 porque la exposición afecta varios procesos.");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Vista previa · no se ha modificado ningún registro")).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("Confirmar evaluación");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Quedó evaluado «Acceso indebido»: Alto (6/9).")).toBeVisible();
+  await expect(page).toHaveURL(/\/asistente$/);
+});
+
 test("Copiloto: explica prioridades y enlaza solo registros visibles", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: false, mode: "read-only" } }));
