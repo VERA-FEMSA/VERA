@@ -44,6 +44,7 @@ const capabilityAnswer = (user, persistent) => {
   }
   if (PLANNING_APPROVE_ROLES.includes(user.role)) {
     lines.push("• Reasignar compromisos, aprobar o rechazar propuestas, e iniciar o cerrar auditorías, indicando expediente y motivo.");
+    lines.push("• Editar datos permitidos de una auditoría aprobada o en curso: «Edita la auditoría AUD-01: objetivo = «Nuevo objetivo» porque cambió el alcance». Revisarás el antes y el después.");
   }
   if (RISK_CONTROL_MANAGE_ROLES.includes(user.role)) {
     lines.push("• Registrar riesgos nuevos: escribe «Registrar riesgo» y completa los campos aquí mismo.");

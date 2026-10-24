@@ -419,6 +419,7 @@ test("Copiloto: proyectos privados agrupan hilos y borrarlos conserva el histori
   await page.getByRole("button", { name: "Guardar proyecto" }).click();
   await expect(page.getByLabel("Proyecto", { exact: true })).toHaveValue(projectId);
   await page.getByRole("button", { name: "Nueva conversación" }).click();
+  await expect(page.getByRole("button", { name: "Renombrar conversación" })).toBeVisible();
   await showHistory(page);
   await expect(page.getByRole("navigation", { name: "Conversaciones privadas" }).getByRole("button", { name: "Nueva conversación" })).toHaveAttribute("aria-current", "page");
   await page.reload();
