@@ -1,107 +1,12 @@
 const planningRepository = require("../repositories/planningRepository");
-const userRepository = require("../repositories/userRepository");
 const { logActivity } = require("../services/auditLogger");
 const { ROLES } = require("../config/roles");
-const { USER_STATUS } = require("../config/accountRules");
-const { classifyRisk } = require("../config/riskRules");
 const { EDITABLE_FIELDS_BY_STATUS, FIELD_LABELS, STATUS_LABELS } = require("../config/auditEditRules");
 const { parseAuditFilters, searchAudits } = require("../services/auditSearch");
 const { applyTransition } = require("../services/planningTransitionService");
+const { parseProposal, activeAuditors, createProposalForUser, DUPLICATE_MESSAGE } = require("../services/proposalService");
 
-
-const TYPES = ["Interna", "Externa"];
-const RISKS = ["Bajo", "Medio", "Alto"];
-const RISK_FACTOR_LEVELS = [1, 2, 3];
-const QUARTERS = ["Q1", "Q2", "Q3", "Q4"];
-const MIN_YEAR = 2020;
-const MAX_YEAR = 2100;
-
-const DUPLICATE_MESSAGE = "Ya existe una propuesta con el mismo título, área y año.";
 const isTerminal = (proposal) => ["APPROVED", "ACTIVE", "CLOSED", "REJECTED"].includes(proposal.status);
-const text = (value) => String(value ?? "").trim();
-const isDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
-
-const activeAuditors = async () =>
-  (await userRepository.getAll())
-    .filter((u) => u.role === ROLES.AUDITOR && u.status === USER_STATUS.ACTIVE)
-    .map((u) => ({ id: u.id, name: u.name, username: u.username }));
-
-// Valida y limpia el cuerpo de una propuesta. Regresa { error } o { data }.
-const parseProposal = async (body) => {
-  const title = text(body.title);
-  const objective = text(body.objective);
-  const scope = text(body.scope);
-  const justification = text(body.justification);
-  const area = text(body.area);
-  const type = text(body.type) || "Interna";
-  const requestedRisk = text(body.risk) || "Medio";
-  const fallbackFactor = requestedRisk === "Bajo" ? 1 : requestedRisk === "Alto" ? 3 : 2;
-  const likelihood = body.likelihood === undefined ? fallbackFactor : Number(body.likelihood);
-  const impact = body.impact === undefined ? fallbackFactor : Number(body.impact);
-  const quarter = text(body.quarter);
-  const year = Number(body.year) || new Date().getFullYear();
-  const startDate = text(body.startDate);
-  const endDate = text(body.endDate);
-
-  if (!title || !objective || !scope || !justification || !area) {
-    return { error: "Completa el título, el área, el objetivo, el alcance y la justificación de la propuesta." };
-  }
-  if (scope.length > 2000 || justification.length > 2000) {
-    return { error: "El alcance y la justificación no pueden superar 2000 caracteres." };
-  }
-  if (!TYPES.includes(type)) return { error: "El tipo de auditoría no es válido." };
-  if (!RISKS.includes(requestedRisk)) return { error: "El nivel de riesgo no es válido." };
-  if (!RISK_FACTOR_LEVELS.includes(likelihood) || !RISK_FACTOR_LEVELS.includes(impact)) {
-    return { error: "La probabilidad y el impacto deben ser niveles del 1 al 3." };
-  }
-  if (quarter && !QUARTERS.includes(quarter)) return { error: "El trimestre no es válido." };
-  if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) {
-    return { error: "El año no es válido." };
-  }
-  if ((startDate && !isDate(startDate)) || (endDate && !isDate(endDate))) {
-    return { error: "Las fechas no tienen un formato válido." };
-  }
-  if (startDate && endDate && endDate < startDate) {
-    return { error: "La fecha de fin no puede ser anterior a la de inicio." };
-  }
-  if (Boolean(startDate) !== Boolean(endDate)) {
-    return { error: "Indica ambas fechas del periodo estimado." };
-  }
-  if (!quarter && !startDate) {
-    return { error: "Indica un trimestre o ambas fechas del periodo estimado." };
-  }
-
-  let responsibleId = null;
-  let responsible = "Sin asignar";
-  const rawResponsible = body.responsibleId;
-  if (rawResponsible !== undefined && rawResponsible !== null && rawResponsible !== "") {
-    const auditor = (await activeAuditors()).find((a) => a.id === Number(rawResponsible));
-    if (!auditor) return { error: "El responsable debe ser un auditor activo." };
-    responsibleId = auditor.id;
-    responsible = auditor.name;
-  }
-
-  return {
-    data: {
-      title,
-      objective,
-      scope,
-      justification,
-      area,
-      type,
-      likelihood,
-      impact,
-      riskScore: likelihood * impact,
-      risk: classifyRisk(likelihood * impact),
-      quarter,
-      year,
-      startDate,
-      endDate,
-      responsibleId,
-      responsible
-    }
-  };
-};
 
 // GET /api/planning
 const listProposals = async (req, res) => {
@@ -138,25 +43,11 @@ const listAuditors = async (req, res) => {
 
 // POST /api/planning
 const createProposal = async (req, res) => {
-  const { data, error } = await parseProposal(req.body);
-  if (error) return res.status(400).json({ message: error });
-
-  if (await planningRepository.findDuplicate(data)) {
-    return res.status(409).json({ message: DUPLICATE_MESSAGE });
+  try { return res.status(201).json({ proposal: await createProposalForUser(req.user, req.body) }); }
+  catch (error) {
+    if ([400, 403, 409].includes(error.status)) return res.status(error.status).json({ message: error.message });
+    throw error;
   }
-
-  const proposal = await planningRepository.create({
-    ...data,
-    createdBy: { id: req.user.id, name: req.user.username }
-  });
-
-  await logActivity({
-    actor: req.user,
-    action: "AUDIT_PROPOSAL_CREATED",
-    details: { proposalId: proposal.id, title: proposal.title }
-  });
-
-  res.status(201).json({ proposal });
 };
 
 // PUT /api/planning/:id  (solo propuestas abiertas)

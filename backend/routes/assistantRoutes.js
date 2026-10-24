@@ -11,6 +11,9 @@ const { handlePlanningTransition, isPlanningCommand } = require("../services/ass
 const { handleRiskEvaluation, isRiskCommand } = require("../services/assistantRiskEvaluationService");
 const { handleControlEvaluation, isControlCommand } = require("../services/assistantControlEvaluationService");
 const { handleCapabilityQuestion } = require("../services/assistantCapabilityService");
+const { handleProposalCreate, isProposalCreateCommand } = require("../services/assistantProposalCreateService");
+const { createProposalForUser } = require("../services/proposalService");
+const planningRepository = require("../repositories/planningRepository");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -570,20 +573,23 @@ router.post("/conversations/:id/ask", conversationEnabled,
         attachments.getProject(req.user, thread.projectId, item.id))) : [];
       const capabilityResult = !attached && !useProjectFiles && !withEvidence
         ? handleCapabilityQuestion(req.user, question.trim(), true) : null;
-      const planningResult = !capabilityResult && !attached && !useProjectFiles && !withEvidence &&
+      const proposalResult = !capabilityResult && !attached && !useProjectFiles && !withEvidence &&
+        isProposalCreateCommand(question.trim(), thread)
+        ? await handleProposalCreate(req.user, question.trim(), thread) : null;
+      const planningResult = !capabilityResult && !proposalResult && !attached && !useProjectFiles && !withEvidence &&
         isPlanningCommand(question.trim(), thread)
         ? await handlePlanningTransition(req.user, question.trim(), thread) : null;
-      const riskResult = !capabilityResult && !planningResult && !attached && !useProjectFiles && !withEvidence &&
+      const riskResult = !capabilityResult && !proposalResult && !planningResult && !attached && !useProjectFiles && !withEvidence &&
         isRiskCommand(question.trim(), thread)
         ? await handleRiskEvaluation(req.user, question.trim(), thread) : null;
-      const controlResult = !capabilityResult && !planningResult && !riskResult && !attached && !useProjectFiles && !withEvidence &&
+      const controlResult = !capabilityResult && !proposalResult && !planningResult && !riskResult && !attached && !useProjectFiles && !withEvidence &&
         isControlCommand(question.trim())
         ? await handleControlEvaluation(req.user, question.trim(), thread) : null;
-      const actionResult = !capabilityResult && !planningResult && !riskResult && !controlResult && !attached && !useProjectFiles && !withEvidence
+      const actionResult = !capabilityResult && !proposalResult && !planningResult && !riskResult && !controlResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantAction(req.user, question.trim(), thread) : null;
-      const reportResult = !capabilityResult && !planningResult && !riskResult && !controlResult && !actionResult && !attached && !useProjectFiles && !withEvidence
+      const reportResult = !capabilityResult && !proposalResult && !planningResult && !riskResult && !controlResult && !actionResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantReport(req.user, question.trim()) : null;
-      const result = capabilityResult || planningResult || riskResult || controlResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
+      const result = capabilityResult || proposalResult || planningResult || riskResult || controlResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
         : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
           { user: req.user })
           : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
@@ -645,6 +651,42 @@ router.post("/conversations/:id/ask", conversationEnabled,
         }
         console.info(JSON.stringify({ event: "VERA_AI_ACTION_CREATE", role: req.user.role,
           success: Boolean(createdAction), durationMs: Date.now() - startedAt }));
+        return res.json({ conversationId: thread.id, version: saved.version, userMessage,
+          message: finalMessage, historySaved });
+      }
+      if (result.mode === "action-reservation" && result.proposalCreate?.type === "PROPOSAL_CREATE") {
+        const draft = result.proposalCreate;
+        assistantMessage.mode = "action-reserved";
+        assistantMessage.actionReservation = { type: "PROPOSAL_CREATE", operationId: draft.operationId,
+          createdAt: new Date().toISOString() };
+        const reserved = await conversations.update(req.user, thread.id, thread.version, { messages });
+        let proposal = null;
+        let executionError = null;
+        try {
+          proposal = await createProposalForUser(req.user, draft.data, draft.operationId);
+        } catch (error) {
+          proposal = (await planningRepository.getAll()).find((item) => item.aiOperationId === draft.operationId);
+          if (!proposal) executionError = error;
+        }
+        const finalMessage = { ...assistantMessage,
+          mode: proposal ? "action-executed" : "action-guidance",
+          text: proposal
+            ? `Quedó creada la propuesta «${proposal.title}» con identificador ${proposal.id}. Está abierta para revisión.`
+            : `No se creó la propuesta: ${executionError?.message || "no se pudo confirmar la operación"}. Solicita una vista previa nueva.`,
+          ...(proposal ? { actionOutcome: { id: proposal.id, status: proposal.status } } : {}) };
+        delete finalMessage.actionReservation;
+        let saved = reserved;
+        let historySaved = false;
+        try {
+          saved = await conversations.update(req.user, thread.id, reserved.version,
+            { messages: [...messages.slice(0, -1), finalMessage],
+              scope_hash: proposal ? await currentScope(req.user, thread.focus) : scopeHash });
+          historySaved = true;
+        } catch {
+          console.warn(JSON.stringify({ event: "VERA_AI_PROPOSAL_HISTORY_STALE", operationId: draft.operationId }));
+        }
+        console.info(JSON.stringify({ event: "VERA_AI_PROPOSAL_CREATE", role: req.user.role,
+          success: Boolean(proposal), durationMs: Date.now() - startedAt }));
         return res.json({ conversationId: thread.id, version: saved.version, userMessage,
           message: finalMessage, historySaved });
       }
@@ -818,6 +860,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
   try {
     const capability = handleCapabilityQuestion(req.user, question.trim(), false);
     if (capability) return res.json({ ...capability, durationMs: Date.now() - startedAt });
+    if (isProposalCreateCommand(question.trim(), { messages: [] })) {
+      return res.json({ answer: "Para crear una propuesta, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
     if (isPlanningCommand(question.trim(), { messages: [] })) {
       return res.json({ answer: "Para decidir propuestas o cambiar estados de auditoría, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },

@@ -631,6 +631,42 @@ test("Copiloto: confirma una decisión de planificación sin salir del chat", as
   await expect(page).toHaveURL(/\/asistente$/);
 });
 
+test("Copiloto: crea una propuesta desde el chat con vista previa y confirmación", async ({ page }) => {
+  await useSession(page, "GERENTE", 3);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "consult-and-confirm", conversations: true
+  } }));
+  const id = "11111111-1111-4111-8111-111111111118";
+  let version = 1;
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") return route.fulfill({ json: { conversations: [] } });
+    if (path.endsWith("/conversations") && method === "POST") return route.fulfill({ status: 201,
+      json: { conversation: { id, title: "Nueva conversación", focus: null, messages: [], version } } });
+    if (path.endsWith(`/${id}/ask`) && method === "POST") {
+      const question = route.request().postDataJSON().question;
+      const executed = question === "Confirmar propuesta";
+      version += 1;
+      return route.fulfill({ json: { conversationId: id, version,
+        userMessage: { id: `user-proposal-${version}`, role: "user", text: question },
+        message: { id: `assistant-proposal-${version}`, role: "assistant",
+          text: executed ? "Quedó creada la propuesta «Auditoría de accesos» con identificador AUD-04." :
+            "Revisa la propuesta: Auditoría de accesos. Escribe «Confirmar propuesta».",
+          mode: executed ? "action-executed" : "action-preview", citations: [], references: [] } } });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Tu pregunta").fill("Crear propuesta de auditoría de accesos");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Vista previa · no se ha modificado ningún registro")).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("Confirmar propuesta");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText(/Quedó creada la propuesta «Auditoría de accesos»/)).toBeVisible();
+  await expect(page).toHaveURL(/\/asistente$/);
+});
+
 test("Copiloto: confirma una evaluación de riesgo sin salir del chat", async ({ page }) => {
   await useSession(page, "GERENTE", 3);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
