@@ -49,7 +49,7 @@ const listCommitments = async (user, question, thread) => {
   const isNext = nextRequest(question, thread);
   const offset = isNext ? Math.min(previous.offset + 10, 1000) : 0;
   const mine = isNext ? previous.mine : /\bmis\b/.test(normalize(question));
-  const filter = isNext ? previous.filter : /\bcerrados\b/.test(normalize(question)) ? "CLOSED"
+  const filter = isNext ? previous.filter || "OPEN" : /\bcerrados\b/.test(normalize(question)) ? "CLOSED"
     : /\bcompletados\b/.test(normalize(question)) ? "DONE"
     : /\bcancelados\b/.test(normalize(question)) ? "CANCELLED" : "OPEN";
   const visible = (await listActions(user)).filter((item) =>
