@@ -3,10 +3,9 @@ const userRepository = require("../repositories/userRepository");
 const planningRepository = require("../repositories/planningRepository");
 const { logActivity } = require("../services/auditLogger");
 const { USER_STATUS } = require("../config/accountRules");
-const { classifyRisk } = require("../config/riskRules");
+const { parseAssessment, evaluateRiskForUser } = require("../services/riskEvaluationService");
 const { normalizeArea } = require("../utils/normalizeArea");
 
-const FACTORS = [1, 2, 3];
 const text = (value) => String(value ?? "").trim();
 const activeUsers = async () => (await userRepository.getAll()).filter((user) => user.status === USER_STATUS.ACTIVE);
 
@@ -39,20 +38,6 @@ const parseCore = async (body) => {
       linkedAuditId: linkedAuditId || null
     }
   };
-};
-
-const parseAssessment = (body) => {
-  const likelihood = Number(body.likelihood);
-  const impact = Number(body.impact);
-  const note = text(body.note);
-  if (!FACTORS.includes(likelihood) || !FACTORS.includes(impact)) {
-    return { error: "La probabilidad y el impacto deben ser valores enteros de 1 a 3." };
-  }
-  if (note.length < 10 || note.length > 1000) {
-    return { error: "La justificación debe tener entre 10 y 1,000 caracteres." };
-  }
-  const score = likelihood * impact;
-  return { data: { likelihood, impact, score, level: classifyRisk(score), note } };
 };
 
 const listRisks = async (req, res) => {
@@ -107,20 +92,8 @@ const updateRisk = async (req, res) => {
 };
 
 const evaluateRisk = async (req, res) => {
-  const current = await riskRepository.findById(req.params.id);
-  if (!current) return res.status(404).json({ message: "Riesgo no encontrado." });
-  const assessment = parseAssessment(req.body);
-  if (assessment.error) return res.status(400).json({ message: assessment.error });
-  const risk = await riskRepository.evaluate(current.id, {
-    ...assessment.data,
-    assessedBy: { id: req.user.id, name: req.user.username }
-  }, current.storageVersion);
-  await logActivity({
-    actor: req.user,
-    action: "RISK_EVALUATED",
-    details: { riskId: risk.id, title: risk.title, level: risk.level, score: risk.score, evaluationVersion: risk.evaluations.length }
-  });
-  res.json({ risk });
+  try { res.json({ risk: await evaluateRiskForUser(req.user, req.params.id, req.body) }); }
+  catch (error) { res.status(error.status || 502).json({ message: error.status ? error.message : "No se pudo evaluar el riesgo." }); }
 };
 
 module.exports = { listRisks, listOwners, createRisk, updateRisk, evaluateRisk };

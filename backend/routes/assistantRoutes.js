@@ -8,6 +8,7 @@ const { handleAssistantAction, isActionCommand, isCommitmentList } = require("..
 const { createAction, listActions } = require("../services/actionService");
 const { handleAssistantReport, parseReportRequest } = require("../services/assistantReportService");
 const { handlePlanningTransition, isPlanningCommand } = require("../services/assistantPlanningService");
+const { handleRiskEvaluation, isRiskCommand } = require("../services/assistantRiskEvaluationService");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -568,11 +569,14 @@ router.post("/conversations/:id/ask", conversationEnabled,
       const planningResult = !attached && !useProjectFiles && !withEvidence &&
         isPlanningCommand(question.trim(), thread)
         ? await handlePlanningTransition(req.user, question.trim(), thread) : null;
-      const actionResult = !planningResult && !attached && !useProjectFiles && !withEvidence
+      const riskResult = !planningResult && !attached && !useProjectFiles && !withEvidence &&
+        isRiskCommand(question.trim(), thread)
+        ? await handleRiskEvaluation(req.user, question.trim(), thread) : null;
+      const actionResult = !planningResult && !riskResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantAction(req.user, question.trim(), thread) : null;
-      const reportResult = !planningResult && !actionResult && !attached && !useProjectFiles && !withEvidence
+      const reportResult = !planningResult && !riskResult && !actionResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantReport(req.user, question.trim()) : null;
-      const result = planningResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
+      const result = planningResult || riskResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
         : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
           { user: req.user })
           : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
@@ -807,6 +811,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
   try {
     if (isPlanningCommand(question.trim(), { messages: [] })) {
       return res.json({ answer: "Para decidir propuestas o cambiar estados de auditoría, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
+    if (isRiskCommand(question.trim(), { messages: [] })) {
+      return res.json({ answer: "Para evaluar riesgos, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }
