@@ -97,10 +97,14 @@ const handleAssistantAction = async (user, question, thread) => {
   const reassignment = parseReassignment(question);
   const assigneeTarget = parseAssigneeList(question);
   const listing = listRequest(question) || nextRequest(question, thread);
-  if (!command && !creationIntent(question) && !reassignment && !assigneeTarget && !confirm(question) && !listing) return null;
+  const reservation = thread.messages.at(-1)?.actionReservation;
+  if (!command && !creationIntent(question) && !reassignment && !assigneeTarget && !confirm(question) && !listing && !reservation) return null;
   const current = await userRepository.findById(user.id);
   if (current?.status !== "ACTIVE" || current.role !== user.role) {
     const error = new Error("Cambió tu acceso. Inicia sesión de nuevo."); error.status = 409; throw error;
+  }
+  if (reservation && !confirm(question)) {
+    return response("Hay una confirmación en curso. Espera unos segundos y escribe «Confirmar cambio» para comprobar su resultado.", "action-pending");
   }
   if (listing) return listCommitments(user, question, thread);
   if (assigneeTarget) {
@@ -117,13 +121,14 @@ const handleAssistantAction = async (user, question, thread) => {
   }
 
   if (confirm(question)) {
-    const reservation = thread.messages.at(-1)?.actionReservation;
     if (reservation?.type === "ACTION_CREATE") {
       const existing = (await listActions(user)).find((item) => item.aiOperationId === reservation.operationId);
       return existing
         ? response(`El compromiso «${existing.title}» ya quedó creado con identificador ${existing.id}. Puedes consultarlo en tus compromisos.`,
           "action-executed", { actionOutcome: { id: existing.id, status: existing.status } })
-        : response("La confirmación quedó reservada, pero no hay constancia de que se haya creado el compromiso. Solicita una vista previa nueva antes de intentarlo otra vez.");
+        : Date.now() - Date.parse(reservation.createdAt) < 120_000
+          ? response("La confirmación sigue en curso. Espera unos segundos y vuelve a consultar el resultado.", "action-pending")
+          : response("La confirmación quedó reservada, pero no hay constancia de que se haya creado el compromiso. Solicita una vista previa nueva antes de intentarlo otra vez.");
     }
     const draft = thread.messages.at(-1)?.actionDraft;
     if (!draft || !["ACTION_STATUS_CHANGE", "ACTION_REASSIGN", "ACTION_CREATE"].includes(draft.type)) {

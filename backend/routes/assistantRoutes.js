@@ -577,6 +577,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
           await currentScope(req.user, thread.focus) !== scopeHash) {
         return res.status(409).json({ message: "Cambió tu acceso. Inicia una conversación nueva." });
       }
+      if (result.mode === "action-pending") return res.status(409).json({ message: result.answer });
       const durationMs = Date.now() - startedAt;
       const userMessage = { id: randomUUID(), role: "user", text: question.trim(), asOf: new Date().toISOString(),
         ...(attached ? { attachmentId: attached.id, attachmentName: attached.name } : {}),
@@ -595,7 +596,8 @@ router.post("/conversations/:id/ask", conversationEnabled,
       if (result.mode === "action-reservation" && result.actionCreate?.type === "ACTION_CREATE") {
         const draft = result.actionCreate;
         assistantMessage.mode = "action-reserved";
-        assistantMessage.actionReservation = { type: "ACTION_CREATE", operationId: draft.operationId };
+        assistantMessage.actionReservation = { type: "ACTION_CREATE", operationId: draft.operationId,
+          createdAt: new Date().toISOString() };
         const reserved = await conversations.update(req.user, thread.id, thread.version, { messages });
         let createdAction = null;
         let executionError = null;
