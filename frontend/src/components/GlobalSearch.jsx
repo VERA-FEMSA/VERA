@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import "./GlobalSearch.css";
 
 function normalize(value) {
@@ -19,6 +20,7 @@ function visiblePageActions() {
 }
 
 function GlobalSearch({ groups, previewRoles, onNavigate, onPreviewRole, onRevealAppearance, onLogout, onOpen, disabled }) {
+  const location = useLocation();
   const dialogRef = useRef(null);
   const triggerRef = useRef(null);
   const inputRef = useRef(null);
@@ -56,18 +58,25 @@ function GlobalSearch({ groups, previewRoles, onNavigate, onPreviewRole, onRevea
     ...pageActions.map((action) => ({ ...action, kind: "focus" }))
   ];
   const search = normalize(query.trim());
-  const results = search ? commands.filter(({ label, group }) => normalize(`${label} ${group}`).includes(search)) : commands;
+  const matches = search ? commands.filter(({ label, group }) => normalize(`${label} ${group}`).includes(search)) : commands;
+  const ask = search && query.trim().length >= 3 && location.pathname !== "/asistente"
+    ? { key: "ask-vera", label: `Preguntar a VERA: ${query.trim()}`, group: "Asistente de IA", kind: "ask" } : null;
+  const conversational = ask && (query.trim().split(/\s+/).length > 1 || /[¿?]/.test(query));
+  const results = ask ? conversational ? [ask, ...matches] : [...matches, ask] : matches;
 
   const choose = (key) => {
-    const result = commands.find((item) => item.key === key);
+    const result = results.find((item) => item.key === key);
     if (!result) return;
     if (result.kind === "focus") focusAfterCloseRef.current = result.element;
     else skipRestoreRef.current = true;
+    const selectedQuestion = result.kind === "ask" ? query.trim() : "";
     dialogRef.current?.close();
     if (result.kind === "navigate") onNavigate(result.path);
     if (result.kind === "preview") onPreviewRole(result.role);
     if (result.kind === "appearance") onRevealAppearance();
     if (result.kind === "logout") onLogout();
+    if (result.kind === "ask") window.dispatchEvent(new CustomEvent("vera:assistant-open",
+      { detail: { question: selectedQuestion } }));
   };
 
   const onClose = () => {
@@ -99,7 +108,7 @@ function GlobalSearch({ groups, previewRoles, onNavigate, onPreviewRole, onRevea
     <dialog ref={dialogRef} className="global-search-dialog" aria-label="Buscar secciones y acciones" onClose={onClose}>
       <div className="global-search-input-row">
         <Search size={20} aria-hidden="true" />
-        <input ref={inputRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)}
+        <input ref={inputRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} maxLength={800}
           aria-label="Buscar secciones y acciones" placeholder="Escribe una sección o acción"
           onKeyDown={(event) => {
             if (event.key === "ArrowDown") { event.preventDefault(); resultsRef.current?.querySelector("button")?.focus(); }
