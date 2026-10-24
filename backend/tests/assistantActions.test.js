@@ -92,5 +92,9 @@ test("Un cambio externo invalida la vista previa y el chat sin historial nunca e
     { question: `Completa el compromiso ${action.id} porque ya se revisó la evidencia.` }));
   assert.equal(ephemeral.status, 200);
   assert.equal((await ephemeral.json()).mode, "action-guidance");
+  const readOnlyList = await fetch(`${base}/api/assistant/ask`, options(5,
+    { question: "Muéstrame mis compromisos" }));
+  assert.equal(readOnlyList.status, 200);
+  assert.equal((await readOnlyList.json()).mode, "browse");
   assert.equal((await getAction(user, action.id)).status, "IN_PROGRESS");
 });

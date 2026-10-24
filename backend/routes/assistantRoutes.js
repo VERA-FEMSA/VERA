@@ -4,7 +4,7 @@ const { verifyToken } = require("../middleware/authMiddleware");
 const { buildAssistantContext } = require("../services/assistantContextService");
 const { readiness } = require("../services/azureOpenAiService");
 const { answerAssistant } = require("../services/assistantAnswerService");
-const { handleAssistantAction, isActionCommand } = require("../services/assistantActionService");
+const { handleAssistantAction, isActionCommand, isCommitmentList } = require("../services/assistantActionService");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -756,6 +756,10 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     return res.status(400).json({ message: "El historial o el expediente solicitado no es válido." });
   }
   try {
+    if (isCommitmentList(question.trim())) {
+      const result = await handleAssistantAction(req.user, question.trim(), { messages: [] });
+      return res.json({ ...result, durationMs: Date.now() - startedAt });
+    }
     if (isActionCommand(question.trim())) {
       return res.json({ answer: "Para cambiar un compromiso, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
