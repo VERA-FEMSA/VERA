@@ -1,4 +1,5 @@
-const { RISK_CONTROL_MANAGE_ROLES, PLANNING_APPROVE_ROLES, RECORD_CREATE_ROLES } = require("../config/roles");
+const { RISK_CONTROL_MANAGE_ROLES, PLANNING_APPROVE_ROLES, RECORD_CREATE_ROLES,
+  AUDIT_PROPOSAL_CREATE_ROLES } = require("../config/roles");
 
 const normalize = (value) => String(value || "").normalize("NFD")
   .replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/^[¿?!.]+|[¿?!.]+$/g, "").replace(/\s+/g, " ");
@@ -19,6 +20,9 @@ const capabilityAnswer = (user, persistent) => {
   }
   if (RECORD_CREATE_ROLES.includes(user.role)) {
     lines.push("• Crear compromisos propios y cambiar el estado de los que puedas gestionar; primero mostraré una vista previa.");
+  }
+  if (AUDIT_PROPOSAL_CREATE_ROLES.includes(user.role)) {
+    lines.push("• Crear una propuesta de auditoría: escribe «Crear propuesta» y completa los campos que pediré aquí mismo.");
   }
   if (PLANNING_APPROVE_ROLES.includes(user.role)) {
     lines.push("• Reasignar compromisos, aprobar o rechazar propuestas, e iniciar o cerrar auditorías, indicando expediente y motivo.");
