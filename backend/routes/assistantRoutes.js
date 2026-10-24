@@ -29,6 +29,9 @@ const { handleProposalEdit, isProposalEditCommand } = require("../services/assis
 const { handleEvidenceCreate, isEvidenceCreateCommand } = require("../services/assistantEvidenceCreateService");
 const { createEvidenceForUser, canAccessEntity } = require("../services/evidenceCreationService");
 const evidenceRepository = require("../repositories/evidenceRepository");
+const { handleAuditComment, isAuditCommentCommand } = require("../services/assistantAuditCommentService");
+const { createCommentForUser } = require("../services/planningCommentService");
+const commentRepository = require("../repositories/commentRepository");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -600,6 +603,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
           () => isFindingCreateCommand(prompt, thread) ? handleFindingCreate(req.user, prompt, thread) : null,
           () => isFindingCloseCommand(prompt) ? handleFindingClose(req.user, prompt, thread) : null,
           () => isEvidenceCreateCommand(prompt, thread) ? handleEvidenceCreate(req.user, prompt, thread) : null,
+          () => isAuditCommentCommand(prompt) ? handleAuditComment(req.user, prompt, thread) : null,
           () => isPlanningCommand(prompt, thread) ? handlePlanningTransition(req.user, prompt, thread) : null,
           () => isRiskCommand(prompt, thread) ? handleRiskEvaluation(req.user, prompt, thread) : null,
           () => isControlCommand(prompt) ? handleControlEvaluation(req.user, prompt, thread) : null,
@@ -860,6 +864,43 @@ router.post("/conversations/:id/ask", conversationEnabled,
         return res.json({ conversationId: thread.id, version: saved.version, userMessage,
           message: finalMessage, historySaved });
       }
+      if (result.mode === "action-reservation" && result.auditComment?.type === "AUDIT_COMMENT") {
+        const draft = result.auditComment;
+        assistantMessage.mode = "action-reserved";
+        assistantMessage.actionReservation = { type: "AUDIT_COMMENT", proposalId: draft.proposalId,
+          operationId: draft.operationId, createdAt: new Date().toISOString() };
+        const reserved = await conversations.update(req.user, thread.id, thread.version, { messages });
+        let comment = null;
+        let executionError = null;
+        try {
+          comment = await createCommentForUser(req.user, draft.proposalId, { text: draft.text }, draft.operationId);
+        } catch (error) {
+          comment = (await commentRepository.listByProposal(draft.proposalId))
+            .find((item) => item.aiOperationId === draft.operationId);
+          if (!comment) executionError = error;
+        }
+        const finalMessage = { ...assistantMessage,
+          mode: comment ? "action-executed" : "action-guidance",
+          text: comment
+            ? `Quedó registrado el comentario ${comment.id} en el expediente ${comment.proposalId}.`
+            : `No se registró el comentario: ${executionError?.message || "no se pudo confirmar la operación"}. Pide una vista previa nueva.`,
+          ...(comment ? { actionOutcome: { id: comment.id } } : {}) };
+        delete finalMessage.actionReservation;
+        let saved = reserved;
+        let historySaved = false;
+        try {
+          saved = await conversations.update(req.user, thread.id, reserved.version,
+            { messages: [...messages.slice(0, -1), finalMessage],
+              scope_hash: comment ? await currentScope(req.user, thread.focus) : scopeHash });
+          historySaved = true;
+        } catch {
+          console.warn(JSON.stringify({ event: "VERA_AI_COMMENT_HISTORY_STALE", operationId: draft.operationId }));
+        }
+        console.info(JSON.stringify({ event: "VERA_AI_COMMENT_CREATE", role: req.user.role,
+          success: Boolean(comment), durationMs: Date.now() - startedAt }));
+        return res.json({ conversationId: thread.id, version: saved.version, userMessage,
+          message: finalMessage, historySaved });
+      }
       const updated = await conversations.update(req.user, thread.id, thread.version,
         { messages, scope_hash: result.mode === "action-executed" ? scopeAfter : scopeHash });
       const channel = withEvidence ? "evidence-search" : "ask";
@@ -1057,6 +1098,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     }
     if (isEvidenceCreateCommand(question.trim(), { messages: [] })) {
       return res.json({ answer: "Para registrar una referencia de evidencia, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
+    if (isAuditCommentCommand(question.trim())) {
+      return res.json({ answer: "Para comentar una auditoría, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }

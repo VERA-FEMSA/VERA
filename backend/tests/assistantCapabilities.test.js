@@ -25,7 +25,9 @@ test("La respuesta de capacidades respeta el rol y el tipo de conversación", ()
   assert.match(manager, /aprobar o rechazar/i);
   assert.match(manager, /evaluar riesgos/i);
   assert.match(manager, /registrar una referencia de evidencia/i);
+  assert.match(manager, /comentar una propuesta o auditoría/i);
   assert.doesNotMatch(director, /registrar una referencia de evidencia/i);
+  assert.doesNotMatch(director, /comentar una propuesta o auditoría/i);
   const ephemeral = capabilityAnswer({ role: "GERENTE" }, false);
   assert.doesNotMatch(ephemeral, /aprobar o rechazar/i);
   assert.match(ephemeral, /sólo lee/);
