@@ -17,8 +17,11 @@ test("El acceso global abre el asistente operativo desde el panel sin navegar", 
   await page.goto("/dashboard");
   const button = page.getByRole("button", { name: "Abrir asistente de IA" });
   await expect(button).toBeVisible();
-  await expect(button).toHaveAttribute("aria-keyshortcuts", "Control+K Meta+K");
+  await expect(button).toHaveAttribute("aria-keyshortcuts", "Control+Alt+K Meta+Alt+K");
   await page.keyboard.press("Control+k");
+  await expect(page.getByRole("dialog", { name: "Buscar secciones y acciones" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Control+Alt+k");
   const drawer = page.getByRole("dialog", { name: "Copiloto VERA" });
   await expect(drawer).toBeVisible();
   await expect(drawer.getByText("Consulta y opera según tu rol")).toBeVisible();

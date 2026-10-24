@@ -39,7 +39,7 @@ function GlobalSearch({ groups, previewRoles, onNavigate, onPreviewRole, onRevea
 
   useEffect(() => {
     const onShortcut = (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "k") {
         event.preventDefault();
         openSearch();
       }
