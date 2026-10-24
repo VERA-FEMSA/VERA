@@ -24,6 +24,9 @@ const capabilityAnswer = (user, persistent) => {
   if (RECORD_CREATE_ROLES.includes(user.role)) {
     lines.push("• Crear compromisos propios y cambiar el estado de los que puedas gestionar; primero mostraré una vista previa.");
     lines.push("• Registrar una referencia de evidencia vinculada a un riesgo, control o auditoría visible: escribe «Registrar evidencia».");
+    if (process.env.VERA_AI_ATTACHMENTS_ENABLED === "true") {
+      lines.push("• Vincular un archivo privado seleccionado como evidencia: «Vincula este archivo como evidencia»; revisarás el expediente antes de confirmar.");
+    }
     lines.push("• Comentar una propuesta o auditoría visible: «Comenta la auditoría AUD-01: texto del comentario».");
   }
   if (AUDIT_PROPOSAL_CREATE_ROLES.includes(user.role)) {

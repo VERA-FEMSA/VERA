@@ -628,6 +628,8 @@ function AssistantPanel({ focus = null, compact = false }) {
               <option value={PROJECT_LIBRARY}>Biblioteca del proyecto · fragmentos de archivos legibles</option>}
             {visibleAttachments.map((item) => <option key={item.id} value={item.id}>{item.name}{item.projectId ? " · proyecto" : " · conversación"}</option>)}
           </select>
+          {selectedAttachmentId && selectedAttachmentId !== PROJECT_LIBRARY && ["SUPER_ADMIN", "GERENTE", "JEFATURA", "AUDITOR"].includes(user?.role) &&
+            <small>Para guardar este archivo en un expediente, escribe «Vincula este archivo como evidencia». Revisarás los datos antes de confirmar.</small>}
           <ul>{visibleAttachments.map((item) => <li key={item.id}>
             <span>{item.name} · {item.projectId ? "proyecto" : "conversación"} · {(item.size / 1024).toFixed(0)} KB{item.status === "no-text" ? " · sin texto legible" : ""}{item.truncated ? " · lectura parcial" : ""}</span>
             <button type="button" onClick={() => downloadFile(item.id)}>Abrir original</button>

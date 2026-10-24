@@ -27,8 +27,9 @@ const { handleFindingClose, isFindingCloseCommand } = require("../services/assis
 const { handleRoleRequest, isRoleRequestCommand } = require("../services/assistantRoleRequestService");
 const { handleProposalEdit, isProposalEditCommand } = require("../services/assistantProposalEditService");
 const { handleEvidenceCreate, isEvidenceCreateCommand } = require("../services/assistantEvidenceCreateService");
-const { createEvidenceForUser, canAccessEntity } = require("../services/evidenceCreationService");
+const { createEvidenceForUser, createFileEvidenceForUser, canAccessEntity } = require("../services/evidenceCreationService");
 const evidenceRepository = require("../repositories/evidenceRepository");
+const { handleFileEvidence, isFileEvidenceCommand, sourceFor } = require("../services/assistantFileEvidenceService");
 const { handleAuditComment, isAuditCommentCommand } = require("../services/assistantAuditCommentService");
 const { createCommentForUser, findVisibleProposal } = require("../services/planningCommentService");
 const commentRepository = require("../repositories/commentRepository");
@@ -591,7 +592,10 @@ router.post("/conversations/:id/ask", conversationEnabled,
         attachments.getProject(req.user, thread.projectId, item.id))) : [];
       const prompt = question.trim();
       let result = null;
-      if (!attached && !useProjectFiles && !withEvidence) {
+      if (isFileEvidenceCommand(prompt, thread)) {
+        result = await handleFileEvidence(req.user, prompt, thread, attached);
+      }
+      if (!result && !attached && !useProjectFiles && !withEvidence) {
         // El orden es parte del contrato: una confirmación o comando reconocido nunca llega al modelo.
         const commands = [
           () => handleCapabilityQuestion(req.user, prompt, true),
@@ -864,6 +868,44 @@ router.post("/conversations/:id/ask", conversationEnabled,
         return res.json({ conversationId: thread.id, version: saved.version, userMessage,
           message: finalMessage, historySaved });
       }
+      if (result.mode === "action-reservation" && result.fileEvidenceCreate?.type === "FILE_EVIDENCE_CREATE") {
+        const draft = result.fileEvidenceCreate;
+        assistantMessage.mode = "action-reserved";
+        assistantMessage.actionReservation = { type: "FILE_EVIDENCE_CREATE", operationId: draft.operationId,
+          data: draft.data, createdAt: new Date().toISOString() };
+        const reserved = await conversations.update(req.user, thread.id, thread.version, { messages });
+        let evidence = null;
+        let executionError = null;
+        try {
+          const sourceFile = await sourceFor(req.user, thread, draft.source);
+          evidence = await createFileEvidenceForUser(req.user, draft.data, sourceFile, draft.operationId);
+        } catch (error) {
+          const existing = (await evidenceRepository.getAll()).find((item) => item.aiOperationId === draft.operationId);
+          if (existing && await canAccessEntity(existing.entityType, existing.entityId, req.user)) evidence = existing;
+          if (!evidence) executionError = error;
+        }
+        const finalMessage = { ...assistantMessage,
+          mode: evidence ? "action-executed" : "action-guidance",
+          text: evidence
+            ? `El archivo quedó registrado como evidencia ${evidence.id} en ${evidence.entityType} ${evidence.entityId}. La copia privada se conserva aunque elimines el adjunto del chat.`
+            : `No se registró el archivo como evidencia: ${executionError?.message || "no se pudo confirmar la operación"}. Pide una vista previa nueva.`,
+          ...(evidence ? { actionOutcome: { id: evidence.id } } : {}) };
+        delete finalMessage.actionReservation;
+        let saved = reserved;
+        let historySaved = false;
+        try {
+          saved = await conversations.update(req.user, thread.id, reserved.version,
+            { messages: [...messages.slice(0, -1), finalMessage],
+              scope_hash: evidence ? await currentScope(req.user, thread.focus) : scopeHash });
+          historySaved = true;
+        } catch {
+          console.warn(JSON.stringify({ event: "VERA_AI_FILE_EVIDENCE_HISTORY_STALE", operationId: draft.operationId }));
+        }
+        console.info(JSON.stringify({ event: "VERA_AI_FILE_EVIDENCE_CREATE", role: req.user.role,
+          success: Boolean(evidence), durationMs: Date.now() - startedAt }));
+        return res.json({ conversationId: thread.id, version: saved.version, userMessage,
+          message: finalMessage, historySaved });
+      }
       if (result.mode === "action-reservation" && result.auditComment?.type === "AUDIT_COMMENT") {
         const draft = result.auditComment;
         assistantMessage.mode = "action-reserved";
@@ -1099,6 +1141,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     }
     if (isEvidenceCreateCommand(question.trim(), { messages: [] })) {
       return res.json({ answer: "Para registrar una referencia de evidencia, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
+    if (isFileEvidenceCommand(question.trim(), { messages: [] })) {
+      return res.json({ answer: "Para vincular un archivo privado como evidencia, usa una conversación guardada y selecciona un adjunto individual. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }

@@ -21,7 +21,7 @@ Identificador: AUD-01
 
 ## Límites
 
-- Este flujo registra **referencias**, no carga un archivo privado. Para subir archivos, usa el flujo específico de evidencias. No pegues enlaces que concedan acceso público a información sensible.
+- Este flujo registra **referencias**, sin copiar un archivo privado. Si ya adjuntaste un archivo al chat, usa [«Vincula este archivo como evidencia»](ai-chat-file-evidence.md). No pegues enlaces que concedan acceso público a información sensible.
 - La solicitud de campos vence a los 15 minutos y la vista previa a los cinco. El servidor vuelve a comprobar rol, estado de la cuenta y acceso al registro al confirmar.
 - Las cuentas sin permiso de escritura y el chat sin historial no registran evidencias. Una reserva de la conversación precede a la escritura; el identificador de operación permite reconocer reintentos.
 - Las pruebas locales no demuestran aceptación ni persistencia en Production; esa comprobación se sigue en [#128](https://github.com/VERA-GRC-IRM/VERA/issues/128).

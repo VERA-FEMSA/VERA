@@ -25,6 +25,6 @@ Para crear uno a cargo de la propia cuenta, escribe `Crea un compromiso «Revisa
 
 ## Límites
 
-Este incremento cubre la creación de compromisos propios y las transiciones permitidas entre `OPEN`, `IN_PROGRESS`, `DONE` y `CANCELLED`. No crea auditorías, riesgos, controles ni evidencias por chat y no convierte al asistente en un agente autónomo. Las demás acciones requieren diseño y pruebas de autorización independientes. Si la bitácora de conversación falla después de confirmar, el chat informa el resultado y pide recargar la conversación antes de continuar; una reserva incompleta requiere una vista previa nueva.
+Este documento cubre la creación de compromisos propios y las transiciones permitidas entre `OPEN`, `IN_PROGRESS`, `DONE` y `CANCELLED`. El asistente también admite otras operaciones documentadas por separado, como [vincular archivos de evidencia](ai-chat-file-evidence.md); cada una conserva su propia comprobación de autorización. No convierte al asistente en un agente autónomo. Si la bitácora de conversación falla después de confirmar, el chat informa el resultado y pide recargar la conversación antes de continuar; una reserva incompleta requiere una vista previa nueva.
 
 La suite `backend/tests/assistantActions.test.js` cubre vista previa sin escritura, permiso del responsable, aislamiento entre conversaciones, confirmación única, versión obsoleta y ausencia de escritura en el chat sin historial. CI y mocks no sustituyen la aceptación autenticada en Production descrita en [#128](https://github.com/VERA-GRC-IRM/VERA/issues/128).
