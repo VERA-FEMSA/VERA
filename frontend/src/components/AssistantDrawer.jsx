@@ -37,7 +37,7 @@ function AssistantDrawer({ focus, onClose }) {
 
   return createPortal(<div className="assistant-drawer-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={dialogRef} className="assistant-drawer" role="dialog" aria-modal="true" aria-labelledby="assistant-drawer-title">
-      <header className="assistant-drawer-header"><div><span><img className="assistant-drawer-mark" src="/vera-logo.svg" alt="" /> <b id="assistant-drawer-title">Copiloto VERA</b></span><small><ShieldCheck size={13} aria-hidden="true" /> Solo lectura{focus?.title ? ` · ${focus.title}` : ""}</small></div><button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar asistente"><X size={20} /></button></header>
+      <header className="assistant-drawer-header"><div><span><img className="assistant-drawer-mark" src="/vera-logo.svg" alt="" /> <b id="assistant-drawer-title">Copiloto VERA</b></span><small><ShieldCheck size={13} aria-hidden="true" /> {focus?.title ? `Contexto: ${focus.title}` : "Consulta y opera según tu rol"}</small></div><button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar asistente"><X size={20} /></button></header>
       <AssistantPanel focus={focus} compact />
     </section>
   </div>, document.body);
