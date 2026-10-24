@@ -7,11 +7,11 @@ import AssistantMemoryPanel from "./AssistantMemoryPanel";
 import "../pages/Asistente.css";
 
 const promptsByRole = {
-  AUDITOR: ["¿Qué auditorías tengo asignadas?", "¿Cuántos riesgos altos tengo?", "¿Qué actividades tengo pendientes?"],
-  DIRECTOR: ["¿Qué actividades del portafolio requieren seguimiento?", "¿Cuántas auditorías activas hay?", "Resume las auditorías activas."],
-  SUPER_ADMIN: ["Resume las prioridades del portafolio.", "¿Qué controles necesitan revisión?", "¿Qué propuestas están pendientes?"],
-  GERENTE: ["Resume las propuestas abiertas.", "¿Qué riesgos altos hay en el portafolio?", "Prepara un borrador de seguimiento para revisión."],
-  JEFATURA: ["¿Qué propuestas esperan revisión?", "Resume los riesgos altos del portafolio.", "Prepara un borrador de propuesta para revisión."]
+  AUDITOR: ["Muéstrame mis auditorías activas", "¿Cuántos riesgos altos tengo?", "¿Qué actividades tengo pendientes?"],
+  DIRECTOR: ["Muéstrame las auditorías activas", "¿Cuántas auditorías activas hay?", "Resume las auditorías activas."],
+  SUPER_ADMIN: ["Muéstrame los riesgos altos", "¿Qué controles necesitan revisión?", "¿Qué propuestas están pendientes?"],
+  GERENTE: ["Muéstrame las propuestas abiertas", "¿Qué riesgos altos hay en el portafolio?", "Prepara un borrador de seguimiento para revisión."],
+  JEFATURA: ["Muéstrame los pendientes prioritarios", "Resume los riesgos altos del portafolio.", "Prepara un borrador de propuesta para revisión."]
 };
 const PROJECT_LIBRARY = "__project_library__";
 
@@ -265,7 +265,8 @@ function AssistantPanel({ focus = null, compact = false }) {
           role: message.role, text: message.text, asOf: message.asOf,
           ...(message.role === "user" ? { attachmentName: message.attachmentName || null } : {
             mode: message.mode, metric: message.metric, citations: message.citations || [],
-            references: message.references || [], coverage: message.coverage || null,
+            references: message.references || [], browse: message.browse || null,
+            coverage: message.coverage || null,
             durationMs: message.durationMs
           })
         }))
@@ -392,10 +393,12 @@ function AssistantPanel({ focus = null, compact = false }) {
       }
       const result = withEvidence
         ? await searchAssistantEvidence(value, selectedFocus)
-        : await askAssistant(value, { history, focus: selectedFocus });
+        : await askAssistant(value, { history, focus: selectedFocus,
+          lastBrowse: messages.at(-1)?.browse || null });
       setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", text: result.answer,
         mode: result.mode, metric: result.metric,
-        citations: result.citations || [], references: result.references || [], coverage: result.coverage,
+        citations: result.citations || [], references: result.references || [], browse: result.browse || null,
+        coverage: result.coverage,
         asOf: result.asOf,
         durationMs: result.durationMs, feedbackToken: result.feedbackToken || null }]);
     } catch (cause) { setError(cause.message); if (persistent) setQuestion(value); }
@@ -564,19 +567,20 @@ function AssistantPanel({ focus = null, compact = false }) {
     <div className="assistant-messages" aria-live="polite">{messages.map((message) => <article key={message.id} className={`assistant-message ${message.role}`}>
       <strong>{message.role === "user" ? "Tú" : "Asistente VERA"}</strong><p>{message.text}</p>
       {message.role === "user" && message.attachmentName && <small className="assistant-answer-note">Archivo consultado: {message.attachmentName}</small>}
-      {message.role === "assistant" && <><small className="assistant-answer-note">{message.mode === "computed" ? "Dato calculado desde registros autorizados" : message.mode?.startsWith("attachment-") ? "Respuesta sobre un archivo privado · comprueba el original" : message.mode === "document-search" ? "Respuesta con fragmentos de evidencias · comprueba el archivo" : ["no-match", "uncited", "no-text", "scope-limited"].includes(message.mode) ? "Sin respuesta documental respaldada" : "Respuesta generada · comprueba el expediente"}{Number.isFinite(message.durationMs) ? ` · ${(message.durationMs / 1000).toFixed(1)} s` : ""}</small>
+      {message.role === "assistant" && <><small className="assistant-answer-note">{message.mode === "browse" ? "Registros actuales de tu alcance · sin generación de IA" : message.mode === "computed" ? "Dato calculado desde registros autorizados" : message.mode?.startsWith("attachment-") ? "Respuesta sobre un archivo privado · comprueba el original" : message.mode === "document-search" ? "Respuesta con fragmentos de evidencias · comprueba el archivo" : ["no-match", "uncited", "no-text", "scope-limited"].includes(message.mode) ? "Sin respuesta documental respaldada" : "Respuesta generada · comprueba el expediente"}{Number.isFinite(message.durationMs) ? ` · ${(message.durationMs / 1000).toFixed(1)} s` : ""}</small>
         {message.asOf && <time className="assistant-answer-note" dateTime={message.asOf}>Datos consultados: {new Date(message.asOf).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}</time>}
         {message.coverage?.indexedOnly && <small className="assistant-answer-note">Se buscaron fragmentos ya indexados en {message.coverage.searchedFiles} de {message.coverage.visibleFiles} archivos visibles. Los archivos antiguos pueden requerir una consulta individual para indexarse.</small>}
         {message.mode === "attachment-project" && message.coverage?.retrieval === "lexical+semantic" &&
           <small className="assistant-answer-note">Se combinaron coincidencias de texto y búsqueda por significado en {message.coverage.semanticIndexedFiles} archivo(s) preparado(s) de esta biblioteca.</small>}
         {message.coverage?.semanticUnavailable &&
           <small className="assistant-answer-note">La búsqueda por significado no estuvo disponible; se usaron coincidencias de texto.</small>}
-        {message.mode !== "computed" && message.coverage?.partial && <small className="assistant-answer-note">{message.mode === "attachment-project" ? "La lectura de la biblioteca fue parcial; revisa los archivos originales antes de concluir." : message.mode?.startsWith("attachment-") || ["no-text", "scope-limited"].includes(message.mode) ? "La lectura del archivo fue parcial; revisa el original antes de concluir." : message.coverage.indexedOnly ? "La cantidad de archivos superó el límite de esta búsqueda; el resultado puede ser parcial." : "Se consultó una muestra de expedientes visibles; los conteos abarcan el total de tu alcance."}</small>}
+        {message.mode !== "computed" && message.mode !== "browse" && message.coverage?.partial && <small className="assistant-answer-note">{message.mode === "attachment-project" ? "La lectura de la biblioteca fue parcial; revisa los archivos originales antes de concluir." : message.mode?.startsWith("attachment-") || ["no-text", "scope-limited"].includes(message.mode) ? "La lectura del archivo fue parcial; revisa el original antes de concluir." : message.coverage.indexedOnly ? "La cantidad de archivos superó el límite de esta búsqueda; el resultado puede ser parcial." : "Se consultó una muestra de expedientes visibles; los conteos abarcan el total de tu alcance."}</small>}
+        {message.browse?.items?.length > 0 && <div className="assistant-citations"><b>Resultados en esta conversación</b><ul>{message.browse.items.map((item) => <li key={item.sourceId}><span>{item.type}: {item.title}</span>{item.facts?.length > 0 && <span className="assistant-source-facts">{item.facts.map((fact) => `${fact.label}: ${fact.value}`).join(" · ")}</span>}<small><Link to={item.path}>Abrir expediente <ArrowRight size={13} aria-hidden="true" /></Link></small></li>)}</ul></div>}
         {message.metric && <div className="assistant-citations"><b>Indicador calculado</b><ul><li><Link to={message.metric.path}>{message.metric.label}: {message.metric.count} <ArrowRight size={13} aria-hidden="true" /></Link></li></ul></div>}
         {message.citations?.length > 0 && <div className="assistant-citations"><b>Registros citados</b><small>Campos consultados al responder; abre el expediente o archivo para ver su estado actual.</small><ul>{message.citations.map((item) => <li key={item.sourceId}>{item.attachmentId
           ? <button type="button" onClick={() => downloadFile(item.attachmentId, item.projectId)}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></button>
           : <Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link>}{item.facts?.length > 0 && <span className="assistant-source-facts">{item.facts.map((fact) => `${fact.label}: ${fact.value}`).join(" · ")}</span>}{item.excerpt && <span className="assistant-source-facts">{item.pageNumber ? `Página ${item.pageNumber} · ` : ""}{item.excerpt}</span>}</li>)}</ul></div>}
-        {message.citations?.length === 0 && message.mode !== "computed" && <small className="assistant-answer-note">Sin registros citados en esta respuesta.</small>}
+        {message.citations?.length === 0 && !["computed", "browse"].includes(message.mode) && <small className="assistant-answer-note">Sin registros citados en esta respuesta.</small>}
         {message.references?.length > 0 && <details><summary>Registros relacionados ({message.references.length})</summary><ul>{message.references.map((item) => <li key={item.sourceId || `${item.type}:${item.id}`}><Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link></li>)}</ul></details>}
         {message.feedbackToken && !message.feedbackRating && <div className="assistant-feedback" aria-label="Valora esta respuesta"><span>¿Te sirvió?</span><button type="button" onClick={() => rateResponse(message, "helpful")} disabled={Boolean(feedbackBusyId)} aria-label="Me sirvió esta respuesta"><ThumbsUp size={14} aria-hidden="true" /> Sí</button><button type="button" onClick={() => rateResponse(message, "unhelpful")} disabled={Boolean(feedbackBusyId)} aria-label="No me sirvió esta respuesta"><ThumbsDown size={14} aria-hidden="true" /> No</button></div>}
         {message.feedbackRating && <small className="assistant-answer-note" role="status">Tu valoración se registró sin guardar el texto de la respuesta.</small>}

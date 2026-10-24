@@ -162,11 +162,11 @@ export const submitAssistantFeedback = async (feedbackToken, rating) => {
   return data;
 };
 
-export const askAssistant = async (question, { history = [], focus = null } = {}) => {
+export const askAssistant = async (question, { history = [], focus = null, lastBrowse = null } = {}) => {
   const response = await fetch("/api/assistant/ask", {
     method: "POST",
     headers: { ...headers(), "Content-Type": "application/json" },
-    body: JSON.stringify({ question, history, focus })
+    body: JSON.stringify({ question, history, focus, lastBrowse })
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "No se pudo obtener una respuesta.");
