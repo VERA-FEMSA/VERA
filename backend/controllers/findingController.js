@@ -1,9 +1,9 @@
 const findingRepository = require("../repositories/findingRepository");
-const controlRepository = require("../repositories/controlRepository");
 const riskRepository = require("../repositories/riskRepository");
 const actionRepository = require("../repositories/actionRepository");
 const { ROLES, RISK_CONTROL_MANAGE_ROLES } = require("../config/roles");
 const { logActivity } = require("../services/auditLogger");
+const { createFindingForUser } = require("../services/findingCreationService");
 
 const visibleTo = async (finding, user) => {
   if (user.role !== ROLES.AUDITOR) return true;
@@ -22,37 +22,11 @@ const listFindings = async (req, res) => {
 };
 
 const createFinding = async (req, res) => {
-  const controlId = String(req.body.controlId ?? "").trim();
-  const riskId = String(req.body.riskId ?? "").trim();
-  const title = String(req.body.title ?? "").trim();
-  const description = String(req.body.description ?? "").trim();
-  if (!controlId || !riskId) return res.status(400).json({ message: "Selecciona un control y uno de sus riesgos vinculados." });
-  if (title.length < 3 || title.length > 120) return res.status(400).json({ message: "El título debe tener entre 3 y 120 caracteres." });
-  if (description.length < 10 || description.length > 2000) return res.status(400).json({ message: "La descripción debe tener entre 10 y 2,000 caracteres." });
-  const control = await controlRepository.findById(controlId);
-  if (!control || !control.riskIds.includes(riskId)) return res.status(404).json({ message: "No existe esa relación entre control y riesgo." });
-  const risk = await riskRepository.findById(riskId);
-  if (!risk) return res.status(404).json({ message: "Riesgo no encontrado." });
-  if (!RISK_CONTROL_MANAGE_ROLES.includes(req.user.role) &&
-      !(req.user.role === ROLES.AUDITOR && risk.ownerId === req.user.id)) {
-    return res.status(403).json({ message: "No puedes registrar hallazgos para este riesgo." });
+  try { return res.status(201).json({ finding: await createFindingForUser(req.user, req.body) }); }
+  catch (error) {
+    if ([400, 403, 404, 409].includes(error.status)) return res.status(error.status).json({ message: error.message });
+    throw error;
   }
-  if (control.effectiveness >= 4) return res.status(409).json({ message: "Solo se puede abrir un hallazgo desde un control con efectividad insuficiente (1–3)." });
-  const duplicate = (await findingRepository.getAll()).some((item) =>
-    item.controlId === controlId && item.riskId === riskId && item.evaluationVersion === control.evaluations.length
-  );
-  if (duplicate) return res.status(409).json({ message: "Ya existe un hallazgo para este riesgo y evaluación del control." });
-  const finding = await findingRepository.create({
-    title, description, controlId, controlTitle: control.title,
-    riskId, riskTitle: risk.title, auditId: risk.linkedAuditId || null,
-    proposalId: risk.linkedAuditId || null,
-    evaluationVersion: control.evaluations.length,
-    createdBy: { id: req.user.id, username: req.user.username, role: req.user.role }
-  });
-  await logActivity({ actor: req.user, action: "FINDING_REGISTERED", details: {
-    findingId: finding.id, controlId, riskId, auditId: finding.auditId
-  } });
-  res.status(201).json({ finding });
 };
 
 const closeFinding = async (req, res) => {
