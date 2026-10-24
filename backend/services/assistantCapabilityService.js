@@ -1,5 +1,5 @@
 const { RISK_CONTROL_MANAGE_ROLES, PLANNING_APPROVE_ROLES, RECORD_CREATE_ROLES,
-  AUDIT_PROPOSAL_CREATE_ROLES } = require("../config/roles");
+  AUDIT_PROPOSAL_CREATE_ROLES, USER_VIEW_ROLES } = require("../config/roles");
 
 const normalize = (value) => String(value || "").normalize("NFD")
   .replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/^[¿?!.]+|[¿?!.]+$/g, "").replace(/\s+/g, " ");
@@ -28,6 +28,9 @@ const capabilityAnswer = (user, persistent) => {
     lines.push("• Consultar tu rol, pedir un cambio con motivo y seguir el estado: «Qué rol tengo» o «Mis solicitudes de rol».");
   } else {
     lines.push("• Revisar solicitudes de rol: «Solicitudes de rol pendientes» y después aprobar o rechazar una por su ID, con vista previa y confirmación.");
+  }
+  if (USER_VIEW_ROLES.includes(user.role)) {
+    lines.push("• Consultar cuentas visibles sin abrir Usuarios: «Usuarios del sistema», «Usuarios con rol Auditor» o «Busca usuario correo@ejemplo.com». La lista respeta tu rol.");
   }
   if (RECORD_CREATE_ROLES.includes(user.role)) {
     lines.push("• Marcar un aviso visible como leído o sin leer, con vista previa y confirmación. La tarea de origen no se completa por ello.");

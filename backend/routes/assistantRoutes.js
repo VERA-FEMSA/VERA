@@ -33,6 +33,7 @@ const { changeReadStateForUser } = require("../services/notificationWorkflowServ
 const { handleAuditDetails, intent: isAuditDetailsCommand } = require("../services/assistantAuditDetailsService");
 const { handleAuditEdit, intent: isAuditEditCommand } = require("../services/assistantAuditEditService");
 const { editAuditForUser } = require("../services/auditEditService");
+const { handleUserDirectory, intent: isUserDirectoryCommand } = require("../services/assistantUserDirectoryService");
 const { reviewRoleRequestForUser } = require("../services/roleRequestService");
 const roleRequestRepository = require("../repositories/roleRequestRepository");
 const { handleProposalEdit, isProposalEditCommand } = require("../services/assistantProposalEditService");
@@ -616,6 +617,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
           () => isNotificationCommand(prompt) ? handleNotification(req.user, prompt, thread) : null,
           () => isAuditDetailsCommand(prompt) ? handleAuditDetails(req.user, prompt, thread) : null,
           () => isAuditEditCommand(prompt) ? handleAuditEdit(req.user, prompt, thread) : null,
+          () => isUserDirectoryCommand(prompt) ? handleUserDirectory(req.user, prompt, thread) : null,
           () => isProposalCreateCommand(prompt, thread) ? handleProposalCreate(req.user, prompt, thread) : null,
           () => isRiskCreateCommand(prompt, thread) ? handleRiskCreate(req.user, prompt, thread) : null,
           () => isControlCreateCommand(prompt, thread) ? handleControlCreate(req.user, prompt, thread) : null,
@@ -660,6 +662,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
         ...(result.roleReviewBrowse ? { roleReviewBrowse: result.roleReviewBrowse } : {}),
         ...(result.notificationBrowse ? { notificationBrowse: result.notificationBrowse } : {}),
         ...(result.auditDetailsBrowse ? { auditDetailsBrowse: result.auditDetailsBrowse } : {}),
+        ...(result.userDirectoryBrowse ? { userDirectoryBrowse: result.userDirectoryBrowse } : {}),
         asOf: result.asOf, durationMs,
         ...(result.browse ? { browse: result.browse } : {}),
         ...(result.actionDraft ? { actionDraft: result.actionDraft } : {}),
@@ -1333,6 +1336,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     }
     if (isAuditEditCommand(question.trim())) {
       return res.json({ answer: "Para editar una auditoría, inicia una conversación guardada y revisa la vista previa antes de confirmar.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
+    if (isUserDirectoryCommand(question.trim())) {
+      return res.json({ answer: "Para consultar el directorio de cuentas desde el asistente, inicia una conversación guardada. El acceso depende de tu rol.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }
