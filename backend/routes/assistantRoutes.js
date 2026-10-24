@@ -583,47 +583,37 @@ router.post("/conversations/:id/ask", conversationEnabled,
       const projectFiles = useProjectFiles ? await attachments.listProject(req.user, thread.projectId) : [];
       const projectRows = useProjectFiles ? await Promise.all(projectFiles.map((item) =>
         attachments.getProject(req.user, thread.projectId, item.id))) : [];
-      const capabilityResult = !attached && !useProjectFiles && !withEvidence
-        ? handleCapabilityQuestion(req.user, question.trim(), true) : null;
-      const roleRequestResult = !capabilityResult && !attached && !useProjectFiles && !withEvidence &&
-        isRoleRequestCommand(question.trim())
-        ? await handleRoleRequest(req.user, question.trim(), thread) : null;
-      const proposalEditResult = !capabilityResult && !roleRequestResult && !attached && !useProjectFiles && !withEvidence &&
-        isProposalEditCommand(question.trim())
-        ? await handleProposalEdit(req.user, question.trim(), thread) : null;
-      const proposalResult = !capabilityResult && !roleRequestResult && !proposalEditResult && !attached && !useProjectFiles && !withEvidence &&
-        isProposalCreateCommand(question.trim(), thread)
-        ? await handleProposalCreate(req.user, question.trim(), thread) : null;
-      const riskCreateResult = !capabilityResult && !proposalResult && !attached && !useProjectFiles && !withEvidence &&
-        isRiskCreateCommand(question.trim(), thread)
-        ? await handleRiskCreate(req.user, question.trim(), thread) : null;
-      const controlCreateResult = !capabilityResult && !proposalResult && !riskCreateResult && !attached && !useProjectFiles && !withEvidence &&
-        isControlCreateCommand(question.trim(), thread)
-        ? await handleControlCreate(req.user, question.trim(), thread) : null;
-      const findingCreateResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !attached && !useProjectFiles && !withEvidence &&
-        isFindingCreateCommand(question.trim(), thread)
-        ? await handleFindingCreate(req.user, question.trim(), thread) : null;
-      const findingCloseResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !attached && !useProjectFiles && !withEvidence &&
-        isFindingCloseCommand(question.trim())
-        ? await handleFindingClose(req.user, question.trim(), thread) : null;
-      const planningResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !findingCloseResult && !attached && !useProjectFiles && !withEvidence &&
-        isPlanningCommand(question.trim(), thread)
-        ? await handlePlanningTransition(req.user, question.trim(), thread) : null;
-      const riskResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !findingCloseResult && !planningResult && !attached && !useProjectFiles && !withEvidence &&
-        isRiskCommand(question.trim(), thread)
-        ? await handleRiskEvaluation(req.user, question.trim(), thread) : null;
-      const controlResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !findingCloseResult && !planningResult && !riskResult && !attached && !useProjectFiles && !withEvidence &&
-        isControlCommand(question.trim())
-        ? await handleControlEvaluation(req.user, question.trim(), thread) : null;
-      const actionResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !findingCloseResult && !planningResult && !riskResult && !controlResult && !attached && !useProjectFiles && !withEvidence
-        ? await handleAssistantAction(req.user, question.trim(), thread) : null;
-      const reportResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !findingCloseResult && !planningResult && !riskResult && !controlResult && !actionResult && !attached && !useProjectFiles && !withEvidence
-        ? await handleAssistantReport(req.user, question.trim()) : null;
-      const result = capabilityResult || roleRequestResult || proposalEditResult || proposalResult || riskCreateResult || controlCreateResult || findingCreateResult || findingCloseResult || planningResult || riskResult || controlResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
-        : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
-          { user: req.user })
-          : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
-            project?.instructions || "", thread.messages.at(-1)?.browse || null));
+      const prompt = question.trim();
+      let result = null;
+      if (!attached && !useProjectFiles && !withEvidence) {
+        // El orden es parte del contrato: una confirmación o comando reconocido nunca llega al modelo.
+        const commands = [
+          () => handleCapabilityQuestion(req.user, prompt, true),
+          () => isRoleRequestCommand(prompt) ? handleRoleRequest(req.user, prompt, thread) : null,
+          () => isProposalEditCommand(prompt) ? handleProposalEdit(req.user, prompt, thread) : null,
+          () => isProposalCreateCommand(prompt, thread) ? handleProposalCreate(req.user, prompt, thread) : null,
+          () => isRiskCreateCommand(prompt, thread) ? handleRiskCreate(req.user, prompt, thread) : null,
+          () => isControlCreateCommand(prompt, thread) ? handleControlCreate(req.user, prompt, thread) : null,
+          () => isFindingCreateCommand(prompt, thread) ? handleFindingCreate(req.user, prompt, thread) : null,
+          () => isFindingCloseCommand(prompt) ? handleFindingClose(req.user, prompt, thread) : null,
+          () => isPlanningCommand(prompt, thread) ? handlePlanningTransition(req.user, prompt, thread) : null,
+          () => isRiskCommand(prompt, thread) ? handleRiskEvaluation(req.user, prompt, thread) : null,
+          () => isControlCommand(prompt) ? handleControlEvaluation(req.user, prompt, thread) : null,
+          () => handleAssistantAction(req.user, prompt, thread),
+          () => handleAssistantReport(req.user, prompt)
+        ];
+        for (const command of commands) {
+          result = await command();
+          if (result) break;
+        }
+      }
+      if (!result) {
+        result = attached ? await askAttachment(attached, prompt)
+          : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, prompt,
+            { user: req.user })
+            : await answerAssistant(req.user, prompt, history, thread.focus, withEvidence,
+              project?.instructions || "", thread.messages.at(-1)?.browse || null);
+      }
       if (attached?.project_id) result.citations = (result.citations || []).map((citation) => ({
         ...citation, projectId: attached.project_id }));
       const currentUser = await userRepository.findById(req.user.id);
