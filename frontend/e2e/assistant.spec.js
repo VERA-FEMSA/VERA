@@ -224,6 +224,62 @@ test("Copiloto: adjunta un documento privado y lo consulta con cita", async ({ p
   expect(access.violations.map(({ id }) => id)).toEqual([]);
 });
 
+test("Copiloto: vincula un archivo seleccionado como evidencia con vista previa y confirmación", async ({ page }) => {
+  await useSession(page, "GERENTE", 3);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "consult-and-confirm", conversations: true, attachments: true
+  } }));
+  const threadId = "11111111-1111-4111-8111-111111111129";
+  const fileId = "22222222-2222-4222-8222-222222222229";
+  let version = 1;
+  let file = null;
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") return route.fulfill({ json: { conversations: [] } });
+    if (path.endsWith("/conversations") && method === "POST") return route.fulfill({ status: 201,
+      json: { conversation: { id: threadId, title: "Nueva conversación", focus: null, messages: [], version } } });
+    if (path.endsWith("/attachments") && method === "GET") return route.fulfill({ json: { attachments: file ? [file] : [] } });
+    if (path.endsWith("/attachments") && method === "POST") {
+      file = { id: fileId, name: "acta.txt", mime: "text/plain", size: 56,
+        status: "ready", truncated: false, chunks: 1 };
+      return route.fulfill({ status: 201, json: { attachment: file } });
+    }
+    if (path.endsWith(`/${threadId}/ask`) && method === "POST") {
+      const question = route.request().postDataJSON().question;
+      if (question === "Vincula este archivo como evidencia") {
+        expect(route.request().postDataJSON().attachmentId).toBe(fileId);
+      }
+      version += 1;
+      const executed = question === "Confirmar archivo como evidencia";
+      const message = { id: `assistant-file-${version}`, role: "assistant", citations: [], references: [],
+        mode: executed ? "action-executed" : question.startsWith("Título:") ? "action-preview" : "action-guidance",
+        text: executed ? "El archivo quedó registrado como evidencia EVD-010 en AUDIT AUD-01." :
+          question.startsWith("Título:") ? "Revisa antes de vincular acta.txt. Escribe «Confirmar archivo como evidencia»." :
+            "Con un archivo privado seleccionado, envía Título, Descripción, Tipo, Entidad e Identificador." };
+      return route.fulfill({ json: { conversationId: threadId, version,
+        userMessage: { id: `user-file-${version}`, role: "user", text: question }, message,
+        historySaved: true } });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Adjuntar archivo privado").setInputFiles({ name: "acta.txt",
+    mimeType: "text/plain", buffer: Buffer.from("Acta de revisión de auditoría con hallazgos documentados.") });
+  await expect(page.getByLabel("Consultar archivo")).toHaveValue(fileId);
+  await expect(page.getByText(/Para guardar este archivo en un expediente/)).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("Vincula este archivo como evidencia");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText(/Con un archivo privado seleccionado/)).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("Título: Acta de revisión\nDescripción: Documento que respalda la revisión del proceso auditado\nTipo: documento\nEntidad: auditoría\nIdentificador: AUD-01");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Vista previa · no se ha modificado ningún registro")).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("Confirmar archivo como evidencia");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText(/El archivo quedó registrado como evidencia EVD-010/)).toBeVisible();
+  await expect(page).toHaveURL(/\/asistente$/);
+});
+
 test("Copiloto: memoria visible, editable, pausada y borrable", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
