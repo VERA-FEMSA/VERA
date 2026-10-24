@@ -100,5 +100,6 @@ const handleAssistantAction = async (user, question, thread) => {
     "action-preview", { actionDraft: draft });
 };
 
-module.exports = { handleAssistantAction, parseCompletion, isActionCommand: (question) =>
+module.exports = { handleAssistantAction, parseCompletion, isCommitmentList: listRequest,
+  isActionCommand: (question) =>
   Boolean(parseCompletion(question) || confirm(question) || listRequest(question)) };
