@@ -11,6 +11,9 @@ const capabilityAnswer = (user, persistent) => {
     "• Consultar auditorías, propuestas, riesgos, controles, hallazgos y pendientes. Pide «siguientes» para continuar una lista.",
     "• Resumir el portafolio y preparar su CSV: «Exporta el reporte del portafolio en CSV»."
   ];
+  if (persistent) {
+    lines.push("• Revisar tus avisos aquí mismo: «Mis avisos», «Avisos sin leer» y «Siguientes avisos».");
+  }
   if (process.env.VERA_AI_ATTACHMENTS_ENABLED === "true") {
     lines.push("• Analizar un archivo privado que adjuntes a la conversación y señalar las fuentes disponibles.");
   }
@@ -24,6 +27,7 @@ const capabilityAnswer = (user, persistent) => {
     lines.push("• Revisar solicitudes de rol: «Solicitudes de rol pendientes» y después aprobar o rechazar una por su ID, con vista previa y confirmación.");
   }
   if (RECORD_CREATE_ROLES.includes(user.role)) {
+    lines.push("• Marcar un aviso visible como leído o sin leer, con vista previa y confirmación. La tarea de origen no se completa por ello.");
     lines.push("• Crear compromisos propios y cambiar el estado de los que puedas gestionar; primero mostraré una vista previa.");
     lines.push("• Registrar una referencia de evidencia vinculada a un riesgo, control o auditoría visible: escribe «Registrar evidencia».");
     if (process.env.VERA_AI_ATTACHMENTS_ENABLED === "true") {
