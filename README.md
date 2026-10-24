@@ -141,4 +141,3 @@ La [guía de experiencia y accesibilidad](docs/ui-experience.md) explica el reco
 Para colaborar, parte de `main`, consulta [AGENTS.md](AGENTS.md) y la [guía para asistentes de código](docs/ai-development/README.md), mantén el PR enfocado y explica las verificaciones que **realmente** ejecutaste. Los resultados de CI y la revisión humana forman parte de la entrega.
 
 <p align="center"><sub>VERA · Verificación, evidencia, riesgo y auditoría · Producto en evolución</sub></p>
-
