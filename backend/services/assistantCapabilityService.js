@@ -33,7 +33,7 @@ const capabilityAnswer = (user, persistent) => {
     lines.push("• Evaluar riesgos existentes con probabilidad e impacto de 1 a 3, y controles existentes con efectividad de 1 a 5, siempre con justificación.");
   }
   if (RISK_CONTROL_MANAGE_ROLES.includes(user.role) || user.role === "AUDITOR") {
-    lines.push("• Registrar un hallazgo desde un control inefectivo vinculado a un riesgo permitido: escribe «Registrar hallazgo».");
+    lines.push("• Registrar un hallazgo desde un control inefectivo vinculado a un riesgo permitido: escribe «Registrar hallazgo»; cerrarlo cuando sus acciones terminen con «Cierra el hallazgo FDG-… porque …».");
   }
   lines.push("Los cambios requieren una confirmación escrita después de revisar la vista previa. Si falta información o no tienes permiso, te lo diré sin ejecutar nada.");
   return lines.join("\n");

@@ -23,6 +23,7 @@ const controlRepository = require("../repositories/controlRepository");
 const { handleFindingCreate, isFindingCreateCommand } = require("../services/assistantFindingCreateService");
 const { createFindingForUser } = require("../services/findingCreationService");
 const findingRepository = require("../repositories/findingRepository");
+const { handleFindingClose, isFindingCloseCommand } = require("../services/assistantFindingCloseService");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -594,20 +595,23 @@ router.post("/conversations/:id/ask", conversationEnabled,
       const findingCreateResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !attached && !useProjectFiles && !withEvidence &&
         isFindingCreateCommand(question.trim(), thread)
         ? await handleFindingCreate(req.user, question.trim(), thread) : null;
-      const planningResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !attached && !useProjectFiles && !withEvidence &&
+      const findingCloseResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !attached && !useProjectFiles && !withEvidence &&
+        isFindingCloseCommand(question.trim())
+        ? await handleFindingClose(req.user, question.trim(), thread) : null;
+      const planningResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !findingCloseResult && !attached && !useProjectFiles && !withEvidence &&
         isPlanningCommand(question.trim(), thread)
         ? await handlePlanningTransition(req.user, question.trim(), thread) : null;
-      const riskResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !planningResult && !attached && !useProjectFiles && !withEvidence &&
+      const riskResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !findingCloseResult && !planningResult && !attached && !useProjectFiles && !withEvidence &&
         isRiskCommand(question.trim(), thread)
         ? await handleRiskEvaluation(req.user, question.trim(), thread) : null;
-      const controlResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !planningResult && !riskResult && !attached && !useProjectFiles && !withEvidence &&
+      const controlResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !findingCloseResult && !planningResult && !riskResult && !attached && !useProjectFiles && !withEvidence &&
         isControlCommand(question.trim())
         ? await handleControlEvaluation(req.user, question.trim(), thread) : null;
-      const actionResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !planningResult && !riskResult && !controlResult && !attached && !useProjectFiles && !withEvidence
+      const actionResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !findingCloseResult && !planningResult && !riskResult && !controlResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantAction(req.user, question.trim(), thread) : null;
-      const reportResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !planningResult && !riskResult && !controlResult && !actionResult && !attached && !useProjectFiles && !withEvidence
+      const reportResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !findingCloseResult && !planningResult && !riskResult && !controlResult && !actionResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantReport(req.user, question.trim()) : null;
-      const result = capabilityResult || proposalResult || riskCreateResult || controlCreateResult || findingCreateResult || planningResult || riskResult || controlResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
+      const result = capabilityResult || proposalResult || riskCreateResult || controlCreateResult || findingCreateResult || findingCloseResult || planningResult || riskResult || controlResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
         : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
           { user: req.user })
           : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
@@ -1004,6 +1008,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     }
     if (isFindingCreateCommand(question.trim(), { messages: [] })) {
       return res.json({ answer: "Para registrar un hallazgo, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
+    if (isFindingCloseCommand(question.trim())) {
+      return res.json({ answer: "Para cerrar un hallazgo, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }

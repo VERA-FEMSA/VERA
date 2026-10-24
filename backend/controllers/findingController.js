@@ -1,9 +1,8 @@
 const findingRepository = require("../repositories/findingRepository");
 const riskRepository = require("../repositories/riskRepository");
-const actionRepository = require("../repositories/actionRepository");
-const { ROLES, RISK_CONTROL_MANAGE_ROLES } = require("../config/roles");
-const { logActivity } = require("../services/auditLogger");
+const { ROLES } = require("../config/roles");
 const { createFindingForUser } = require("../services/findingCreationService");
+const { closeFindingForUser } = require("../services/findingClosureService");
 
 const visibleTo = async (finding, user) => {
   if (user.role !== ROLES.AUDITOR) return true;
@@ -30,39 +29,12 @@ const createFinding = async (req, res) => {
 };
 
 const closeFinding = async (req, res) => {
-  const finding = await findingRepository.findById(req.params.id);
-  if (!finding || !await visibleTo(finding, req.user)) {
-    return res.status(404).json({ message: "El hallazgo no existe o no está disponible para tu cuenta." });
+  try { return res.json({ finding: await closeFindingForUser(req.user,
+    req.params.id, req.body?.note, req.body?.version) }); }
+  catch (error) {
+    if ([400, 403, 404, 409].includes(error.status)) return res.status(error.status).json({ message: error.message });
+    throw error;
   }
-  const risk = await riskRepository.findById(finding.riskId);
-  if (!RISK_CONTROL_MANAGE_ROLES.includes(req.user.role) &&
-      !(req.user.role === ROLES.AUDITOR && risk?.ownerId === req.user.id)) {
-    return res.status(403).json({ message: "No puedes cerrar este hallazgo." });
-  }
-  if (finding.status !== "OPEN") return res.status(409).json({ message: "El hallazgo ya está cerrado." });
-  const note = String(req.body?.note ?? "").trim();
-  const version = Number(req.body?.version);
-  if (note.length < 10 || note.length > 1000) {
-    return res.status(400).json({ message: "Explica el cierre en 10 a 1,000 caracteres." });
-  }
-  if (!Number.isSafeInteger(version) || version < 1) {
-    return res.status(400).json({ message: "Actualiza el hallazgo antes de cerrarlo." });
-  }
-  const actions = (await actionRepository.getAll()).filter((item) =>
-    item.sourceType === "FINDING" && item.sourceId === finding.id);
-  if (!actions.length || actions.some((item) => item.status !== "DONE")) {
-    return res.status(409).json({ message: "Termina todas las acciones vinculadas antes de cerrar el hallazgo." });
-  }
-  const closedAt = new Date().toISOString();
-  const closed = await findingRepository.mutate(finding.id, {
-    status: "CLOSED", closureNote: note, closedAt,
-    closedBy: { id: req.user.id, username: req.user.username, role: req.user.role }
-  }, version);
-  await logActivity({ actor: req.user, action: "FINDING_CLOSED", details: {
-    findingId: finding.id, riskId: finding.riskId, controlId: finding.controlId,
-    completedActionIds: actions.map((item) => item.id)
-  } });
-  return res.json({ finding: closed });
 };
 
 module.exports = { listFindings, createFinding, closeFinding };

@@ -23,3 +23,7 @@ Riesgo: RSK-001
 - La ruta sin historial y los roles sin permiso no crean hallazgos. El servidor vuelve a validar la cuenta y la relación al confirmar.
 - Se permite un hallazgo por riesgo y versión de evaluación de control. Una operación reservada usa identificador para reconocer un reintento.
 - Las pruebas locales cubren permisos, ausencia de escritura antes de confirmar, cambio de evaluación y confirmaciones simultáneas. La aceptación con Supabase en Production requiere evidencia independiente.
+
+## Cierre desde el chat
+
+Cuando existe al menos una acción vinculada y todas están terminadas, puedes pedir `Cierra el hallazgo FDG-001 porque las acciones de corrección terminaron y fueron revisadas.` VERA muestra el expediente, el número de acciones y el motivo. Tras revisarlo, escribe `Confirmar cierre de hallazgo` dentro de cinco minutos. El servidor comprueba de nuevo permisos, estado, versión y acciones. Si alguno cambió, solicita otra vista previa; si todo sigue válido, registra fecha, responsable y motivo en la bitácora. El Auditor sólo puede cerrar hallazgos de los riesgos que tiene a su cargo.
