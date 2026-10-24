@@ -7,7 +7,8 @@ test("Evidencias IA: consulta un TXT visible y muestra el fragmento citado en m�
   const evidence = { id: "EVD-42", title: "Informe de control", description: "Revisión mensual del acceso.",
     evidenceType: "REPORT", entityType: "RISK", entityId: "RSK-42", entityTitle: "Riesgo de acceso",
     author: { name: "Gerencia" }, createdAt: "2026-10-16T10:00:00.000Z",
-    file: { mime: "text/plain", size: 120 } };
+    file: { mime: "text/plain", size: 120 },
+    contentIndex: { status: "ready", chunks: 2, truncated: true } };
   await page.route("**/api/risks**", (route) => route.fulfill({ json: { risks: [] } }));
   await page.route("**/api/controls**", (route) => route.fulfill({ json: { controls: [] } }));
   await page.route("**/api/planning**", (route) => route.fulfill({ json: { proposals: [] } }));
@@ -28,6 +29,7 @@ test("Evidencias IA: consulta un TXT visible y muestra el fragmento citado en m�
     return route.fulfill({ json: { evidence: [evidence] } });
   });
   await page.goto("/evidencias");
+  await expect(page.getByText("Texto indexado · lectura parcial (2 fragmentos)")).toBeVisible();
   await page.getByRole("button", { name: "Consultar contenido con IA" }).click();
   const dialog = page.getByRole("dialog", { name: "Preguntar sobre Informe de control" });
   await expect(dialog).toBeVisible();
@@ -64,6 +66,7 @@ test("Evidencias IA: OCR de imagen es explícito y después permite consultar fr
     return route.fulfill({ json: { evidence: [evidence] } });
   });
   await page.goto("/evidencias");
+  await expect(page.getByText("Cobertura no registrada")).toBeVisible();
   await page.getByRole("button", { name: "Consultar contenido con IA" }).click();
   const dialog = page.getByRole("dialog", { name: "Preguntar sobre Captura de revisión" });
   await expect(dialog.getByText(/envía esta imagen privada al recurso Azure/)).toBeVisible();
