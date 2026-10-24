@@ -27,7 +27,7 @@ const saveReportCsv = (csv) => {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 
-function AssistantPanel({ focus = null, compact = false }) {
+function AssistantPanel({ focus = null, compact = false, initialQuestion = "" }) {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const canDraftProposal = ["SUPER_ADMIN", "GERENTE", "JEFATURA"].includes(user?.role);
@@ -43,7 +43,7 @@ function AssistantPanel({ focus = null, compact = false }) {
   const [brief, setBrief] = useState([]);
   const [pendingAlertsUnavailable, setPendingAlertsUnavailable] = useState(false);
   const [insights, setInsights] = useState(null);
-  const [question, setQuestion] = useState("");
+  const [question, setQuestion] = useState(initialQuestion);
   const [withEvidence, setWithEvidence] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -86,6 +86,13 @@ function AssistantPanel({ focus = null, compact = false }) {
   const [confirmDeleteProject, setConfirmDeleteProject] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(() => !compact && window.matchMedia("(min-width: 1080px)").matches);
   const streamRef = useRef(null);
+
+  useEffect(() => {
+    if (!compact || !initialQuestion || !available || busy || historyBusy || attachmentBusy ||
+        historyError || historyStale) return undefined;
+    const frame = requestAnimationFrame(() => document.getElementById("assistant-question")?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [compact, initialQuestion, available, busy, historyBusy, attachmentBusy, historyError, historyStale]);
 
   useEffect(() => {
     if (streamRef.current) streamRef.current.scrollTop = streamRef.current.scrollHeight;

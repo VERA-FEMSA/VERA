@@ -2,6 +2,8 @@
 
 El asistente es una entrada alternativa a los módulos existentes. Esta guía describe la navegación inicial por conversación: pedir listas de auditorías, propuestas, riesgos, controles, hallazgos y pendientes, leer los primeros diez resultados y continuar escribiendo «siguientes». Cada tarjeta muestra los campos breves disponibles y conserva un enlace al expediente. Las operaciones de escritura incorporadas después están enumeradas en [Capacidades por rol](ai-chat-capabilities.md) y en el README.
 
+La búsqueda superior admite preguntas completas. Al escribir varias palabras, «Preguntar a VERA» aparece primero; seleccionar esa opción abre el chat en la misma pantalla con el texto listo para revisión. La pregunta no se envía hasta que la persona pulse Enter o Enviar dentro del chat. Una búsqueda breve de una sola palabra mantiene primero los accesos directos a secciones. Esta entrada no cambia permisos ni ejecuta acciones por seleccionar una sugerencia.
+
 Desde cualquier pantalla autenticada, abre «Preguntar a VERA» o usa `Ctrl+Alt+K` (`⌘+Option+K` en Mac). `Ctrl+K` conserva la búsqueda general de secciones y acciones. El panel lateral ofrece la misma conversación guardada, historial y acciones permitidas por rol que el espacio de IA. El indicador dentro del panel muestra si el entorno permite acciones o sólo consulta. No necesitas dejar la pantalla actual para usar una capacidad ya conectada al chat; el módulo original sigue disponible para revisar un expediente completo.
 
 ## Alcance de este incremento
