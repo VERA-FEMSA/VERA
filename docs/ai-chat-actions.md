@@ -1,10 +1,12 @@
 # Cambios de compromisos desde la conversación
 
-La conversación guardada permite consultar compromisos abiertos y completar uno sin salir del chat. El usuario puede escribir `Muéstrame mis compromisos`, escoger el título o identificador mostrado y pedir, por ejemplo:
+La conversación guardada permite consultar compromisos y cambiar su estado sin salir del chat. El usuario puede escribir `Muéstrame mis compromisos`, `Muéstrame mis compromisos cerrados` o `Muéstrame mis compromisos cancelados`, escoger el título o identificador mostrado y pedir, por ejemplo:
 
 > Completa el compromiso «Revisar evidencia» porque la revisión quedó documentada.
 
 El asistente **no ejecuta el cambio al recibir esa petición**. Muestra el origen, título y motivo. Sólo la instrucción escrita `Confirmar cambio`, enviada dentro de cinco minutos como siguiente mensaje, ejecuta la transición. Otra pregunta descarta la vista previa.
+
+También se admiten `Inicia el compromiso … porque …`, `Cancela el compromiso … porque …` y `Reabre el compromiso … porque …`. La transición debe estar permitida por las reglas actuales: un compromiso cerrado o cancelado puede reabrirse, pero no se salta directamente a otro estado.
 
 ## Reglas aplicadas
 
@@ -17,6 +19,6 @@ El asistente **no ejecuta el cambio al recibir esa petición**. Muestra el orige
 
 ## Límites
 
-Este incremento cubre la transición de un compromiso abierto o en curso a `DONE`. No crea auditorías, riesgos, controles ni evidencias por chat y no convierte al asistente en un agente autónomo. Las demás acciones requieren diseño y pruebas de autorización independientes. Si la bitácora de conversación falla después de confirmar, la versión del compromiso impide repetir la transición; el usuario debe comprobar el estado y el historial del compromiso.
+Este incremento cubre las transiciones permitidas por el módulo de Compromisos entre `OPEN`, `IN_PROGRESS`, `DONE` y `CANCELLED`. No crea auditorías, riesgos, controles ni evidencias por chat y no convierte al asistente en un agente autónomo. Las demás acciones requieren diseño y pruebas de autorización independientes. Si la bitácora de conversación falla después de confirmar, la versión del compromiso impide repetir la transición; el usuario debe comprobar el estado y el historial del compromiso.
 
 La suite `backend/tests/assistantActions.test.js` cubre vista previa sin escritura, permiso del responsable, aislamiento entre conversaciones, confirmación única, versión obsoleta y ausencia de escritura en el chat sin historial. CI y mocks no sustituyen la aceptación autenticada en Production descrita en [#128](https://github.com/VERA-GRC-IRM/VERA/issues/128).
