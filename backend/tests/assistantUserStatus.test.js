@@ -24,8 +24,10 @@ const ask = async (base, id, thread, question) => {
 };
 
 test("Los comandos de cuenta requieren un ID exacto y confirmación separada", () => {
-  assert.deepEqual(parse("Deshabilita cuenta #5"), { active: false, id: 5 });
-  assert.deepEqual(parse("Habilitar cuenta 5"), { active: true, id: 5 });
+  assert.deepEqual(parse("Deshabilita cuenta #5 porque terminó su acceso al proyecto"),
+    { active: false, id: 5, reason: "terminó su acceso al proyecto" });
+  assert.deepEqual(parse("Habilitar cuenta 5 porque regresa al equipo"),
+    { active: true, id: 5, reason: "regresa al equipo" });
   assert.deepEqual(parse("Confirmar cambio de cuenta"), { confirm: true });
   assert.equal(parse("Deshabilita todos"), null);
 });
@@ -41,11 +43,13 @@ test("Solo Super Admin cambia otra cuenta con vista previa, versión y bitácora
   const base = await startTestServer(context, app);
   const admin = await threadFor(base, 1);
   const director = await threadFor(base, 2);
-  assert.match((await ask(base, 2, director, "Deshabilita cuenta #5")).body.message.text,
+  assert.match((await ask(base, 2, director, "Deshabilita cuenta #5 porque terminó su acceso")).body.message.text,
     /Solo un Super Admin/);
-  assert.match((await ask(base, 1, admin, "Deshabilita cuenta #1")).body.message.text,
+  assert.match((await ask(base, 1, admin, "Deshabilita cuenta #1 porque terminó su acceso")).body.message.text,
     /propia cuenta/);
-  const preview = await ask(base, 1, admin, "Deshabilita cuenta #5");
+  assert.match((await ask(base, 1, admin, "Deshabilita cuenta #5")).body.message.text,
+    /Indica el motivo/);
+  const preview = await ask(base, 1, admin, "Deshabilita cuenta #5 porque terminó su acceso al proyecto");
   assert.equal(preview.body.message.mode, "action-preview");
   assert.equal((await users.findById(5)).status, "ACTIVE");
   const changed = await ask(base, 1, admin, "Confirmar cambio de cuenta");
@@ -54,7 +58,7 @@ test("Solo Super Admin cambia otra cuenta con vista previa, versión y bitácora
   assert.equal((await users.findById(5)).status, "DISABLED");
   assert.equal((await ask(base, 1, admin, "Confirmar cambio de cuenta")).body.message.mode,
     "action-guidance");
-  const enable = await ask(base, 1, admin, "Habilita cuenta #5");
+  const enable = await ask(base, 1, admin, "Habilita cuenta #5 porque regresa al equipo de auditoría");
   assert.equal(enable.body.message.mode, "action-preview");
   assert.equal((await ask(base, 1, admin, "Confirmar cambio de cuenta")).body.message.mode,
     "action-executed");
@@ -71,7 +75,8 @@ test("Una cuenta que cambia después de la vista previa impide confirmar", async
   });
   const base = await startTestServer(context, app);
   const admin = await threadFor(base, 1);
-  assert.equal((await ask(base, 1, admin, "Deshabilita cuenta #4")).body.message.mode,
+  assert.equal((await ask(base, 1, admin,
+    "Deshabilita cuenta #4 porque terminó su acceso al proyecto")).body.message.mode,
     "action-preview");
   await users.setStatus(4, "DISABLED");
   assert.match((await ask(base, 1, admin, "Confirmar cambio de cuenta")).body.message.text,

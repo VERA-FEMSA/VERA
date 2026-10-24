@@ -26,7 +26,8 @@ const changeUserStatus = async (actor, id, active, expected = {}) => {
   const next = active ? USER_STATUS.ACTIVE : USER_STATUS.DISABLED;
   if (target.status === next) fail(`La cuenta ya está ${active ? "habilitada" : "deshabilitada"}.`, 409);
   const user = await userRepository.setStatus(target.id, next, target.storageVersion);
-  await logAccessChange({ actor, action: active ? "USER_ENABLED" : "USER_DISABLED", target: user });
+  await logAccessChange({ actor, action: active ? "USER_ENABLED" : "USER_DISABLED", target: user,
+    details: expected.reason ? { reason: expected.reason } : {} });
   return user;
 };
 

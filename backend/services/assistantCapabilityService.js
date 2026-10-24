@@ -33,7 +33,7 @@ const capabilityAnswer = (user, persistent) => {
     lines.push("• Consultar cuentas visibles sin abrir Usuarios: «Usuarios del sistema», «Usuarios con rol Auditor» o «Busca usuario correo@ejemplo.com». La lista respeta tu rol.");
   }
   if (user.role === "SUPER_ADMIN") {
-    lines.push("• Habilitar o deshabilitar otra cuenta por ID: «Deshabilita cuenta #5». El cambio exige vista previa y «Confirmar cambio de cuenta».");
+    lines.push("• Habilitar o deshabilitar otra cuenta por ID y motivo: «Deshabilita cuenta #5 porque terminó su acceso al proyecto». El cambio exige vista previa y «Confirmar cambio de cuenta».");
   }
   if (RECORD_CREATE_ROLES.includes(user.role)) {
     lines.push("• Marcar un aviso visible como leído o sin leer, con vista previa y confirmación. La tarea de origen no se completa por ello.");

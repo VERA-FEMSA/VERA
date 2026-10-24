@@ -1014,7 +1014,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
         let executionError = null;
         try {
           changed = await changeUserStatus(req.user, draft.id, draft.active,
-            { status: draft.expectedStatus, version: draft.expectedVersion });
+            { status: draft.expectedStatus, version: draft.expectedVersion, reason: draft.reason });
         } catch (error) { executionError = error; }
         const finalMessage = { ...assistantMessage,
           mode: changed ? "action-executed" : "action-guidance",

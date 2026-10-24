@@ -3,11 +3,11 @@
 Una cuenta Super Admin activa puede habilitar o deshabilitar otra cuenta sin abrir el módulo Usuarios. Primero puede consultar `Usuarios del sistema` o buscar un correo exacto para conocer su ID. Después escribe:
 
 ```text
-Deshabilita cuenta #5
+Deshabilita cuenta #5 porque terminó su acceso al proyecto
 Confirmar cambio de cuenta
 ```
 
-También se admite `Habilita cuenta #5`. La primera orden sólo prepara una vista previa con ID, nombre, correo, rol y estado. La confirmación debe ser el mensaje siguiente y llega antes de cinco minutos. Otra pregunta descarta la vista previa.
+También se admite `Habilita cuenta #5 porque regresa al equipo`. El motivo es obligatorio y queda en la bitácora. La primera orden sólo prepara una vista previa con ID, nombre, correo, rol y estado. La confirmación debe ser el mensaje siguiente y llega antes de cinco minutos. Otra pregunta descarta la vista previa.
 
 El servidor comprueba otra vez el rol del actor, el estado y la versión de la cuenta objetivo antes del cambio. No permite modificar la cuenta propia, una cuenta antigua pendiente ni una cuenta que haya cambiado tras la vista previa. El mismo servicio controla la ruta de Usuarios y el chat. El cambio se registra en la bitácora. Un reintento después de una reserva no repite automáticamente la mutación: hay que consultar el directorio y preparar otra vista previa.
 
