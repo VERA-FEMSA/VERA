@@ -563,7 +563,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
         : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
           { user: req.user })
           : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
-            project?.instructions || "");
+            project?.instructions || "", thread.messages.at(-1)?.browse || null);
       if (attached?.project_id) result.citations = (result.citations || []).map((citation) => ({
         ...citation, projectId: attached.project_id }));
       const currentUser = await userRepository.findById(req.user.id);
@@ -578,7 +578,8 @@ router.post("/conversations/:id/ask", conversationEnabled,
       const assistantMessage = { id: randomUUID(), role: "assistant", text: result.answer.slice(0, 4000),
         mode: result.mode, metric: result.metric || null, citations: (result.citations || []).slice(0, 8),
         references: (result.references || []).slice(0, 15), coverage: result.coverage || null,
-        asOf: result.asOf, durationMs };
+        asOf: result.asOf, durationMs,
+        ...(result.browse ? { browse: result.browse } : {}) };
       const messages = [...thread.messages, userMessage, assistantMessage].slice(-40);
       while (Buffer.byteLength(JSON.stringify(messages), "utf8") > 140_000 && messages.length > 2) {
         messages.splice(0, 2);
@@ -737,14 +738,16 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
   }
   const history = req.body?.history ?? [];
   const focus = req.body?.focus ?? null;
+  const lastBrowse = req.body?.lastBrowse ?? null;
   if (!Array.isArray(history) || history.length > 6 || history.some((item) =>
     !item || !["user", "assistant"].includes(item.role) ||
     typeof item.text !== "string" || item.text.length > 800) ||
-    (focus !== null && (typeof focus !== "object" || Array.isArray(focus)))) {
+    (focus !== null && (typeof focus !== "object" || Array.isArray(focus))) ||
+    (lastBrowse !== null && (typeof lastBrowse !== "object" || Array.isArray(lastBrowse)))) {
     return res.status(400).json({ message: "El historial o el expediente solicitado no es válido." });
   }
   try {
-    const result = await answerAssistant(req.user, question.trim(), history, focus);
+    const result = await answerAssistant(req.user, question.trim(), history, focus, false, "", lastBrowse);
     const durationMs = Date.now() - startedAt;
     console.info(JSON.stringify({ event: result.mode === "computed" ? "VERA_AI_COMPUTED" : "VERA_AI_ANSWER",
       status: 200, role: req.user.role, durationMs, promptTokens: result.usage?.prompt_tokens ?? null,

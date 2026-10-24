@@ -73,6 +73,36 @@ test("Espacio de IA: Enter envía y Shift+Enter conserva una nueva línea", asyn
   expect(sent).toBe("¿Qué auditorías tengo?\nResume mis pendientes");
 });
 
+test("Espacio de IA: explora expedientes y continúa sin salir del chat", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "read-only", conversations: false
+  } }));
+  const requests = [];
+  await page.route("**/api/assistant/ask", (route) => {
+    const body = route.request().postDataJSON();
+    requests.push(body);
+    const second = body.question === "siguientes";
+    return route.fulfill({ json: {
+      answer: second ? "Muestro 11–11 de 11." : "Muestro 1–10 de 11. Escribe «siguientes» para continuar.",
+      mode: "browse", citations: [], references: [],
+      browse: { type: "risks", filter: "high", offset: second ? 10 : 0, total: 11,
+        hasMore: !second, items: [{ sourceId: `risks:RSK-${second ? 11 : 1}`,
+          id: `RSK-${second ? 11 : 1}`, type: "Riesgo", title: `Riesgo ${second ? 11 : 1}`,
+          path: `/riesgos#risk-RSK-${second ? 11 : 1}`, facts: [{ label: "Nivel", value: "Alto" }] }] }
+    } });
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Tu pregunta").fill("Muéstrame los riesgos altos");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Riesgo: Riesgo 1")).toBeVisible();
+  await expect(page.getByText("Nivel: Alto")).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("siguientes");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Riesgo: Riesgo 11")).toBeVisible();
+  expect(requests[1].lastBrowse).toMatchObject({ type: "risks", filter: "high", offset: 0, hasMore: true });
+});
+
 test("Copiloto: OCR opcional de PDF escaneado mantiene la consulta explícita", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {

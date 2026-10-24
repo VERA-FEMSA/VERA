@@ -3,9 +3,14 @@ const { getVerifiedAnswer } = require("./assistantVerifiedAnswers");
 const { askAzureOpenAi, readiness } = require("./azureOpenAiService");
 const { searchAssistantEvidence } = require("./assistantEvidenceSearchService");
 const assistantMemory = require("../repositories/assistantMemoryRepository");
+const { browseAssistant } = require("./assistantBrowseService");
 
 const answerAssistant = async (user, question, history = [], focus = null, withEvidence = false,
-  projectInstructions = "") => {
+  projectInstructions = "", previousBrowse = null) => {
+  if (!withEvidence) {
+    const browsed = await browseAssistant(user, question, focus, previousBrowse);
+    if (browsed) return browsed;
+  }
   if (!readiness().available) {
     const error = new Error("El asistente requiere Azure OpenAI y almacenes persistentes en producción.");
     error.status = 503;
