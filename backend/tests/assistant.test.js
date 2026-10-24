@@ -13,6 +13,7 @@ const riskRepository = require("../repositories/riskRepository");
 const controlRepository = require("../repositories/controlRepository");
 const findingRepository = require("../repositories/findingRepository");
 const { createAction } = require("../services/actionService");
+const { browseAssistant } = require("../services/assistantBrowseService");
 
 const auth = (id, method = "GET", body) => ({ method, headers: {
   Authorization: `Bearer ${jwt.sign({ id }, process.env.JWT_SECRET)}`,
@@ -49,6 +50,8 @@ test("Copiloto: incluye compromisos pendientes visibles sin ampliar el rol", asy
   assert.equal(own.context.pendingActionsAvailable, true);
   assert.ok(own.visibleRecords.pending.some((item) => item.id === `ACTION_DUE_SOON:${action.id}`));
   assert.equal(own.coverage.pendingActionsUnavailable, false);
+  const browsed = await browseAssistant(user, "Muéstrame mis pendientes");
+  assert.ok(browsed.browse.items.some((item) => item.id === `ACTION_DUE_SOON:${action.id}`));
   const other = await buildAssistantContext({ id: 4, role: "JEFATURA" }, "mis actividades pendientes");
   assert.ok(!other.visibleRecords.pending.some((item) => item.id === `ACTION_DUE_SOON:${action.id}`));
 });
