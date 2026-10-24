@@ -567,6 +567,36 @@ test("Copiloto: explica la vista previa y el cambio confirmado en la conversaci�
   expect(access.violations.map(({ id: violation }) => violation)).toEqual([]);
 });
 
+test("Copiloto: exporta el informe CSV desde el chat sin navegar a otro módulo", async ({ page }) => {
+  await useSession(page, "AUDITOR", 5);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "consult-and-confirm", conversations: true
+  } }));
+  const id = "11111111-1111-4111-8111-111111111113";
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") return route.fulfill({ json: { conversations: [] } });
+    if (path.endsWith("/conversations") && method === "POST") return route.fulfill({ status: 201,
+      json: { conversation: { id, title: "Nueva conversación", focus: null, messages: [], version: 1 } } });
+    if (path.endsWith(`/${id}/ask`) && method === "POST") return route.fulfill({ json: {
+      conversationId: id, version: 2, downloadCsv: '\uFEFF"ID auditoría","Título"\r\n"AUD-01","Auditoría visible"\r\n',
+      userMessage: { id: "user-report", role: "user", text: "Exporta el reporte del portafolio en CSV" },
+      message: { id: "assistant-report", role: "assistant", mode: "report-export",
+        text: "Preparé el CSV con todos los registros visibles; la descarga comenzará en tu navegador.",
+        citations: [], references: [] } } });
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Tu pregunta").fill("Exporta el reporte del portafolio en CSV");
+  const downloadEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  const download = await downloadEvent;
+  expect(download.suggestedFilename()).toBe("vera-reporte-portafolio.csv");
+  await expect(page.getByText("Reporte completo · descarga CSV solicitada")).toBeVisible();
+  await expect(page).toHaveURL(/\/asistente$/);
+});
+
 test("Copiloto: explica prioridades y enlaza solo registros visibles", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: false, mode: "read-only" } }));
