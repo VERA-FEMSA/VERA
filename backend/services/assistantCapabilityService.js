@@ -28,6 +28,7 @@ const capabilityAnswer = (user, persistent) => {
     lines.push("• Reasignar compromisos, aprobar o rechazar propuestas, e iniciar o cerrar auditorías, indicando expediente y motivo.");
   }
   if (RISK_CONTROL_MANAGE_ROLES.includes(user.role)) {
+    lines.push("• Registrar riesgos nuevos: escribe «Registrar riesgo» y completa los campos aquí mismo.");
     lines.push("• Evaluar riesgos existentes con probabilidad e impacto de 1 a 3, y controles existentes con efectividad de 1 a 5, siempre con justificación.");
   }
   lines.push("Los cambios requieren una confirmación escrita después de revisar la vista previa. Si falta información o no tienes permiso, te lo diré sin ejecutar nada.");
