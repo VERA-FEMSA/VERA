@@ -10,6 +10,7 @@ const { handleAssistantReport, parseReportRequest } = require("../services/assis
 const { handlePlanningTransition, isPlanningCommand } = require("../services/assistantPlanningService");
 const { handleRiskEvaluation, isRiskCommand } = require("../services/assistantRiskEvaluationService");
 const { handleControlEvaluation, isControlCommand } = require("../services/assistantControlEvaluationService");
+const { handleCapabilityQuestion } = require("../services/assistantCapabilityService");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -567,20 +568,22 @@ router.post("/conversations/:id/ask", conversationEnabled,
       const projectFiles = useProjectFiles ? await attachments.listProject(req.user, thread.projectId) : [];
       const projectRows = useProjectFiles ? await Promise.all(projectFiles.map((item) =>
         attachments.getProject(req.user, thread.projectId, item.id))) : [];
-      const planningResult = !attached && !useProjectFiles && !withEvidence &&
+      const capabilityResult = !attached && !useProjectFiles && !withEvidence
+        ? handleCapabilityQuestion(req.user, question.trim(), true) : null;
+      const planningResult = !capabilityResult && !attached && !useProjectFiles && !withEvidence &&
         isPlanningCommand(question.trim(), thread)
         ? await handlePlanningTransition(req.user, question.trim(), thread) : null;
-      const riskResult = !planningResult && !attached && !useProjectFiles && !withEvidence &&
+      const riskResult = !capabilityResult && !planningResult && !attached && !useProjectFiles && !withEvidence &&
         isRiskCommand(question.trim(), thread)
         ? await handleRiskEvaluation(req.user, question.trim(), thread) : null;
-      const controlResult = !planningResult && !riskResult && !attached && !useProjectFiles && !withEvidence &&
+      const controlResult = !capabilityResult && !planningResult && !riskResult && !attached && !useProjectFiles && !withEvidence &&
         isControlCommand(question.trim())
         ? await handleControlEvaluation(req.user, question.trim(), thread) : null;
-      const actionResult = !planningResult && !riskResult && !controlResult && !attached && !useProjectFiles && !withEvidence
+      const actionResult = !capabilityResult && !planningResult && !riskResult && !controlResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantAction(req.user, question.trim(), thread) : null;
-      const reportResult = !planningResult && !riskResult && !controlResult && !actionResult && !attached && !useProjectFiles && !withEvidence
+      const reportResult = !capabilityResult && !planningResult && !riskResult && !controlResult && !actionResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantReport(req.user, question.trim()) : null;
-      const result = planningResult || riskResult || controlResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
+      const result = capabilityResult || planningResult || riskResult || controlResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
         : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
           { user: req.user })
           : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
@@ -813,6 +816,8 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     return res.status(400).json({ message: "El historial o el expediente solicitado no es válido." });
   }
   try {
+    const capability = handleCapabilityQuestion(req.user, question.trim(), false);
+    if (capability) return res.json({ ...capability, durationMs: Date.now() - startedAt });
     if (isPlanningCommand(question.trim(), { messages: [] })) {
       return res.json({ answer: "Para decidir propuestas o cambiar estados de auditoría, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
