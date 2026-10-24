@@ -6,7 +6,7 @@ const app = require("../server");
 const { startTestServer } = require("./helpers/testServer");
 const riskRepository = require("../repositories/riskRepository");
 const { createAction, getAction, changeStatus } = require("../services/actionService");
-const { parseCompletion, parseStatusChange } = require("../services/assistantActionService");
+const { parseCompletion, parseStatusChange, parseReassignment } = require("../services/assistantActionService");
 
 const options = (id, body) => ({ method: "POST", headers: {
   Authorization: `Bearer ${jwt.sign({ id }, process.env.JWT_SECRET)}`,
@@ -33,6 +33,52 @@ test("La instrucción de completar exige motivo y título concreto", () => {
     "CANCELLED");
   assert.equal(parseStatusChange("Reabre el compromiso «Revisar evidencia» porque falta comprobarlo.").status,
     "OPEN");
+  assert.deepEqual(parseReassignment("Reasigna el compromiso «Revisar evidencia» a «Jefatura Demo» porque cambió la responsabilidad."),
+    { target: "Revisar evidencia", assignee: "Jefatura Demo", note: "cambió la responsabilidad." });
+});
+
+test("El chat reasigna sólo a responsables autorizados y exige confirmación vigente", async (t) => {
+  const previous = process.env.VERA_AI_CONVERSATIONS_ENABLED;
+  process.env.VERA_AI_CONVERSATIONS_ENABLED = "true";
+  t.after(() => { if (previous === undefined) delete process.env.VERA_AI_CONVERSATIONS_ENABLED;
+    else process.env.VERA_AI_CONVERSATIONS_ENABLED = previous; });
+  const base = await startTestServer(t, app);
+  const admin = { id: 1, role: "SUPER_ADMIN", username: "superadmin", name: "Admin de prueba" };
+  const risk = riskRepository.create({ title: `Riesgo reasignación ${Date.now()}`, ownerId: 5,
+    level: "Alto", score: 6, likelihood: 3, impact: 2, createdBy: { id: 1 } });
+  const action = await createAction(admin, { sourceType: "RISK", sourceId: risk.id,
+    title: `Seguimiento de responsable ${risk.id}`, rationale: "Asignar al responsable adecuado.",
+    dueDate: "2026-11-20", assigneeId: 5 });
+  const assignees = await fetch(`${base}/api/assistant/ask`, options(1,
+    { question: `Lista responsables para el compromiso ${action.id}` }));
+  assert.equal(assignees.status, 200);
+  assert.match((await assignees.json()).answer, /Jefatura Demo/);
+  const created = await fetch(`${base}/api/assistant/conversations`, options(1, { focus: null }));
+  const { conversation } = await created.json();
+  const url = `${base}/api/assistant/conversations/${conversation.id}/ask`;
+  const command = `Reasigna el compromiso ${action.id} a Jefatura Demo porque asumirá el seguimiento del caso.`;
+  const preview = await fetch(url, options(1, { question: command }));
+  assert.equal((await preview.json()).message.mode, "action-preview");
+  assert.equal((await getAction(admin, action.id)).assigneeId, 5);
+  const confirmed = await fetch(url, options(1, { question: "Confirmar cambio" }));
+  assert.equal((await confirmed.json()).message.mode, "action-executed");
+  const moved = await getAction(admin, action.id);
+  assert.equal(moved.assigneeId, 4);
+  assert.equal(moved.history.at(-1).type, "REASSIGNED");
+  const forbidden = await fetch(`${base}/api/assistant/conversations`, options(4, { focus: null }));
+  const otherThread = (await forbidden.json()).conversation;
+  const denied = await fetch(`${base}/api/assistant/conversations/${otherThread.id}/ask`, options(4,
+    { question: `Reasigna el compromiso ${action.id} a Auditor Demo porque lo reasigno sin autorización.` }));
+  assert.equal((await denied.json()).message.mode, "action-guidance");
+  assert.equal((await getAction(admin, action.id)).assigneeId, 4);
+  const stalePreview = await fetch(url, options(1,
+    { question: `Reasigna el compromiso ${action.id} a Auditor Demo porque el responsable cambió nuevamente.` }));
+  assert.equal((await stalePreview.json()).message.mode, "action-preview");
+  await changeStatus(admin, action.id, { status: "IN_PROGRESS", note: "Se inició el seguimiento.",
+    version: moved.storageVersion });
+  const stale = await fetch(url, options(1, { question: "Confirmar cambio" }));
+  assert.match((await stale.json()).message.text, /cambiaron/);
+  assert.equal((await getAction(admin, action.id)).assigneeId, 4);
 });
 
 test("El chat aplica sólo las transiciones permitidas y permite consultar compromisos cerrados", async (t) => {
