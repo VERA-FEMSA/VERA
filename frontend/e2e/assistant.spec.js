@@ -665,6 +665,40 @@ test("Copiloto: confirma una evaluación de riesgo sin salir del chat", async ({
   await expect(page).toHaveURL(/\/asistente$/);
 });
 
+test("Copiloto: confirma una evaluación de control sin salir del chat", async ({ page }) => {
+  await useSession(page, "GERENTE", 3);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "consult-and-confirm", conversations: true
+  } }));
+  const id = "11111111-1111-4111-8111-111111111116";
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") return route.fulfill({ json: { conversations: [] } });
+    if (path.endsWith("/conversations") && method === "POST") return route.fulfill({ status: 201,
+      json: { conversation: { id, title: "Nueva conversación", focus: null, messages: [], version: 1 } } });
+    if (path.endsWith(`/${id}/ask`) && method === "POST") {
+      const question = route.request().postDataJSON().question;
+      const executed = question === "Confirmar control";
+      return route.fulfill({ json: { conversationId: id, version: executed ? 3 : 2,
+        userMessage: { id: executed ? "user-control-2" : "user-control-1", role: "user", text: question },
+        message: { id: executed ? "assistant-control-2" : "assistant-control-1", role: "assistant",
+          text: executed ? "Quedó evaluado «Conciliación mensual»: inefectivo (2/5)." :
+            "Revisa antes de ejecutar: evaluar «Conciliación mensual». Escribe «Confirmar control».",
+          mode: executed ? "action-executed" : "action-preview", citations: [], references: [] } } });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Tu pregunta").fill("Evalúa el control «Conciliación mensual» con efectividad 2 porque la evidencia mostró varias excepciones.");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Vista previa · no se ha modificado ningún registro")).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("Confirmar control");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Quedó evaluado «Conciliación mensual»: inefectivo (2/5).")).toBeVisible();
+  await expect(page).toHaveURL(/\/asistente$/);
+});
+
 test("Copiloto: explica prioridades y enlaza solo registros visibles", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: { available: false, mode: "read-only" } }));

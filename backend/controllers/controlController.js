@@ -4,16 +4,11 @@ const userRepository = require("../repositories/userRepository");
 const { logActivity } = require("../services/auditLogger");
 const { USER_STATUS } = require("../config/accountRules");
 const { ROLES } = require("../config/roles");
+const { withResult, parseEvaluation, evaluateControlForUser } = require("../services/controlEvaluationService");
 
 const TYPES = ["PREVENTIVE", "DETECTIVE", "CORRECTIVE"];
 const FREQUENCIES = ["Daily", "Weekly", "Monthly", "Quarterly", "Annually"];
 const text = (value) => String(value ?? "").trim();
-const resultFor = (rating) => Number(rating) >= 4 ? "EFFECTIVE" : "INEFFECTIVE";
-const withResult = (control) => ({
-  ...control,
-  effectivenessResult: resultFor(control.effectiveness),
-  evaluations: control.evaluations.map((evaluation) => ({ ...evaluation, result: resultFor(evaluation.rating) }))
-});
 const activeUsers = async () => (await userRepository.getAll()).filter((user) => user.status === USER_STATUS.ACTIVE);
 
 const parseCore = async (body) => {
@@ -34,14 +29,6 @@ const parseCore = async (body) => {
     return { error: "Relaciona el control con al menos un riesgo existente." };
   }
   return { data: { title, description, type, frequency, ownerId: owner.id, ownerName: owner.name, riskIds: rawRiskIds } };
-};
-
-const parseEvaluation = (body) => {
-  const rating = Number(body.rating);
-  const note = text(body.note);
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return { error: "La efectividad debe ser un valor entero del 1 al 5." };
-  if (note.length < 10 || note.length > 500) return { error: "La justificación debe tener entre 10 y 500 caracteres." };
-  return { data: { rating, note } };
 };
 
 const visibleControls = async (req) => {
@@ -79,16 +66,8 @@ const updateControl = async (req, res) => {
 };
 
 const evaluateControl = async (req, res) => {
-  const current = await controlRepository.findById(req.params.id);
-  if (!current) return res.status(404).json({ message: "Control no encontrado." });
-  const evaluation = parseEvaluation(req.body);
-  if (evaluation.error) return res.status(400).json({ message: evaluation.error });
-  const control = await controlRepository.evaluate(current.id, {
-    ...evaluation.data,
-    assessedBy: { id: req.user.id, username: req.user.username, role: req.user.role }
-  }, current.storageVersion);
-  await logActivity({ actor: req.user, action: "CONTROL_EVALUATED", details: { controlId: control.id, title: control.title, rating: control.effectiveness, result: resultFor(control.effectiveness), version: control.evaluations.length } });
-  return res.json({ control: withResult(control) });
+  try { return res.json({ control: await evaluateControlForUser(req.user, req.params.id, req.body) }); }
+  catch (error) { return res.status(error.status || 502).json({ message: error.status ? error.message : "No se pudo evaluar el control." }); }
 };
 
 module.exports = { listControls, createControl, updateControl, evaluateControl };
