@@ -1,6 +1,7 @@
-const { listActions, listAssignees, getAction, changeStatus, reassign, canTransition } = require("./actionService");
+const { listActions, listSources, listAssignees, getAction, changeStatus, reassign, canTransition, dateIsValid } = require("./actionService");
 const userRepository = require("../repositories/userRepository");
 const { RECORD_CREATE_ROLES, PLANNING_APPROVE_ROLES } = require("../config/roles");
+const { randomUUID } = require("node:crypto");
 
 const normalize = (value) => String(value || "").normalize("NFD")
   .replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
@@ -48,6 +49,14 @@ const parseAssigneeList = (question) => {
   return match ? match[1].trim().replace(/^[“"«]|[”"»]$/g, "") : null;
 };
 
+const SOURCE_NAMES = { auditoria: "AUDIT", riesgo: "RISK", control: "CONTROL", hallazgo: "FINDING" };
+const parseCreation = (question) => {
+  const match = question.match(/^(?:crea|crear|registra|registrar)\s+(?:un\s+)?compromiso\s+["“«](.+?)["”»]\s+para\s+(?:la|el)\s+(auditoría|auditoria|riesgo|control|hallazgo)\s+["“«](.+?)["”»]\s+porque\s+(.+?)\s+(?:con\s+)?vencimiento\s+(\d{4}-\d{2}-\d{2})\.?$/i);
+  return match ? { title: match[1].trim(), sourceType: SOURCE_NAMES[normalize(match[2])],
+    source: match[3].trim(), rationale: match[4].trim(), dueDate: match[5] } : null;
+};
+const creationIntent = (question) => /^(?:crea|crear|registra|registrar)\s+(?:un\s+)?compromiso\b/i.test(question);
+
 const confirm = (question) => /^(confirmar cambio|confirmo el cambio)$/i.test(question.trim());
 const listRequest = (question) => /^(?:muestrame|lista|dame|ver)\s+(?:mis|los|todos los)\s+compromisos(?:\s+(?:abiertos|pendientes|cerrados|completados|cancelados))?$/
   .test(normalize(question));
@@ -84,10 +93,11 @@ const listCommitments = async (user, question, thread) => {
 
 const handleAssistantAction = async (user, question, thread) => {
   const command = parseStatusChange(question);
+  const creation = parseCreation(question);
   const reassignment = parseReassignment(question);
   const assigneeTarget = parseAssigneeList(question);
   const listing = listRequest(question) || nextRequest(question, thread);
-  if (!command && !reassignment && !assigneeTarget && !confirm(question) && !listing) return null;
+  if (!command && !creationIntent(question) && !reassignment && !assigneeTarget && !confirm(question) && !listing) return null;
   const current = await userRepository.findById(user.id);
   if (current?.status !== "ACTIVE" || current.role !== user.role) {
     const error = new Error("Cambió tu acceso. Inicia sesión de nuevo."); error.status = 409; throw error;
@@ -107,12 +117,28 @@ const handleAssistantAction = async (user, question, thread) => {
   }
 
   if (confirm(question)) {
+    const reservation = thread.messages.at(-1)?.actionReservation;
+    if (reservation?.type === "ACTION_CREATE") {
+      const existing = (await listActions(user)).find((item) => item.aiOperationId === reservation.operationId);
+      return existing
+        ? response(`El compromiso «${existing.title}» ya quedó creado con identificador ${existing.id}. Puedes consultarlo en tus compromisos.`,
+          "action-executed", { actionOutcome: { id: existing.id, status: existing.status } })
+        : response("La confirmación quedó reservada, pero no hay constancia de que se haya creado el compromiso. Solicita una vista previa nueva antes de intentarlo otra vez.");
+    }
     const draft = thread.messages.at(-1)?.actionDraft;
-    if (!draft || !["ACTION_STATUS_CHANGE", "ACTION_REASSIGN"].includes(draft.type)) {
+    if (!draft || !["ACTION_STATUS_CHANGE", "ACTION_REASSIGN", "ACTION_CREATE"].includes(draft.type)) {
       return response("No hay un cambio pendiente de confirmación. Primero indica qué compromiso deseas actualizar y por qué.");
     }
     if (Date.parse(draft.expiresAt) < Date.now()) {
       return response("La confirmación venció. Vuelve a pedir el cambio para revisar el estado actual.");
+    }
+    if (draft.type === "ACTION_CREATE") {
+      if (!RECORD_CREATE_ROLES.includes(user.role)) return response("Tu rol no puede crear compromisos.");
+      const source = (await listSources(user)).find((item) =>
+        item.sourceType === draft.sourceType && item.sourceId === draft.sourceId);
+      if (!source) return response("El registro de origen ya no está disponible para tu cuenta. Solicita una vista previa nueva.");
+      return response("Confirmación recibida. Estoy registrando el compromiso.", "action-reservation",
+        { actionCreate: draft });
     }
     const action = await getAction(user, draft.id);
     if (draft.type === "ACTION_REASSIGN") {
@@ -136,6 +162,31 @@ const handleAssistantAction = async (user, question, thread) => {
       { status: draft.status, note: draft.note, version: draft.version });
     return response(`Quedó ${statusDescription(draft.status).result} el compromiso «${updated.title}». El cambio y su motivo se registraron en la bitácora.`,
       "action-executed", { actionOutcome: { id: updated.id, status: updated.status } });
+  }
+
+  if (creation) {
+    if (creation.title.length < 3 || creation.title.length > 140 ||
+        creation.rationale.length < 10 || creation.rationale.length > 1000 ||
+        !dateIsValid(creation.dueDate)) {
+      return response("Indica un título de 3 a 140 caracteres, un motivo de 10 a 1,000 y una fecha válida AAAA-MM-DD.");
+    }
+    const matches = (await listSources(user)).filter((item) => item.sourceType === creation.sourceType &&
+      (normalize(item.title) === normalize(creation.source) || normalize(item.sourceId) === normalize(creation.source)));
+    if (matches.length !== 1) {
+      return response(matches.length > 1
+        ? "Hay varios registros de origen con ese título. Repite la instrucción con el identificador exacto."
+        : "No encontré ese registro de origen en tu alcance. Comprueba el título o identificador exacto.");
+    }
+    const source = matches[0];
+    const draft = { type: "ACTION_CREATE", operationId: randomUUID(), sourceType: source.sourceType,
+      sourceId: source.sourceId, title: creation.title, rationale: creation.rationale,
+      dueDate: creation.dueDate, assigneeId: user.id,
+      expiresAt: new Date(Date.now() + 5 * 60_000).toISOString() };
+    return response(`Revisa antes de crear: «${creation.title}» para ${source.title}, a tu cargo, con vencimiento ${creation.dueDate}. Motivo: ${creation.rationale}. Escribe «Confirmar cambio» en los próximos cinco minutos para registrarlo.`,
+      "action-preview", { actionDraft: draft });
+  }
+  if (creationIntent(question)) {
+    return response("Para crear un compromiso, indica título, origen, motivo y vencimiento. Ejemplo: Crea un compromiso «Revisar evidencia» para el riesgo «Proveedor crítico» porque falta comprobar el control con vencimiento 2026-12-01.");
   }
 
   if (reassignment) {
@@ -188,8 +239,8 @@ const handleAssistantAction = async (user, question, thread) => {
     "action-preview", { actionDraft: draft });
 };
 
-module.exports = { handleAssistantAction, parseCompletion, parseStatusChange, parseReassignment,
+module.exports = { handleAssistantAction, parseCompletion, parseStatusChange, parseReassignment, parseCreation,
   isCommitmentList: (question) => Boolean(listRequest(question) || parseAssigneeList(question)),
   isActionCommand: (question) =>
-  Boolean(parseStatusChange(question) || parseReassignment(question) ||
+  Boolean(parseStatusChange(question) || parseReassignment(question) || creationIntent(question) ||
     confirm(question) || listRequest(question) || parseAssigneeList(question)) };

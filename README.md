@@ -68,7 +68,7 @@ El perfil Super Admin puede [recorrer las vistas reales de Auditor, Jefatura, Ge
 | **Auditorías** | Seguir expedientes activos, matriz 3 × 3 y búsqueda filtrada. | [AuditoriasActivas](frontend/src/pages/AuditoriasActivas.jsx) · [BuscarAuditorias](frontend/src/pages/BuscarAuditorias.jsx) |
 | **Riesgos y controles** | Registrar evaluaciones versionadas, asociaciones y hallazgos. | [Riesgos](frontend/src/pages/Riesgos.jsx) · [Controles](frontend/src/pages/Controles.jsx) |
 | **Evidencias y actividad** | Vincular referencias o archivos privados, consultar comentarios e historial. | [Evidencias](frontend/src/pages/Evidencias.jsx) · [auditRoutes](backend/routes/auditRoutes.js) |
-| **Pendientes e IA** | Priorizar actividades, consultar información autorizada y cambiar estado o responsable de compromisos con confirmación escrita. | [Notificaciones](frontend/src/pages/Notificaciones.jsx) · [Operar desde la conversación](docs/ai-command-center.md) · [Cambios desde el chat](docs/ai-chat-actions.md) · [assistantRoutes](backend/routes/assistantRoutes.js) |
+| **Pendientes e IA** | Priorizar actividades, consultar información autorizada y crear o cambiar compromisos con confirmación escrita. | [Notificaciones](frontend/src/pages/Notificaciones.jsx) · [Operar desde la conversación](docs/ai-command-center.md) · [Compromisos desde el chat](docs/ai-chat-actions.md) · [assistantRoutes](backend/routes/assistantRoutes.js) |
 
 El asistente combina indicadores calculados por VERA con respuestas de Azure OpenAI. Las respuestas generadas pueden equivocarse: las citas identifican registros consultados, pero no certifican cada interpretación. El asistente no aprueba ni modifica expedientes; el [alcance y las salvaguardas](docs/ai-copilot-evolution.md) están documentados.
 

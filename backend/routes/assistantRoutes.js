@@ -5,6 +5,7 @@ const { buildAssistantContext } = require("../services/assistantContextService")
 const { readiness } = require("../services/azureOpenAiService");
 const { answerAssistant } = require("../services/assistantAnswerService");
 const { handleAssistantAction, isActionCommand, isCommitmentList } = require("../services/assistantActionService");
+const { createAction, listActions } = require("../services/actionService");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -591,6 +592,40 @@ router.post("/conversations/:id/ask", conversationEnabled,
       while (Buffer.byteLength(JSON.stringify(messages), "utf8") > 140_000 && messages.length > 2) {
         messages.splice(0, 2);
       }
+      if (result.mode === "action-reservation" && result.actionCreate?.type === "ACTION_CREATE") {
+        const draft = result.actionCreate;
+        assistantMessage.mode = "action-reserved";
+        assistantMessage.actionReservation = { type: "ACTION_CREATE", operationId: draft.operationId };
+        const reserved = await conversations.update(req.user, thread.id, thread.version, { messages });
+        let createdAction = null;
+        let executionError = null;
+        try {
+          createdAction = await createAction(req.user, draft, { operationId: draft.operationId });
+        } catch (error) {
+          createdAction = (await listActions(req.user)).find((item) => item.aiOperationId === draft.operationId);
+          if (!createdAction) executionError = error;
+        }
+        const finalMessage = { ...assistantMessage,
+          mode: createdAction ? "action-executed" : "action-guidance",
+          text: createdAction
+            ? `Quedó creado el compromiso «${createdAction.title}» con identificador ${createdAction.id}, asignado a ${createdAction.assigneeName}.`
+            : `No se creó el compromiso: ${executionError?.message || "no se pudo confirmar la operación"}. Solicita una vista previa nueva.`,
+          ...(createdAction ? { actionOutcome: { id: createdAction.id, status: createdAction.status } } : {}) };
+        delete finalMessage.actionReservation;
+        let saved = reserved;
+        let historySaved = false;
+        try {
+          saved = await conversations.update(req.user, thread.id, reserved.version,
+            { messages: [...messages.slice(0, -1), finalMessage] });
+          historySaved = true;
+        } catch {
+          console.warn(JSON.stringify({ event: "VERA_AI_ACTION_HISTORY_STALE", operationId: draft.operationId }));
+        }
+        console.info(JSON.stringify({ event: "VERA_AI_ACTION_CREATE", role: req.user.role,
+          success: Boolean(createdAction), durationMs: Date.now() - startedAt }));
+        return res.json({ conversationId: thread.id, version: saved.version, userMessage,
+          message: finalMessage, historySaved });
+      }
       const updated = await conversations.update(req.user, thread.id, thread.version, { messages });
       const channel = withEvidence ? "evidence-search" : "ask";
       const feedbackToken = issueFeedbackToken(req.user, channel, result.mode);
@@ -761,7 +796,7 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
       return res.json({ ...result, durationMs: Date.now() - startedAt });
     }
     if (isActionCommand(question.trim())) {
-      return res.json({ answer: "Para cambiar un compromiso, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+      return res.json({ answer: "Para crear o cambiar un compromiso, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }
