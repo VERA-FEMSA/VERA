@@ -3,7 +3,7 @@ const { logAccessChange } = require("../services/auditLogger");
 const { ROLES, ASSIGNABLE_ROLES } = require("../config/roles");
 const { USER_STATUS } = require("../config/accountRules");
 const roleRequests = require("../repositories/roleRequestRepository");
-const { createRoleRequestForUser } = require("../services/roleRequestService");
+const { createRoleRequestForUser, reviewRoleRequestForUser } = require("../services/roleRequestService");
 
 // Reglas de quién puede modificar a quién.
 // Regresa un mensaje de error, o null si la acción está permitida.
@@ -130,14 +130,7 @@ module.exports = {
     if (!Number.isSafeInteger(requestId) || requestId < 1 || typeof req.body.approve !== "boolean") {
       return res.status(400).json({ message: "Decisión inválida." });
     }
-    const reviewed = await roleRequests.review({
-      requestId, reviewerId: req.user.id, approve: req.body.approve
-    });
-    if (!reviewed) return res.status(409).json({ message: "La solicitud ya no está pendiente." });
-    const target = await userRepository.findById(reviewed.userId);
-    await logAccessChange({ actor: req.user,
-      action: req.body.approve ? "ROLE_CHANGE_APPROVED" : "ROLE_CHANGE_REJECTED",
-      target, details: { requestId, requestedRole: reviewed.role } });
+    const reviewed = await reviewRoleRequestForUser(req.user, requestId, req.body.approve);
     res.json({ request: reviewed });
   }
 };

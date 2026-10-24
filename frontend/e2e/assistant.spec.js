@@ -280,6 +280,48 @@ test("Copiloto: vincula un archivo seleccionado como evidencia con vista previa 
   await expect(page).toHaveURL(/\/asistente$/);
 });
 
+test("Copiloto: Super Admin revisa una solicitud de rol sin salir del chat", async ({ page }) => {
+  await useSession(page, "SUPER_ADMIN", 1);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "consult-and-confirm", conversations: true
+  } }));
+  const id = "11111111-1111-4111-8111-111111111130";
+  let version = 1;
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") return route.fulfill({ json: { conversations: [] } });
+    if (path.endsWith("/conversations") && method === "POST") return route.fulfill({ status: 201,
+      json: { conversation: { id, title: "Nueva conversación", focus: null, messages: [], version } } });
+    if (path.endsWith(`/${id}/ask`) && method === "POST") {
+      const question = route.request().postDataJSON().question;
+      const executed = question === "Confirmar revisión de rol";
+      const preview = question === "Aprueba solicitud de rol #7";
+      version += 1;
+      return route.fulfill({ json: { conversationId: id, version,
+        userMessage: { id: `user-role-review-${version}`, role: "user", text: question },
+        message: { id: `assistant-role-review-${version}`, role: "assistant",
+          text: executed ? "La solicitud de rol #7 quedó aprobada. La cuenta debe iniciar sesión de nuevo." :
+            preview ? "Revisa la decisión: Auditor → Gerente. Escribe «Confirmar revisión de rol»." :
+              "Hay 1 solicitud pendiente: #7, Auditor → Gerente.",
+          mode: executed ? "action-executed" : preview ? "action-preview" : "action-guidance",
+          citations: [], references: [] }, historySaved: true } });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Tu pregunta").fill("Solicitudes de rol pendientes");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText(/Hay 1 solicitud pendiente/)).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("Aprueba solicitud de rol #7");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Vista previa · no se ha modificado ningún registro")).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("Confirmar revisión de rol");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText(/La solicitud de rol #7 quedó aprobada/)).toBeVisible();
+  await expect(page).toHaveURL(/\/asistente$/);
+});
+
 test("Copiloto: memoria visible, editable, pausada y borrable", async ({ page }) => {
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
@@ -612,7 +654,7 @@ test("Copiloto: explica la vista previa y el cambio confirmado en la conversaci�
     return route.abort();
   });
   await page.goto("/asistente");
-  await expect(page.getByText("Consultas y compromisos")).toHaveCount(1);
+  await expect(page.getByText("Consultas y acciones")).toHaveCount(1);
   await page.getByLabel("Tu pregunta").fill("Completa el compromiso «Revisar evidencia» porque quedó documentado.");
   await page.getByRole("button", { name: "Enviar pregunta" }).click();
   await expect(page.getByText("Vista previa · no se ha modificado ningún registro")).toBeVisible();

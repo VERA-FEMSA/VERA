@@ -55,7 +55,7 @@ La pantalla `/asistente` organiza la experiencia en tres zonas: historial y proy
 
 Se puede buscar una conversación por título, crear una nueva, abrir otra, cambiar su nombre, exportarla o eliminarla. La exportación contiene texto y fuentes de ese chat; los archivos privados se descargan por separado. Los proyectos, la memoria, los archivos, el briefing, las fuentes y la retroalimentación mantienen sus controles existentes. En el cuadro de escritura, `Enter` envía y `Shift + Enter` crea una línea nueva. Los estados de carga y error se muestran junto a la conversación. El diseño utiliza los colores de apariencia VERA/FEMSA sin alterar permisos, rutas de API ni persistencia.
 
-Los textos del asistente son apoyo a la consulta. La persona debe comprobar expedientes y fuentes antes de actuar; el asistente permanece en modo de solo lectura.
+Los textos generados por el modelo son apoyo a la consulta y deben contrastarse con expedientes y fuentes. Las conversaciones guardadas admiten las operaciones autorizadas documentadas en [Capacidades por rol](ai-chat-capabilities.md): cada cambio exige una vista previa, confirmación expresa y validación del servidor. El chat temporal y el recorrido de otros roles permanecen de solo lectura.
 
 ## Publicación y operación
 
