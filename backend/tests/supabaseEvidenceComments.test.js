@@ -61,10 +61,13 @@ test("Supabase evidence and comments keep their entity links and exclude server 
 
   const comment = await comments.create({
     proposalId: "AUD-1", text: "Revisión completa.",
+    aiOperationId: "22222222-2222-4222-8222-222222222222",
     author: { id: 1001, username: "auditor" }
   });
   assert.match(comment.id, /^CMT-[0-9a-f-]{36}$/);
   assert.equal((await comments.listByProposal("AUD-1"))[0].text, "Revisión completa.");
+  assert.equal((await comments.listByProposal("AUD-1"))[0].aiOperationId,
+    "22222222-2222-4222-8222-222222222222");
   assert.equal((await comments.listByProposal("AUD-2")).length, 0);
   assert.ok(!JSON.stringify(item).includes("sb_secret_test"));
   assert.ok(!JSON.stringify(comment).includes("sb_secret_test"));

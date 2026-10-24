@@ -30,7 +30,7 @@ const { handleEvidenceCreate, isEvidenceCreateCommand } = require("../services/a
 const { createEvidenceForUser, canAccessEntity } = require("../services/evidenceCreationService");
 const evidenceRepository = require("../repositories/evidenceRepository");
 const { handleAuditComment, isAuditCommentCommand } = require("../services/assistantAuditCommentService");
-const { createCommentForUser } = require("../services/planningCommentService");
+const { createCommentForUser, findVisibleProposal } = require("../services/planningCommentService");
 const commentRepository = require("../repositories/commentRepository");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
@@ -875,8 +875,9 @@ router.post("/conversations/:id/ask", conversationEnabled,
         try {
           comment = await createCommentForUser(req.user, draft.proposalId, { text: draft.text }, draft.operationId);
         } catch (error) {
-          comment = (await commentRepository.listByProposal(draft.proposalId))
+          const existing = (await commentRepository.listByProposal(draft.proposalId))
             .find((item) => item.aiOperationId === draft.operationId);
+          if (existing) { await findVisibleProposal(req.user, existing.proposalId); comment = existing; }
           if (!comment) executionError = error;
         }
         const finalMessage = { ...assistantMessage,
