@@ -27,7 +27,7 @@ const { handleFindingClose, isFindingCloseCommand } = require("../services/assis
 const { handleRoleRequest, isRoleRequestCommand } = require("../services/assistantRoleRequestService");
 const { handleProposalEdit, isProposalEditCommand } = require("../services/assistantProposalEditService");
 const { handleEvidenceCreate, isEvidenceCreateCommand } = require("../services/assistantEvidenceCreateService");
-const { createEvidenceForUser } = require("../services/evidenceCreationService");
+const { createEvidenceForUser, canAccessEntity } = require("../services/evidenceCreationService");
 const evidenceRepository = require("../repositories/evidenceRepository");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
@@ -834,7 +834,8 @@ router.post("/conversations/:id/ask", conversationEnabled,
         try {
           evidence = await createEvidenceForUser(req.user, draft.data, draft.operationId);
         } catch (error) {
-          evidence = (await evidenceRepository.getAll()).find((item) => item.aiOperationId === draft.operationId);
+          const existing = (await evidenceRepository.getAll()).find((item) => item.aiOperationId === draft.operationId);
+          if (existing && await canAccessEntity(existing.entityType, existing.entityId, req.user)) evidence = existing;
           if (!evidence) executionError = error;
         }
         const finalMessage = { ...assistantMessage,
