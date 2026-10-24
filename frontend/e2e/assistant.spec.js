@@ -309,7 +309,7 @@ test("Copiloto: biblioteca privada de proyecto disponible en chats nuevos", asyn
   await useSession(page, "AUDITOR", 5);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
     available: true, mode: "read-only", conversations: true, projects: true,
-    attachments: true, projectFiles: true, projectKnowledge: true
+    attachments: true, projectFiles: true, projectKnowledge: true, projectSemantic: true
   } }));
   const projectId = "22222222-2222-4222-8222-222222222222";
   const threadId = "11111111-1111-4111-8111-111111111111";
@@ -324,8 +324,12 @@ test("Copiloto: biblioteca privada de proyecto disponible en chats nuevos", asyn
     }
     if (path.endsWith(`/projects/${projectId}/files`) && method === "POST") {
       file = { id: fileId, projectId, name: "guia.txt", mime: "text/plain", size: 29,
-        status: "ready", truncated: false };
+        status: "ready", truncated: false, chunks: 1, semanticReady: false };
       return route.fulfill({ status: 201, json: { file } });
+    }
+    if (path.endsWith(`/projects/${projectId}/files/${fileId}/semantic`) && method === "POST") {
+      file.semanticReady = true;
+      return route.fulfill({ json: { indexedChunks: 1, alreadyIndexed: false } });
     }
     if (path.endsWith(`/projects/${projectId}/files/${fileId}`) && method === "DELETE") {
       file = null; return route.fulfill({ status: 204, body: "" });
@@ -385,6 +389,8 @@ test("Copiloto: biblioteca privada de proyecto disponible en chats nuevos", asyn
   await page.getByLabel("Archivos del proyecto").setInputFiles({ name: "guia.txt",
     mimeType: "text/plain", buffer: Buffer.from("Riesgo de proveedor presente.") });
   await expect(page.getByRole("option", { name: "guia.txt · proyecto" })).toBeAttached();
+  await page.getByRole("button", { name: "Mejorar búsqueda" }).click();
+  await expect(page.getByText("Búsqueda semántica lista")).toBeVisible();
   await page.getByLabel("Tu pregunta").fill("¿Qué dice la guía?");
   await page.getByRole("button", { name: "Enviar pregunta" }).click();
   await expect(page.getByText("La guía menciona un riesgo de proveedor.")).toBeVisible();
