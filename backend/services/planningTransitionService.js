@@ -9,6 +9,8 @@ const errorFor = (message, status) => { const error = new Error(message); error.
 const applyTransition = async (user, id, operation, options = {}) => {
   if (!PLANNING_APPROVE_ROLES.includes(user.role)) throw errorFor("Tu rol no puede decidir propuestas ni cambiar el estado de auditorías.", 403);
   if (typeof id !== "string" || !id.trim() || id.length > 80) throw errorFor("Selecciona una auditoría válida.", 400);
+  const note = text(options.note);
+  if (note.length > 1000) throw errorFor("El motivo no puede superar 1,000 caracteres.", 400);
   const current = await planningRepository.findById(id);
   if (!current) throw errorFor(["approve", "reject"].includes(operation) ? "Propuesta no encontrada." : "Auditoría no encontrada.", 404);
   if (options.version !== undefined && current.storageVersion !== options.version) {
@@ -54,7 +56,6 @@ const applyTransition = async (user, id, operation, options = {}) => {
   } else {
     throw errorFor("La transición solicitada no es válida.", 400);
   }
-  const note = text(options.note);
   await logActivity({ actor: user, action,
     details: { ...details, ...(note && operation !== "reject" ? { note } : {}) } });
   return { kind, record };
