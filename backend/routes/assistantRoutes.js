@@ -34,6 +34,8 @@ const { handleAuditDetails, intent: isAuditDetailsCommand } = require("../servic
 const { handleAuditEdit, intent: isAuditEditCommand } = require("../services/assistantAuditEditService");
 const { editAuditForUser } = require("../services/auditEditService");
 const { handleUserDirectory, intent: isUserDirectoryCommand } = require("../services/assistantUserDirectoryService");
+const { handleUserStatus, intent: isUserStatusCommand } = require("../services/assistantUserStatusService");
+const { changeUserStatus } = require("../services/userStatusService");
 const { reviewRoleRequestForUser } = require("../services/roleRequestService");
 const roleRequestRepository = require("../repositories/roleRequestRepository");
 const { handleProposalEdit, isProposalEditCommand } = require("../services/assistantProposalEditService");
@@ -617,6 +619,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
           () => isNotificationCommand(prompt) ? handleNotification(req.user, prompt, thread) : null,
           () => isAuditDetailsCommand(prompt) ? handleAuditDetails(req.user, prompt, thread) : null,
           () => isAuditEditCommand(prompt) ? handleAuditEdit(req.user, prompt, thread) : null,
+          () => isUserStatusCommand(prompt) ? handleUserStatus(req.user, prompt, thread) : null,
           () => isUserDirectoryCommand(prompt) ? handleUserDirectory(req.user, prompt, thread) : null,
           () => isProposalCreateCommand(prompt, thread) ? handleProposalCreate(req.user, prompt, thread) : null,
           () => isRiskCreateCommand(prompt, thread) ? handleRiskCreate(req.user, prompt, thread) : null,
@@ -998,6 +1001,39 @@ router.post("/conversations/:id/ask", conversationEnabled,
         }
         console.info(JSON.stringify({ event: "VERA_AI_RECORD_EDIT", entityType: draft.entityType,
           role: req.user.role, success: Boolean(updated), durationMs: Date.now() - startedAt }));
+        return res.json({ conversationId: thread.id, version: saved.version, userMessage,
+          message: finalMessage, historySaved });
+      }
+      if (result.mode === "action-reservation" && result.userStatus?.type === "USER_STATUS") {
+        const draft = result.userStatus;
+        assistantMessage.mode = "action-reserved";
+        assistantMessage.actionReservation = { type: "USER_STATUS", id: draft.id,
+          operationId: draft.operationId, createdAt: new Date().toISOString() };
+        const reserved = await conversations.update(req.user, thread.id, thread.version, { messages });
+        let changed = null;
+        let executionError = null;
+        try {
+          changed = await changeUserStatus(req.user, draft.id, draft.active,
+            { status: draft.expectedStatus, version: draft.expectedVersion, reason: draft.reason });
+        } catch (error) { executionError = error; }
+        const finalMessage = { ...assistantMessage,
+          mode: changed ? "action-executed" : "action-guidance",
+          text: changed ? `La cuenta #${changed.id} quedó ${draft.active ? "habilitada" : "deshabilitada"}. El cambio se registró en la bitácora.`
+            : `No se confirmó el cambio: ${executionError?.message || "estado desconocido"}. Consulta el directorio y prepara otra vista previa.`,
+          ...(changed ? { actionOutcome: { id: changed.id, status: changed.status } } : {}) };
+        delete finalMessage.actionReservation;
+        let saved = reserved;
+        let historySaved = false;
+        try {
+          saved = await conversations.update(req.user, thread.id, reserved.version,
+            { messages: [...messages.slice(0, -1), finalMessage],
+              scope_hash: await currentScope(req.user, thread.focus) });
+          historySaved = true;
+        } catch {
+          console.warn(JSON.stringify({ event: "VERA_AI_USER_STATUS_HISTORY_STALE", id: draft.id }));
+        }
+        console.info(JSON.stringify({ event: "VERA_AI_USER_STATUS", role: req.user.role,
+          success: Boolean(changed), durationMs: Date.now() - startedAt }));
         return res.json({ conversationId: thread.id, version: saved.version, userMessage,
           message: finalMessage, historySaved });
       }
