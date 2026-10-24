@@ -703,6 +703,42 @@ test("Copiloto: registra un riesgo desde el chat con vista previa y confirmació
   await expect(page).toHaveURL(/\/asistente$/);
 });
 
+test("Copiloto: registra un control desde el chat con vista previa y confirmación", async ({ page }) => {
+  await useSession(page, "GERENTE", 3);
+  await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
+    available: true, mode: "consult-and-confirm", conversations: true
+  } }));
+  const id = "11111111-1111-4111-8111-111111111120";
+  let version = 1;
+  await page.route("**/api/assistant/conversations**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const method = route.request().method();
+    if (path.endsWith("/conversations") && method === "GET") return route.fulfill({ json: { conversations: [] } });
+    if (path.endsWith("/conversations") && method === "POST") return route.fulfill({ status: 201,
+      json: { conversation: { id, title: "Nueva conversación", focus: null, messages: [], version } } });
+    if (path.endsWith(`/${id}/ask`) && method === "POST") {
+      const question = route.request().postDataJSON().question;
+      const executed = question === "Confirmar control nuevo";
+      version += 1;
+      return route.fulfill({ json: { conversationId: id, version,
+        userMessage: { id: `user-control-create-${version}`, role: "user", text: question },
+        message: { id: `assistant-control-create-${version}`, role: "assistant",
+          text: executed ? "Quedó registrado el control «Revisión mensual» con identificador CTL-004." :
+            "Revisa el control: Revisión mensual. Escribe «Confirmar control nuevo».",
+          mode: executed ? "action-executed" : "action-preview", citations: [], references: [] } } });
+    }
+    return route.abort();
+  });
+  await page.goto("/asistente");
+  await page.getByLabel("Tu pregunta").fill("Registrar control para revisar accesos");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText("Vista previa · no se ha modificado ningún registro")).toBeVisible();
+  await page.getByLabel("Tu pregunta").fill("Confirmar control nuevo");
+  await page.getByRole("button", { name: "Enviar pregunta" }).click();
+  await expect(page.getByText(/Quedó registrado el control «Revisión mensual»/)).toBeVisible();
+  await expect(page).toHaveURL(/\/asistente$/);
+});
+
 test("Copiloto: confirma una evaluación de riesgo sin salir del chat", async ({ page }) => {
   await useSession(page, "GERENTE", 3);
   await page.route("**/api/assistant/status", (route) => route.fulfill({ json: {
