@@ -12,6 +12,9 @@ const capabilityAnswer = (user, persistent) => {
     "• Resumir el portafolio y preparar su CSV: «Exporta el reporte del portafolio en CSV»."
   ];
   if (persistent) {
+    lines.push("• Recorrer un expediente sin salir del chat: «Detalles de la auditoría AUD-01» y después «Más riesgos de la auditoría AUD-01» u otra relación.");
+  }
+  if (persistent) {
     lines.push("• Revisar tus avisos aquí mismo: «Mis avisos», «Avisos sin leer» y «Siguientes avisos».");
   }
   if (process.env.VERA_AI_ATTACHMENTS_ENABLED === "true") {

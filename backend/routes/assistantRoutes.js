@@ -30,6 +30,7 @@ const { handleRecordEdit, isRecordEditCommand } = require("../services/assistant
 const { updateSingleFieldForUser } = require("../services/recordEditService");
 const { handleNotification, intent: isNotificationCommand } = require("../services/assistantNotificationService");
 const { changeReadStateForUser } = require("../services/notificationWorkflowService");
+const { handleAuditDetails, intent: isAuditDetailsCommand } = require("../services/assistantAuditDetailsService");
 const { reviewRoleRequestForUser } = require("../services/roleRequestService");
 const roleRequestRepository = require("../repositories/roleRequestRepository");
 const { handleProposalEdit, isProposalEditCommand } = require("../services/assistantProposalEditService");
@@ -611,6 +612,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
           () => isProposalEditCommand(prompt) ? handleProposalEdit(req.user, prompt, thread) : null,
           () => isRecordEditCommand(prompt) ? handleRecordEdit(req.user, prompt, thread) : null,
           () => isNotificationCommand(prompt) ? handleNotification(req.user, prompt, thread) : null,
+          () => isAuditDetailsCommand(prompt) ? handleAuditDetails(req.user, prompt, thread) : null,
           () => isProposalCreateCommand(prompt, thread) ? handleProposalCreate(req.user, prompt, thread) : null,
           () => isRiskCreateCommand(prompt, thread) ? handleRiskCreate(req.user, prompt, thread) : null,
           () => isControlCreateCommand(prompt, thread) ? handleControlCreate(req.user, prompt, thread) : null,
@@ -654,6 +656,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
         references: (result.references || []).slice(0, 15), coverage: result.coverage || null,
         ...(result.roleReviewBrowse ? { roleReviewBrowse: result.roleReviewBrowse } : {}),
         ...(result.notificationBrowse ? { notificationBrowse: result.notificationBrowse } : {}),
+        ...(result.auditDetailsBrowse ? { auditDetailsBrowse: result.auditDetailsBrowse } : {}),
         asOf: result.asOf, durationMs,
         ...(result.browse ? { browse: result.browse } : {}),
         ...(result.actionDraft ? { actionDraft: result.actionDraft } : {}),
@@ -1280,6 +1283,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     }
     if (isNotificationCommand(question.trim())) {
       return res.json({ answer: "Para consultar o cambiar el estado de tus avisos, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
+    if (isAuditDetailsCommand(question.trim())) {
+      return res.json({ answer: "Para recorrer los detalles y relaciones de una auditoría, inicia una conversación guardada.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }
