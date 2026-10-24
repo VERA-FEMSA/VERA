@@ -41,6 +41,7 @@ const capabilityAnswer = (user, persistent) => {
   if (RISK_CONTROL_MANAGE_ROLES.includes(user.role)) {
     lines.push("• Registrar riesgos nuevos: escribe «Registrar riesgo» y completa los campos aquí mismo.");
     lines.push("• Registrar controles vinculados con riesgos: escribe «Registrar control» y completa los campos aquí mismo.");
+    lines.push("• Editar datos principales de un riesgo o control visible: «Edita el riesgo RSK-001: nombre = «Nuevo nombre» porque se actualizó el alcance». Revisarás el antes y el después.");
     lines.push("• Evaluar riesgos existentes con probabilidad e impacto de 1 a 3, y controles existentes con efectividad de 1 a 5, siempre con justificación.");
   }
   if (RISK_CONTROL_MANAGE_ROLES.includes(user.role) || user.role === "AUDITOR") {

@@ -1,7 +1,7 @@
 const riskRepository = require("../repositories/riskRepository");
-const { logActivity } = require("../services/auditLogger");
 const { evaluateRiskForUser } = require("../services/riskEvaluationService");
-const { activeUsers, parseCore, createRiskForUser } = require("../services/riskCreationService");
+const { activeUsers, createRiskForUser } = require("../services/riskCreationService");
+const { updateCoreForUser } = require("../services/recordEditService");
 const { normalizeArea } = require("../utils/normalizeArea");
 
 const text = (value) => String(value ?? "").trim();
@@ -29,16 +29,11 @@ const createRisk = async (req, res) => {
 };
 
 const updateRisk = async (req, res) => {
-  const current = await riskRepository.findById(req.params.id);
-  if (!current) return res.status(404).json({ message: "Riesgo no encontrado." });
-  const core = await parseCore(req.body);
-  if (core.error) return res.status(400).json({ message: core.error });
-  if (await riskRepository.findDuplicate(core.data, current.id)) {
-    return res.status(409).json({ message: "Ya existe un riesgo con el mismo nombre y área." });
+  try { return res.json({ risk: await updateCoreForUser(req.user, "RISK", req.params.id, req.body) }); }
+  catch (error) {
+    if ([400, 403, 404, 409].includes(error.status)) return res.status(error.status).json({ message: error.message });
+    throw error;
   }
-  const risk = await riskRepository.update(current.id, core.data, current.storageVersion);
-  await logActivity({ actor: req.user, action: "RISK_UPDATED", details: { riskId: risk.id, title: risk.title } });
-  res.json({ risk });
 };
 
 const evaluateRisk = async (req, res) => {
