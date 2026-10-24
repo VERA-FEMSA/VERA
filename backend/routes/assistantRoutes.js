@@ -17,6 +17,9 @@ const planningRepository = require("../repositories/planningRepository");
 const { handleRiskCreate, isRiskCreateCommand } = require("../services/assistantRiskCreateService");
 const { createRiskForUser } = require("../services/riskCreationService");
 const riskRepository = require("../repositories/riskRepository");
+const { handleControlCreate, isControlCreateCommand } = require("../services/assistantControlCreateService");
+const { createControlForUser } = require("../services/controlCreationService");
+const controlRepository = require("../repositories/controlRepository");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -582,20 +585,23 @@ router.post("/conversations/:id/ask", conversationEnabled,
       const riskCreateResult = !capabilityResult && !proposalResult && !attached && !useProjectFiles && !withEvidence &&
         isRiskCreateCommand(question.trim(), thread)
         ? await handleRiskCreate(req.user, question.trim(), thread) : null;
-      const planningResult = !capabilityResult && !proposalResult && !riskCreateResult && !attached && !useProjectFiles && !withEvidence &&
+      const controlCreateResult = !capabilityResult && !proposalResult && !riskCreateResult && !attached && !useProjectFiles && !withEvidence &&
+        isControlCreateCommand(question.trim(), thread)
+        ? await handleControlCreate(req.user, question.trim(), thread) : null;
+      const planningResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !attached && !useProjectFiles && !withEvidence &&
         isPlanningCommand(question.trim(), thread)
         ? await handlePlanningTransition(req.user, question.trim(), thread) : null;
-      const riskResult = !capabilityResult && !proposalResult && !riskCreateResult && !planningResult && !attached && !useProjectFiles && !withEvidence &&
+      const riskResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !planningResult && !attached && !useProjectFiles && !withEvidence &&
         isRiskCommand(question.trim(), thread)
         ? await handleRiskEvaluation(req.user, question.trim(), thread) : null;
-      const controlResult = !capabilityResult && !proposalResult && !riskCreateResult && !planningResult && !riskResult && !attached && !useProjectFiles && !withEvidence &&
+      const controlResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !planningResult && !riskResult && !attached && !useProjectFiles && !withEvidence &&
         isControlCommand(question.trim())
         ? await handleControlEvaluation(req.user, question.trim(), thread) : null;
-      const actionResult = !capabilityResult && !proposalResult && !riskCreateResult && !planningResult && !riskResult && !controlResult && !attached && !useProjectFiles && !withEvidence
+      const actionResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !planningResult && !riskResult && !controlResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantAction(req.user, question.trim(), thread) : null;
-      const reportResult = !capabilityResult && !proposalResult && !riskCreateResult && !planningResult && !riskResult && !controlResult && !actionResult && !attached && !useProjectFiles && !withEvidence
+      const reportResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !planningResult && !riskResult && !controlResult && !actionResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantReport(req.user, question.trim()) : null;
-      const result = capabilityResult || proposalResult || riskCreateResult || planningResult || riskResult || controlResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
+      const result = capabilityResult || proposalResult || riskCreateResult || controlCreateResult || planningResult || riskResult || controlResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
         : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
           { user: req.user })
           : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
@@ -729,6 +735,42 @@ router.post("/conversations/:id/ask", conversationEnabled,
         }
         console.info(JSON.stringify({ event: "VERA_AI_RISK_CREATE", role: req.user.role,
           success: Boolean(risk), durationMs: Date.now() - startedAt }));
+        return res.json({ conversationId: thread.id, version: saved.version, userMessage,
+          message: finalMessage, historySaved });
+      }
+      if (result.mode === "action-reservation" && result.controlCreate?.type === "CONTROL_CREATE") {
+        const draft = result.controlCreate;
+        assistantMessage.mode = "action-reserved";
+        assistantMessage.actionReservation = { type: "CONTROL_CREATE", operationId: draft.operationId,
+          createdAt: new Date().toISOString() };
+        const reserved = await conversations.update(req.user, thread.id, thread.version, { messages });
+        let control = null;
+        let executionError = null;
+        try {
+          control = await createControlForUser(req.user, draft.data, draft.operationId);
+        } catch (error) {
+          control = (await controlRepository.getAll()).find((item) => item.aiOperationId === draft.operationId);
+          if (!control) executionError = error;
+        }
+        const finalMessage = { ...assistantMessage,
+          mode: control ? "action-executed" : "action-guidance",
+          text: control
+            ? `Quedó registrado el control «${control.title}» con identificador ${control.id}, relacionado con ${control.riskIds.join(", ")}.`
+            : `No se registró el control: ${executionError?.message || "no se pudo confirmar la operación"}. Solicita una vista previa nueva.`,
+          ...(control ? { actionOutcome: { id: control.id, status: control.status } } : {}) };
+        delete finalMessage.actionReservation;
+        let saved = reserved;
+        let historySaved = false;
+        try {
+          saved = await conversations.update(req.user, thread.id, reserved.version,
+            { messages: [...messages.slice(0, -1), finalMessage],
+              scope_hash: control ? await currentScope(req.user, thread.focus) : scopeHash });
+          historySaved = true;
+        } catch {
+          console.warn(JSON.stringify({ event: "VERA_AI_CONTROL_HISTORY_STALE", operationId: draft.operationId }));
+        }
+        console.info(JSON.stringify({ event: "VERA_AI_CONTROL_CREATE", role: req.user.role,
+          success: Boolean(control), durationMs: Date.now() - startedAt }));
         return res.json({ conversationId: thread.id, version: saved.version, userMessage,
           message: finalMessage, historySaved });
       }
@@ -909,6 +951,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     }
     if (isRiskCreateCommand(question.trim(), { messages: [] })) {
       return res.json({ answer: "Para registrar un riesgo, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
+    if (isControlCreateCommand(question.trim(), { messages: [] })) {
+      return res.json({ answer: "Para registrar un control, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }
