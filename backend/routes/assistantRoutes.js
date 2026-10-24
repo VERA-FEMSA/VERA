@@ -4,6 +4,7 @@ const { verifyToken } = require("../middleware/authMiddleware");
 const { buildAssistantContext } = require("../services/assistantContextService");
 const { readiness } = require("../services/azureOpenAiService");
 const { answerAssistant } = require("../services/assistantAnswerService");
+const { handleAssistantAction, isActionCommand, isCommitmentList } = require("../services/assistantActionService");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -19,7 +20,7 @@ const { currentScope } = require("../services/assistantConversationScope");
 const { buildAuditDossier } = require("../services/assistantDossierService");
 const { searchAssistantEvidence } = require("../services/assistantEvidenceSearchService");
 const { buildDecisionInsights } = require("../services/assistantInsightService");
-const { AUDIT_PROPOSAL_CREATE_ROLES, ROLES } = require("../config/roles");
+const { AUDIT_PROPOSAL_CREATE_ROLES, RECORD_CREATE_ROLES, ROLES } = require("../config/roles");
 const { allowRoles } = require("../middleware/roleMiddleware");
 const { buildProposalDraft } = require("../services/assistantProposalDraftService");
 const { issueFeedbackToken, verifyFeedbackToken } = require("../services/assistantFeedbackToken");
@@ -33,7 +34,9 @@ router.use((req, res, next) => { res.set("Cache-Control", "no-store"); next(); }
 
 router.get("/status", (req, res) => {
   try {
-    res.json({ ...readiness(), mode: "read-only",
+    res.json({ ...readiness(), mode: process.env.VERA_AI_CONVERSATIONS_ENABLED === "true" &&
+      !req.user.roleTour && RECORD_CREATE_ROLES.includes(req.user.role)
+      ? "consult-and-confirm" : "read-only",
       ...(process.env.VERA_AI_CONVERSATIONS_ENABLED === "true" && !req.user.roleTour
         ? { conversations: true,
           ...(process.env.VERA_AI_PROJECTS_ENABLED === "true" ? { projects: true } : {}),
@@ -73,7 +76,7 @@ const pdfOcrEnabled = (req, res, next) => process.env.VERA_AI_PDF_OCR_ENABLED ==
 const pdfOcrRateLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 2,
   keyGenerator: (req) => String(req.user.id), standardHeaders: "draft-8", legacyHeaders: false });
 const conversationError = (res, error) => {
-  if ([400, 404, 409, 415, 422, 429, 503, 504].includes(error.status)) return res.status(error.status).json({ message: error.message });
+  if ([400, 403, 404, 409, 415, 422, 429, 503, 504].includes(error.status)) return res.status(error.status).json({ message: error.message });
   return res.status(502).json({ message: "No se pudo consultar el historial privado." });
 };
 const focusFrom = (value) => {
@@ -559,11 +562,13 @@ router.post("/conversations/:id/ask", conversationEnabled,
       const projectFiles = useProjectFiles ? await attachments.listProject(req.user, thread.projectId) : [];
       const projectRows = useProjectFiles ? await Promise.all(projectFiles.map((item) =>
         attachments.getProject(req.user, thread.projectId, item.id))) : [];
-      const result = attached ? await askAttachment(attached, question.trim())
+      const actionResult = !attached && !useProjectFiles && !withEvidence
+        ? await handleAssistantAction(req.user, question.trim(), thread) : null;
+      const result = actionResult || (attached ? await askAttachment(attached, question.trim())
         : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
           { user: req.user })
           : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
-            project?.instructions || "", thread.messages.at(-1)?.browse || null);
+            project?.instructions || "", thread.messages.at(-1)?.browse || null));
       if (attached?.project_id) result.citations = (result.citations || []).map((citation) => ({
         ...citation, projectId: attached.project_id }));
       const currentUser = await userRepository.findById(req.user.id);
@@ -579,7 +584,9 @@ router.post("/conversations/:id/ask", conversationEnabled,
         mode: result.mode, metric: result.metric || null, citations: (result.citations || []).slice(0, 8),
         references: (result.references || []).slice(0, 15), coverage: result.coverage || null,
         asOf: result.asOf, durationMs,
-        ...(result.browse ? { browse: result.browse } : {}) };
+        ...(result.browse ? { browse: result.browse } : {}),
+        ...(result.actionDraft ? { actionDraft: result.actionDraft } : {}),
+        ...(result.actionOutcome ? { actionOutcome: result.actionOutcome } : {}) };
       const messages = [...thread.messages, userMessage, assistantMessage].slice(-40);
       while (Buffer.byteLength(JSON.stringify(messages), "utf8") > 140_000 && messages.length > 2) {
         messages.splice(0, 2);
@@ -749,6 +756,15 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     return res.status(400).json({ message: "El historial o el expediente solicitado no es válido." });
   }
   try {
+    if (isCommitmentList(question.trim())) {
+      const result = await handleAssistantAction(req.user, question.trim(), { messages: [] });
+      return res.json({ ...result, durationMs: Date.now() - startedAt });
+    }
+    if (isActionCommand(question.trim())) {
+      return res.json({ answer: "Para cambiar un compromiso, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
     const result = await answerAssistant(req.user, question.trim(), history, focus, false, "", lastBrowse);
     const durationMs = Date.now() - startedAt;
     console.info(JSON.stringify({ event: result.mode === "computed" ? "VERA_AI_COMPUTED" : "VERA_AI_ANSWER",
