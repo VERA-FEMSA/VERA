@@ -26,6 +26,9 @@ const findingRepository = require("../repositories/findingRepository");
 const { handleFindingClose, isFindingCloseCommand } = require("../services/assistantFindingCloseService");
 const { handleRoleRequest, isRoleRequestCommand } = require("../services/assistantRoleRequestService");
 const { handleProposalEdit, isProposalEditCommand } = require("../services/assistantProposalEditService");
+const { handleEvidenceCreate, isEvidenceCreateCommand } = require("../services/assistantEvidenceCreateService");
+const { createEvidenceForUser } = require("../services/evidenceCreationService");
+const evidenceRepository = require("../repositories/evidenceRepository");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -596,6 +599,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
           () => isControlCreateCommand(prompt, thread) ? handleControlCreate(req.user, prompt, thread) : null,
           () => isFindingCreateCommand(prompt, thread) ? handleFindingCreate(req.user, prompt, thread) : null,
           () => isFindingCloseCommand(prompt) ? handleFindingClose(req.user, prompt, thread) : null,
+          () => isEvidenceCreateCommand(prompt, thread) ? handleEvidenceCreate(req.user, prompt, thread) : null,
           () => isPlanningCommand(prompt, thread) ? handlePlanningTransition(req.user, prompt, thread) : null,
           () => isRiskCommand(prompt, thread) ? handleRiskEvaluation(req.user, prompt, thread) : null,
           () => isControlCommand(prompt) ? handleControlEvaluation(req.user, prompt, thread) : null,
@@ -819,6 +823,42 @@ router.post("/conversations/:id/ask", conversationEnabled,
         return res.json({ conversationId: thread.id, version: saved.version, userMessage,
           message: finalMessage, historySaved });
       }
+      if (result.mode === "action-reservation" && result.evidenceCreate?.type === "EVIDENCE_CREATE") {
+        const draft = result.evidenceCreate;
+        assistantMessage.mode = "action-reserved";
+        assistantMessage.actionReservation = { type: "EVIDENCE_CREATE", operationId: draft.operationId,
+          createdAt: new Date().toISOString() };
+        const reserved = await conversations.update(req.user, thread.id, thread.version, { messages });
+        let evidence = null;
+        let executionError = null;
+        try {
+          evidence = await createEvidenceForUser(req.user, draft.data, draft.operationId);
+        } catch (error) {
+          evidence = (await evidenceRepository.getAll()).find((item) => item.aiOperationId === draft.operationId);
+          if (!evidence) executionError = error;
+        }
+        const finalMessage = { ...assistantMessage,
+          mode: evidence ? "action-executed" : "action-guidance",
+          text: evidence
+            ? `Quedó registrada la evidencia «${evidence.title}» con identificador ${evidence.id}, relacionada con ${evidence.entityType} ${evidence.entityId}.`
+            : `No se registró la evidencia: ${executionError?.message || "no se pudo confirmar la operación"}. Solicita una vista previa nueva.`,
+          ...(evidence ? { actionOutcome: { id: evidence.id } } : {}) };
+        delete finalMessage.actionReservation;
+        let saved = reserved;
+        let historySaved = false;
+        try {
+          saved = await conversations.update(req.user, thread.id, reserved.version,
+            { messages: [...messages.slice(0, -1), finalMessage],
+              scope_hash: evidence ? await currentScope(req.user, thread.focus) : scopeHash });
+          historySaved = true;
+        } catch {
+          console.warn(JSON.stringify({ event: "VERA_AI_EVIDENCE_HISTORY_STALE", operationId: draft.operationId }));
+        }
+        console.info(JSON.stringify({ event: "VERA_AI_EVIDENCE_CREATE", role: req.user.role,
+          success: Boolean(evidence), durationMs: Date.now() - startedAt }));
+        return res.json({ conversationId: thread.id, version: saved.version, userMessage,
+          message: finalMessage, historySaved });
+      }
       const updated = await conversations.update(req.user, thread.id, thread.version,
         { messages, scope_hash: result.mode === "action-executed" ? scopeAfter : scopeHash });
       const channel = withEvidence ? "evidence-search" : "ask";
@@ -1011,6 +1051,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     }
     if (isFindingCloseCommand(question.trim())) {
       return res.json({ answer: "Para cerrar un hallazgo, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
+    if (isEvidenceCreateCommand(question.trim(), { messages: [] })) {
+      return res.json({ answer: "Para registrar una referencia de evidencia, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }
