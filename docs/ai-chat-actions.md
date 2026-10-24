@@ -8,10 +8,13 @@ El asistente **no ejecuta el cambio al recibir esa petición**. Muestra el orige
 
 También se admiten `Inicia el compromiso … porque …`, `Cancela el compromiso … porque …` y `Reabre el compromiso … porque …`. La transición debe estar permitida por las reglas actuales: un compromiso cerrado o cancelado puede reabrirse, pero no se salta directamente a otro estado.
 
+Para consultar quién puede recibir un compromiso, escribe `Lista responsables para el compromiso ACT-…`. Quien tenga permiso de planeación puede pedir `Reasigna el compromiso ACT-… a Jefatura Demo porque cambió la responsabilidad.` La persona se busca por nombre exacto o ID, debe estar activa y tener acceso al origen. También se exige vista previa y `Confirmar cambio`.
+
 ## Reglas aplicadas
 
 - El servidor selecciona el compromiso entre los registros visibles para la cuenta. Si el título no es único, pide el identificador; nunca elige un registro por parecido.
 - La operación usa `actionService.changeStatus`, con los mismos permisos de rol y responsable, transición válida, versión optimista y registro de bitácora del módulo Acciones.
+- La reasignación usa `actionService.reassign` y comprueba explícitamente en el servidor el permiso de planeación antes de proponer y antes de ejecutar; el servicio vuelve a validar persona, origen y versión.
 - El borrador y la confirmación viven en una conversación privada vinculada al usuario, su rol y el alcance del expediente. El recorrido de roles no permite conversaciones privadas.
 - El asistente comprueba que la cuenta siga activa antes de ejecutar. Si el compromiso cambió desde la vista previa, detiene la operación y pide revisarla de nuevo.
 - La conversación sin historial ofrece orientación, pero jamás ejecuta una acción. Archivos adjuntos y texto devuelto por el modelo tampoco pueden disparar una operación.

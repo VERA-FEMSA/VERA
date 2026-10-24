@@ -1,4 +1,4 @@
-const { listActions, getAction, changeStatus, canTransition } = require("./actionService");
+const { listActions, listAssignees, getAction, changeStatus, reassign, canTransition } = require("./actionService");
 const userRepository = require("../repositories/userRepository");
 const { RECORD_CREATE_ROLES, PLANNING_APPROVE_ROLES } = require("../config/roles");
 
@@ -37,6 +37,17 @@ const parseStatusChange = (question) => {
 };
 const statusDescription = (status) => STATUS_COMMANDS.find((item) => item.status === status);
 
+const parseReassignment = (question) => {
+  const quoted = /^(?:reasigna|reasignar)\s+(?:el\s+)?compromiso\s+["“«](.+?)["”»]\s+a\s+["“«](.+?)["”»]\s+(?:porque|motivo\s*:)\s+(.+)$/i;
+  const plain = /^(?:reasigna|reasignar)\s+(?:el\s+)?compromiso\s+(ACT-[0-9a-f-]{36})\s+a\s+(.+?)\s+(?:porque|motivo\s*:)\s+(.+)$/i;
+  const match = question.match(quoted) || question.match(plain);
+  return match ? { target: match[1].trim(), assignee: match[2].trim(), note: match[3].trim() } : null;
+};
+const parseAssigneeList = (question) => {
+  const match = question.match(/^(?:lista|mue[eé]strame|dame)\s+(?:los\s+)?responsables\s+(?:para|del)\s+(?:el\s+)?compromiso\s+(.+)$/i);
+  return match ? match[1].trim().replace(/^[“"«]|[”"»]$/g, "") : null;
+};
+
 const confirm = (question) => /^(confirmar cambio|confirmo el cambio)$/i.test(question.trim());
 const listRequest = (question) => /^(?:muestrame|lista|dame|ver)\s+(?:mis|los|todos los)\s+compromisos(?:\s+(?:abiertos|pendientes|cerrados|completados|cancelados))?$/
   .test(normalize(question));
@@ -73,26 +84,49 @@ const listCommitments = async (user, question, thread) => {
 
 const handleAssistantAction = async (user, question, thread) => {
   const command = parseStatusChange(question);
+  const reassignment = parseReassignment(question);
+  const assigneeTarget = parseAssigneeList(question);
   const listing = listRequest(question) || nextRequest(question, thread);
-  if (!command && !confirm(question) && !listing) return null;
+  if (!command && !reassignment && !assigneeTarget && !confirm(question) && !listing) return null;
   const current = await userRepository.findById(user.id);
   if (current?.status !== "ACTIVE" || current.role !== user.role) {
     const error = new Error("Cambió tu acceso. Inicia sesión de nuevo."); error.status = 409; throw error;
   }
   if (listing) return listCommitments(user, question, thread);
+  if (assigneeTarget) {
+    const matches = (await listActions(user)).filter((action) =>
+      normalize(action.title) === normalize(assigneeTarget) || normalize(action.id) === normalize(assigneeTarget));
+    if (matches.length !== 1) return response("Indica un título único o el identificador exacto del compromiso para consultar responsables.");
+    const people = await listAssignees(user, matches[0].sourceType, matches[0].sourceId);
+    return response(people.length
+      ? `Responsables activos que pueden consultar este origen: ${people.slice(0, 12).map((person) => `${person.name} (ID ${person.id}, ${person.role})`).join("; ")}.`
+      : "No encontré responsables activos con acceso a este origen.");
+  }
   if (!RECORD_CREATE_ROLES.includes(user.role)) {
     return response("Tu rol no puede actualizar compromisos. Puedes consultarlos desde esta conversación.");
   }
 
   if (confirm(question)) {
     const draft = thread.messages.at(-1)?.actionDraft;
-    if (!draft || draft.type !== "ACTION_STATUS_CHANGE") {
+    if (!draft || !["ACTION_STATUS_CHANGE", "ACTION_REASSIGN"].includes(draft.type)) {
       return response("No hay un cambio pendiente de confirmación. Primero indica qué compromiso deseas actualizar y por qué.");
     }
     if (Date.parse(draft.expiresAt) < Date.now()) {
       return response("La confirmación venció. Vuelve a pedir el cambio para revisar el estado actual.");
     }
     const action = await getAction(user, draft.id);
+    if (draft.type === "ACTION_REASSIGN") {
+      if (!PLANNING_APPROVE_ROLES.includes(user.role)) {
+        return response("Tu rol no puede reasignar compromisos.");
+      }
+      if (action.storageVersion !== draft.version || action.assigneeId === draft.assigneeId) {
+        return response("El responsable o la versión del compromiso cambiaron. Pide la reasignación otra vez.");
+      }
+      const updated = await reassign(user, draft.id,
+        { assigneeId: draft.assigneeId, note: draft.note, version: draft.version });
+      return response(`Quedó reasignado «${updated.title}» a ${updated.assigneeName}. La decisión se registró en la bitácora.`,
+        "action-executed", { actionOutcome: { id: updated.id, assigneeId: updated.assigneeId } });
+    }
     if (action.storageVersion !== draft.version || !canTransition(action.status, draft.status)) {
       return response(action.status === draft.status
         ? "El compromiso ya figura con el estado solicitado. Revisa su bitácora para confirmar quién y cuándo registró el cambio."
@@ -102,6 +136,33 @@ const handleAssistantAction = async (user, question, thread) => {
       { status: draft.status, note: draft.note, version: draft.version });
     return response(`Quedó ${statusDescription(draft.status).result} el compromiso «${updated.title}». El cambio y su motivo se registraron en la bitácora.`,
       "action-executed", { actionOutcome: { id: updated.id, status: updated.status } });
+  }
+
+  if (reassignment) {
+    if (!PLANNING_APPROVE_ROLES.includes(user.role)) return response("Tu rol no puede reasignar compromisos.");
+    if (reassignment.target.length > 140 || reassignment.assignee.length > 120 ||
+        reassignment.note.length < 10 || reassignment.note.length > 1000) {
+      return response("Indica un compromiso, un responsable exacto y un motivo de 10 a 1,000 caracteres.");
+    }
+    const matches = (await listActions(user)).filter((action) =>
+      normalize(action.title) === normalize(reassignment.target) ||
+      normalize(action.id) === normalize(reassignment.target));
+    if (matches.length !== 1) {
+      return response("No hay un compromiso único con ese título. Pide la lista y repite la instrucción con su identificador.");
+    }
+    const action = matches[0];
+    const candidates = (await listAssignees(user, action.sourceType, action.sourceId)).filter((person) =>
+      normalize(person.name) === normalize(reassignment.assignee) ||
+      String(person.id) === reassignment.assignee);
+    if (candidates.length !== 1 || candidates[0].id === action.assigneeId) {
+      return response("El nuevo responsable no es único, no tiene acceso al origen o ya es el responsable actual. Consulta los responsables válidos en el chat.");
+    }
+    const assignee = candidates[0];
+    const draft = { type: "ACTION_REASSIGN", id: action.id, assigneeId: assignee.id,
+      version: action.storageVersion, note: reassignment.note,
+      expiresAt: new Date(Date.now() + 5 * 60_000).toISOString() };
+    return response(`Revisa antes de ejecutar: reasignar «${action.title}» de ${action.assigneeName} a ${assignee.name}. Motivo: ${reassignment.note}. Escribe «Confirmar cambio» en los próximos cinco minutos para registrarlo.`,
+      "action-preview", { actionDraft: draft });
   }
 
   if (command.target.length > 140 || command.note.length < 10 || command.note.length > 1000) {
@@ -127,6 +188,8 @@ const handleAssistantAction = async (user, question, thread) => {
     "action-preview", { actionDraft: draft });
 };
 
-module.exports = { handleAssistantAction, parseCompletion, parseStatusChange, isCommitmentList: listRequest,
+module.exports = { handleAssistantAction, parseCompletion, parseStatusChange, parseReassignment,
+  isCommitmentList: (question) => Boolean(listRequest(question) || parseAssigneeList(question)),
   isActionCommand: (question) =>
-  Boolean(parseStatusChange(question) || confirm(question) || listRequest(question)) };
+  Boolean(parseStatusChange(question) || parseReassignment(question) ||
+    confirm(question) || listRequest(question) || parseAssigneeList(question)) };
