@@ -28,6 +28,8 @@ const { handleRoleRequest, isRoleRequestCommand } = require("../services/assista
 const { handleRoleReview, intent: isRoleReviewCommand } = require("../services/assistantRoleReviewService");
 const { handleRecordEdit, isRecordEditCommand } = require("../services/assistantRecordEditService");
 const { updateSingleFieldForUser } = require("../services/recordEditService");
+const { handleNotification, intent: isNotificationCommand } = require("../services/assistantNotificationService");
+const { changeReadStateForUser } = require("../services/notificationWorkflowService");
 const { reviewRoleRequestForUser } = require("../services/roleRequestService");
 const roleRequestRepository = require("../repositories/roleRequestRepository");
 const { handleProposalEdit, isProposalEditCommand } = require("../services/assistantProposalEditService");
@@ -608,6 +610,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
           () => isRoleRequestCommand(prompt) ? handleRoleRequest(req.user, prompt, thread) : null,
           () => isProposalEditCommand(prompt) ? handleProposalEdit(req.user, prompt, thread) : null,
           () => isRecordEditCommand(prompt) ? handleRecordEdit(req.user, prompt, thread) : null,
+          () => isNotificationCommand(prompt) ? handleNotification(req.user, prompt, thread) : null,
           () => isProposalCreateCommand(prompt, thread) ? handleProposalCreate(req.user, prompt, thread) : null,
           () => isRiskCreateCommand(prompt, thread) ? handleRiskCreate(req.user, prompt, thread) : null,
           () => isControlCreateCommand(prompt, thread) ? handleControlCreate(req.user, prompt, thread) : null,
@@ -650,6 +653,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
         mode: result.mode, metric: result.metric || null, citations: (result.citations || []).slice(0, 8),
         references: (result.references || []).slice(0, 15), coverage: result.coverage || null,
         ...(result.roleReviewBrowse ? { roleReviewBrowse: result.roleReviewBrowse } : {}),
+        ...(result.notificationBrowse ? { notificationBrowse: result.notificationBrowse } : {}),
         asOf: result.asOf, durationMs,
         ...(result.browse ? { browse: result.browse } : {}),
         ...(result.actionDraft ? { actionDraft: result.actionDraft } : {}),
@@ -988,6 +992,39 @@ router.post("/conversations/:id/ask", conversationEnabled,
         return res.json({ conversationId: thread.id, version: saved.version, userMessage,
           message: finalMessage, historySaved });
       }
+      if (result.mode === "action-reservation" && result.notificationRead?.type === "NOTIFICATION_READ") {
+        const draft = result.notificationRead;
+        assistantMessage.mode = "action-reserved";
+        assistantMessage.actionReservation = { type: "NOTIFICATION_READ", id: draft.id,
+          read: draft.read, createdAt: new Date().toISOString() };
+        const reserved = await conversations.update(req.user, thread.id, thread.version, { messages });
+        let outcome = null;
+        let executionError = null;
+        try {
+          outcome = await changeReadStateForUser(req.user, draft.id, draft.read,
+            { expectedReadAt: draft.expectedReadAt });
+        } catch (error) { executionError = error; }
+        const finalMessage = { ...assistantMessage,
+          mode: outcome ? "action-executed" : "action-guidance",
+          text: outcome ? `El aviso ${outcome.notificationId} quedó ${draft.read ? "leído" : "sin leer"}. La tarea sigue pendiente hasta completarla.`
+            : `No se cambió la lectura: ${executionError?.message || "estado desconocido"}. Consulta los avisos y prepara otra vista previa.`,
+          ...(outcome ? { actionOutcome: { id: outcome.notificationId } } : {}) };
+        delete finalMessage.actionReservation;
+        let saved = reserved;
+        let historySaved = false;
+        try {
+          saved = await conversations.update(req.user, thread.id, reserved.version,
+            { messages: [...messages.slice(0, -1), finalMessage],
+              scope_hash: await currentScope(req.user, thread.focus) });
+          historySaved = true;
+        } catch {
+          console.warn(JSON.stringify({ event: "VERA_AI_NOTIFICATION_HISTORY_STALE", id: draft.id }));
+        }
+        console.info(JSON.stringify({ event: "VERA_AI_NOTIFICATION_READ", role: req.user.role,
+          success: Boolean(outcome), durationMs: Date.now() - startedAt }));
+        return res.json({ conversationId: thread.id, version: saved.version, userMessage,
+          message: finalMessage, historySaved });
+      }
       if (result.mode === "action-reservation" && result.auditComment?.type === "AUDIT_COMMENT") {
         const draft = result.auditComment;
         assistantMessage.mode = "action-reserved";
@@ -1238,6 +1275,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     }
     if (isRecordEditCommand(question.trim())) {
       return res.json({ answer: "Para editar un riesgo o control, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
+    if (isNotificationCommand(question.trim())) {
+      return res.json({ answer: "Para consultar o cambiar el estado de tus avisos, usa una conversación guardada. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }

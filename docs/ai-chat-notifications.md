@@ -1,0 +1,7 @@
+# Avisos y estado de lectura desde el chat
+
+En una conversación guardada escribe `Mis avisos` o `Avisos sin leer`. El servidor consulta la bandeja calculada para la cuenta autenticada y muestra hasta cinco avisos por respuesta, con ID, título, descripción y estado. `Siguientes avisos` continúa la lista. Si fallan los datos de compromisos, la respuesta indica que está incompleta. El Director puede consultar los avisos visibles, pero no cambiar su lectura.
+
+Para Auditor, Jefatura, Gerente y Super Admin, `Marca leída la notificación PROPOSAL_REVIEW:AUD-01` o `Marca sin leer la notificación PROPOSAL_REVIEW:AUD-01` muestra una vista previa. El ID debe ser el que aparece en la bandeja. `Confirmar lectura` aplica el cambio durante los cinco minutos siguientes; otra pregunta descarta la vista previa. El servidor vuelve a comprobar la cuenta activa, el rol, la visibilidad y el estado de lectura antes de registrar la acción. La API de Notificaciones y el chat comparten `notificationWorkflowService`.
+
+La lectura es individual. Marcar un aviso como leído **no aprueba, inicia ni completa** la propuesta, auditoría o compromiso de origen. El cambio queda en la bitácora. En el entorno `memory`, el estado no sobrevive a un reinicio; con `VERA_NOTIFICATION_STORE=supabase` se usa el almacén persistente existente. Las pruebas de este PR no sustituyen la aceptación autenticada de Production, pendiente en [#226](https://github.com/VERA-GRC-IRM/VERA/issues/226).
