@@ -9,6 +9,7 @@ const evidenceStorage = require("../services/evidenceStorage");
 const { indexFile, askEvidenceContent } = require("../services/evidenceContentService");
 const { SEARCHABLE_MIME, makeChunks } = require("../services/evidenceTextExtraction");
 const evidenceTextIndex = require("../repositories/evidenceTextIndex");
+const evidenceIndexCoverage = require("../repositories/evidenceIndexCoverage");
 const { IMAGE_MIME, extractImageText } = require("../services/azureVisionOcrService");
 const { readiness } = require("../services/azureOpenAiService");
 
@@ -46,7 +47,16 @@ const listEvidence = async (req, res) => {
     if (needle && !`${item.title} ${item.description} ${item.reference} ${item.entityTitle}`.toLowerCase().includes(needle)) continue;
     if (await canAccessEntity(item.entityType, item.entityId, req.user)) items.push(item);
   }
-  res.json({ evidence: items });
+  const fileIds = items.filter((item) => item.file).map((item) => item.id);
+  try {
+    const coverage = await evidenceIndexCoverage.getMany(fileIds);
+    res.json({ evidence: items.map((item) => item.file ? { ...item,
+      contentIndex: coverage.get(item.id) || { status: "unknown" } } : item) });
+  } catch {
+    res.json({ evidence: items.map((item) => item.file ? { ...item,
+      contentIndex: { status: "unknown", unavailable: true } } : item),
+    indexCoverageUnavailable: true });
+  }
 };
 
 const createEvidence = async (req, res) => {
@@ -121,7 +131,11 @@ const uploadEvidence = async (req, res) => {
   if (SEARCHABLE_MIME.has(file.mime)) {
     try { contentIndex = await indexFile(evidence, req.body); }
     catch { contentIndex = { status: "pending", chunks: 0, truncated: false }; }
+  } else if (IMAGE_MIME.has(file.mime)) {
+    contentIndex = { status: "pending", chunks: 0, truncated: false };
   }
+  try { await evidenceIndexCoverage.set(evidence.id, contentIndex); }
+  catch { contentIndex = { status: "unknown", chunks: 0, truncated: false, unavailable: true }; }
   res.status(201).json({ evidence, contentIndex });
 };
 
@@ -155,11 +169,14 @@ const indexImageEvidence = async (req, res) => {
     const ocr = await extractImageText(bytes, evidence.file.mime);
     const indexed = makeChunks([{ pageNumber: null, text: ocr.text }]);
     if (indexed.chunks.length) await evidenceTextIndex.replace(evidence.id, indexed.chunks);
+    const contentIndex = { status: indexed.chunks.length ? "ready" : "no-text",
+      chunks: indexed.chunks.length, truncated: ocr.truncated || indexed.truncated };
+    try { await evidenceIndexCoverage.set(evidence.id, contentIndex); }
+    catch { contentIndex.unavailable = true; }
     console.info(JSON.stringify({ event: "VERA_AI_IMAGE_OCR", status: 200, role: req.user.role,
       chunks: indexed.chunks.length, durationMs: Date.now() - startedAt,
       promptTokens: ocr.usage?.prompt_tokens ?? null, completionTokens: ocr.usage?.completion_tokens ?? null }));
-    return res.set("Cache-Control", "no-store").json({ status: indexed.chunks.length ? "ready" : "no-text",
-      chunks: indexed.chunks.length, cached: false, truncated: ocr.truncated || indexed.truncated,
+    return res.set("Cache-Control", "no-store").json({ ...contentIndex, cached: false,
       durationMs: Date.now() - startedAt, usage: ocr.usage ? {
         promptTokens: ocr.usage.prompt_tokens ?? null, completionTokens: ocr.usage.completion_tokens ?? null
       } : null });

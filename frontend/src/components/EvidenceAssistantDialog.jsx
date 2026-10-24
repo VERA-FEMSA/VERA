@@ -60,6 +60,7 @@ function EvidenceAssistantDialog({ evidence, onClose }) {
       <small>Datos consultados: {new Date(result.asOf).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}
         {Number.isFinite(result.durationMs) ? ` · ${(result.durationMs / 1000).toFixed(1)} s` : ""}</small>
       {result.coverage?.partial && <small>Se usaron {result.coverage.includedChunks} de {result.coverage.indexedChunks} fragmentos indexados; no representa el archivo completo.</small>}
+      {result.coverage?.indexStatusUnavailable && <small>El estado de lectura no pudo guardarse; comprueba el original antes de reutilizar esta respuesta.</small>}
       {result.citations?.length > 0 && <div className="evidence-ai-citations"><b>Fragmentos citados</b><ul>{result.citations.map((item) => <li key={item.sourceId}>
         <Link to={item.path} onClick={onClose}>{item.title}{item.pageNumber ? ` · página ${item.pageNumber}` : ""} <ArrowRight size={13} aria-hidden="true" /></Link>
         <blockquote>{item.excerpt}</blockquote></li>)}</ul></div>}

@@ -1,5 +1,6 @@
 const evidenceStorage = require("./evidenceStorage");
 const evidenceTextIndex = require("../repositories/evidenceTextIndex");
+const evidenceIndexCoverage = require("../repositories/evidenceIndexCoverage");
 const { extractEvidenceText, SEARCHABLE_MIME } = require("./evidenceTextExtraction");
 const { askAzureOpenAi } = require("./azureOpenAiService");
 const { IMAGE_MIME } = require("./azureVisionOcrService");
@@ -40,6 +41,7 @@ const askEvidenceContent = async (evidence, question, role, { ask = askAzureOpen
     throw error;
   }
   let chunks = await evidenceTextIndex.get(evidence.id);
+  let indexStatusUnavailable = false;
   if (!chunks.length && IMAGE_MIME.has(evidence.file.mime)) return {
     answer: "Esta imagen aún no tiene texto indexado. Solicita primero la extracción con IA y comprueba el original.",
     mode: "no-text", citations: [], coverage: { indexedChunks: 0, includedChunks: 0, partial: false },
@@ -47,7 +49,11 @@ const askEvidenceContent = async (evidence, question, role, { ask = askAzureOpen
   };
   if (!chunks.length) {
     const bytes = await evidenceStorage.downloadBytes(evidence.file);
-    try { await indexFile(evidence, bytes); }
+    try {
+      const coverage = await indexFile(evidence, bytes);
+      try { await evidenceIndexCoverage.set(evidence.id, coverage); }
+      catch { indexStatusUnavailable = true; }
+    }
     catch (error) {
       if (error.status) throw error;
       const invalid = new Error("No se pudo extraer texto de este archivo.");
@@ -58,18 +64,19 @@ const askEvidenceContent = async (evidence, question, role, { ask = askAzureOpen
   }
   const asOf = new Date().toISOString();
   if (!chunks.length) return { answer: "No se encontró texto legible en este archivo; puede ser un PDF escaneado o un CSV vacío.",
-    mode: "no-text", citations: [], coverage: { indexedChunks: 0, includedChunks: 0, partial: false }, asOf, usage: null };
+    mode: "no-text", citations: [], coverage: { indexedChunks: 0, includedChunks: 0, partial: false,
+      indexStatusUnavailable }, asOf, usage: null };
 
   if (asksForCompleteDocument(question)) return {
     answer: "No puedo calcular totales ni describir todo el archivo con garantías desde fragmentos indexados. " +
       "Revisa el original o pregunta por una fila, página o sección concreta.",
     mode: "scope-limited", citations: [], coverage: { indexedChunks: chunks.length,
-      includedChunks: 0, partial: true }, asOf, usage: null
+      includedChunks: 0, partial: true, indexStatusUnavailable }, asOf, usage: null
   };
 
   const selected = selectChunks(chunks, question);
   const coverage = { indexedChunks: chunks.length, includedChunks: selected.length,
-    partial: selected.length < chunks.length };
+    partial: selected.length < chunks.length, indexStatusUnavailable };
   if (!selected.length) return { answer: "No encontré fragmentos del archivo relacionados con esa pregunta.",
     mode: "no-match", citations: [], coverage, asOf, usage: null };
 

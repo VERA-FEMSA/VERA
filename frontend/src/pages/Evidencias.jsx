@@ -14,6 +14,16 @@ const TYPE_LABELS = { DOCUMENT: "Documento", SCREENSHOT: "Captura", REPORT: "Inf
 const safeLink = (value) => /^https:\/\//i.test(value);
 const formatDate = (value) => new Date(value).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
 const labelForEntity = (entity) => `${entity.id} · ${entity.title}`;
+const indexLabel = (index, mime) => {
+  if (index?.unavailable) return "Estado de lectura temporalmente no disponible";
+  if (index?.status === "ready") return index.truncated
+    ? `Texto indexado · lectura parcial (${index.chunks} fragmentos)`
+    : `Texto indexado (${index.chunks} fragmentos); revisa el original`;
+  if (index?.status === "pending" && mime?.startsWith("image/")) return "Extracción con IA disponible al solicitarla";
+  return { "no-text": "Sin texto legible", pending: "Lectura pendiente",
+    unsupported: "Extracción no disponible", unknown: "Cobertura no registrada" }[index?.status] ||
+    "Cobertura no registrada";
+};
 const currentUser = JSON.parse(
   localStorage.getItem("user") || "null"
 );
@@ -62,7 +72,8 @@ function Evidencias() {
       if (file) upload = await uploadEvidenceFile(form, file);
       else await createEvidence(form);
       await load(); closeModal(); setMessage(file ? upload.contentIndex?.status === "ready"
-        ? "Archivo cargado; su texto ya puede consultarse con IA."
+        ? upload.contentIndex.truncated ? "Archivo cargado; la IA solo puede consultar una parte del texto indexado."
+          : "Archivo cargado; su texto ya puede consultarse con IA. Revisa el original para confirmar la cobertura."
         : "Archivo cargado. La consulta de texto se preparará cuando se solicite, si el formato lo permite."
         : "Referencia de evidencia registrada y vinculada.");
     } catch (submitError) { setError(submitError.message); }
@@ -88,6 +99,7 @@ function Evidencias() {
           <h2>{item.title}</h2><p>{item.description}</p>
           <div className="evidence-meta"><span><b>Relacionada con:</b> {item.entityTitle}</span><span><b>Registró:</b> {item.author.name}</span><span>{formatDate(item.createdAt)}</span></div>
           <div className="evidence-reference"><b>{item.file ? "Archivo:" : "Referencia:"}</b> {item.file ? <button type="button" className="secondary-action" onClick={() => download(item)}>Descargar archivo ({Math.ceil(item.file.size / 1024)} KB)</button> : safeLink(item.reference) ? <a href={item.reference} target="_blank" rel="noreferrer">Abrir referencia <ExternalLink size={13} /></a> : <span>{item.reference}</span>}</div>
+          {item.file && <small className="evidence-index-coverage">{indexLabel(item.contentIndex, item.file.mime)}</small>}
           {item.file && ["application/pdf", "text/plain", "text/csv", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "image/png", "image/jpeg", "image/webp"].includes(item.file.mime) && <button type="button" className="secondary-action evidence-ai-open" onClick={() => setAssistantEvidence(item)}><FileText size={15} aria-hidden="true" /> Consultar contenido con IA</button>}
         </div>
       </article>)}</div>}
