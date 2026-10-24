@@ -24,6 +24,7 @@ const capabilityAnswer = (user, persistent) => {
   if (RECORD_CREATE_ROLES.includes(user.role)) {
     lines.push("• Crear compromisos propios y cambiar el estado de los que puedas gestionar; primero mostraré una vista previa.");
     lines.push("• Registrar una referencia de evidencia vinculada a un riesgo, control o auditoría visible: escribe «Registrar evidencia».");
+    lines.push("• Comentar una propuesta o auditoría visible: «Comenta la auditoría AUD-01: texto del comentario».");
   }
   if (AUDIT_PROPOSAL_CREATE_ROLES.includes(user.role)) {
     lines.push("• Crear una propuesta de auditoría: escribe «Crear propuesta» y completa los campos que pediré aquí mismo.");

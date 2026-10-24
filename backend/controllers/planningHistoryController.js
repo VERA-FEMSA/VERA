@@ -1,24 +1,17 @@
-const planningRepository = require("../repositories/planningRepository");
 const commentRepository = require("../repositories/commentRepository");
-const { query, logActivity } = require("../services/auditLogger");
-const { ROLES } = require("../config/roles");
+const { query } = require("../services/auditLogger");
+const { findVisibleProposal, createCommentForUser } = require("../services/planningCommentService");
 
-const canView = (proposal, user) => user.role !== ROLES.AUDITOR || proposal.responsibleId === user.id;
-const findVisibleProposal = async (id, user, res) => {
-  const proposal = await planningRepository.findById(id);
-  if (!proposal) {
-    res.status(404).json({ message: "Propuesta de auditoría no encontrada." });
-    return null;
+const visibleOr404 = async (id, user, res) => {
+  try { return await findVisibleProposal(user, id); }
+  catch (error) {
+    if (error.status === 404) { res.status(404).json({ message: error.message }); return null; }
+    throw error;
   }
-  if (!canView(proposal, user)) {
-    res.status(404).json({ message: "Propuesta de auditoría no encontrada." });
-    return null;
-  }
-  return proposal;
 };
 
 const getHistory = async (req, res) => {
-  const proposal = await findVisibleProposal(req.params.id, req.user, res);
+  const proposal = await visibleOr404(req.params.id, req.user, res);
   if (!proposal) return;
   res.json({
     history: await query({ entityId: proposal.id, limit: 200 }),
@@ -27,24 +20,13 @@ const getHistory = async (req, res) => {
 };
 
 const addComment = async (req, res) => {
-  const proposal = await findVisibleProposal(req.params.id, req.user, res);
-  if (!proposal) return;
-  const text = String(req.body.text ?? "").trim();
-  if (text.length < 3 || text.length > 2000) {
-    return res.status(400).json({ message: "El comentario debe tener entre 3 y 2,000 caracteres." });
+  try {
+    const comment = await createCommentForUser(req.user, req.params.id, req.body);
+    return res.status(201).json({ comment });
+  } catch (error) {
+    if (error.status) return res.status(error.status).json({ message: error.message });
+    throw error;
   }
-
-  const comment = await commentRepository.create({
-    proposalId: proposal.id,
-    text,
-    author: { id: req.user.id, username: req.user.username, role: req.user.role }
-  });
-  await logActivity({
-    actor: req.user,
-    action: "AUDIT_COMMENT_ADDED",
-    details: { proposalId: proposal.id, title: proposal.title, commentId: comment.id }
-  });
-  res.status(201).json({ comment });
 };
 
 module.exports = { getHistory, addComment };

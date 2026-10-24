@@ -7,11 +7,12 @@ const listByProposal = (proposalId) => comments
   .filter((comment) => comment.proposalId === proposalId)
   .map(clone);
 
-const create = ({ proposalId, text, author }) => {
+const create = ({ proposalId, text, author, aiOperationId }) => {
   const comment = {
     id: `CMT-${String(nextId++).padStart(4, "0")}`,
     proposalId,
     text,
+    ...(aiOperationId ? { aiOperationId } : {}),
     author: { ...author },
     createdAt: new Date().toISOString()
   };
