@@ -4,6 +4,7 @@ import { ArrowRight, FileText, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Rota
 import { askAssistant, askAssistantConversation, createAssistantConversation, createAssistantProject, deleteAssistantAttachment, deleteAssistantConversation, deleteAssistantProject, deleteAssistantProjectFile, getAssistantAttachmentDownload, getAssistantBrief, getAssistantConversation, getAssistantInsights, getAssistantProjectFileDownload, getAssistantStatus, getAuditDossier, getProposalDraft, indexAssistantProjectFile, listAssistantAttachments, listAssistantConversations, listAssistantProjectFiles, listAssistantProjects, moveAssistantConversation, ocrAssistantAttachment, ocrAssistantProjectFile, renameAssistantConversation, searchAssistantEvidence, submitAssistantFeedback, updateAssistantProject, uploadAssistantAttachment, uploadAssistantProjectFile } from "../services/assistantService";
 import { AssistantConversationContext } from "../contexts/AssistantConversationContext";
 import AssistantMemoryPanel from "./AssistantMemoryPanel";
+import { downloadPortfolioReport } from "../services/planningService";
 import "../pages/Asistente.css";
 
 const promptsByRole = {
@@ -14,6 +15,17 @@ const promptsByRole = {
   JEFATURA: ["Muéstrame los pendientes prioritarios", "Resume los riesgos altos del portafolio.", "Prepara un borrador de propuesta para revisión."]
 };
 const PROJECT_LIBRARY = "__project_library__";
+const saveReportCsv = (csv) => {
+  if (typeof csv !== "string") return;
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "vera-reporte-portafolio.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+};
 
 function AssistantPanel({ focus = null, compact = false }) {
   const navigate = useNavigate();
@@ -391,6 +403,8 @@ function AssistantPanel({ focus = null, compact = false }) {
           selectedAttachmentId === PROJECT_LIBRARY);
         setMessages((current) => [...current, saved.userMessage, saved.message]);
         setThread((item) => ({ ...item, version: saved.version, updatedAt: new Date().toISOString() }));
+        if (saved.downloadCsv) saveReportCsv(saved.downloadCsv);
+        if (saved.downloadFromReportEndpoint) await downloadPortfolioReport();
         if (saved.historySaved === false) {
           setHistoryStale(true);
           setError("El resultado es válido, pero el historial no se actualizó. Abre de nuevo esta conversación antes de continuar.");
@@ -401,6 +415,8 @@ function AssistantPanel({ focus = null, compact = false }) {
         ? await searchAssistantEvidence(value, selectedFocus)
         : await askAssistant(value, { history, focus: selectedFocus,
           lastBrowse: messages.at(-1)?.browse || null });
+      if (result.downloadCsv) saveReportCsv(result.downloadCsv);
+      if (result.downloadFromReportEndpoint) await downloadPortfolioReport();
       setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", text: result.answer,
         mode: result.mode, metric: result.metric,
         citations: result.citations || [], references: result.references || [], browse: result.browse || null,
@@ -573,7 +589,7 @@ function AssistantPanel({ focus = null, compact = false }) {
     <div className="assistant-messages" aria-live="polite">{messages.map((message) => <article key={message.id} className={`assistant-message ${message.role}`}>
       <strong>{message.role === "user" ? "Tú" : "Asistente VERA"}</strong><p>{message.text}</p>
       {message.role === "user" && message.attachmentName && <small className="assistant-answer-note">Archivo consultado: {message.attachmentName}</small>}
-      {message.role === "assistant" && <><small className="assistant-answer-note">{message.mode === "action-preview" ? "Vista previa · no se ha modificado ningún registro" : message.mode === "action-executed" ? "Cambio registrado con las reglas de VERA" : message.mode === "action-reserved" ? "Confirmación reservada · verifica el resultado antes de continuar" : message.mode === "action-guidance" ? "Guía de operación · sin cambios" : message.mode === "browse" ? "Registros actuales de tu alcance · sin generación de IA" : message.mode === "computed" ? "Dato calculado desde registros autorizados" : message.mode?.startsWith("attachment-") ? "Respuesta sobre un archivo privado · comprueba el original" : message.mode === "document-search" ? "Respuesta con fragmentos de evidencias · comprueba el archivo" : ["no-match", "uncited", "no-text", "scope-limited"].includes(message.mode) ? "Sin respuesta documental respaldada" : "Respuesta generada · comprueba el expediente"}{Number.isFinite(message.durationMs) ? ` · ${(message.durationMs / 1000).toFixed(1)} s` : ""}</small>
+      {message.role === "assistant" && <><small className="assistant-answer-note">{message.mode === "action-preview" ? "Vista previa · no se ha modificado ningún registro" : message.mode === "action-executed" ? "Cambio registrado con las reglas de VERA" : message.mode === "action-reserved" ? "Confirmación reservada · verifica el resultado antes de continuar" : message.mode === "action-guidance" ? "Guía de operación · sin cambios" : message.mode === "report-export" ? "Reporte completo · descarga CSV solicitada" : message.mode === "report" ? "Reporte calculado con datos visibles para tu cuenta" : message.mode === "browse" ? "Registros actuales de tu alcance · sin generación de IA" : message.mode === "computed" ? "Dato calculado desde registros autorizados" : message.mode?.startsWith("attachment-") ? "Respuesta sobre un archivo privado · comprueba el original" : message.mode === "document-search" ? "Respuesta con fragmentos de evidencias · comprueba el archivo" : ["no-match", "uncited", "no-text", "scope-limited"].includes(message.mode) ? "Sin respuesta documental respaldada" : "Respuesta generada · comprueba el expediente"}{Number.isFinite(message.durationMs) ? ` · ${(message.durationMs / 1000).toFixed(1)} s` : ""}</small>
         {message.asOf && <time className="assistant-answer-note" dateTime={message.asOf}>Datos consultados: {new Date(message.asOf).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })}</time>}
         {message.coverage?.indexedOnly && <small className="assistant-answer-note">Se buscaron fragmentos ya indexados en {message.coverage.searchedFiles} de {message.coverage.visibleFiles} archivos visibles. Los archivos antiguos pueden requerir una consulta individual para indexarse.</small>}
         {message.mode === "attachment-project" && message.coverage?.retrieval === "lexical+semantic" &&
@@ -588,7 +604,7 @@ function AssistantPanel({ focus = null, compact = false }) {
         {message.citations?.length > 0 && <div className="assistant-citations"><b>Registros citados</b><small>Campos consultados al responder; abre el expediente o archivo para ver su estado actual.</small><ul>{message.citations.map((item) => <li key={item.sourceId}>{item.attachmentId
           ? <button type="button" onClick={() => downloadFile(item.attachmentId, item.projectId)}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></button>
           : <Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link>}{item.facts?.length > 0 && <span className="assistant-source-facts">{item.facts.map((fact) => `${fact.label}: ${fact.value}`).join(" · ")}</span>}{item.excerpt && <span className="assistant-source-facts">{item.pageNumber ? `Página ${item.pageNumber} · ` : ""}{item.excerpt}</span>}</li>)}</ul></div>}
-        {message.citations?.length === 0 && !["computed", "browse", "action-preview", "action-executed", "action-reserved", "action-guidance"].includes(message.mode) && <small className="assistant-answer-note">Sin registros citados en esta respuesta.</small>}
+        {message.citations?.length === 0 && !["computed", "browse", "report", "report-export", "action-preview", "action-executed", "action-reserved", "action-guidance"].includes(message.mode) && <small className="assistant-answer-note">Sin registros citados en esta respuesta.</small>}
         {message.references?.length > 0 && <details><summary>Registros relacionados ({message.references.length})</summary><ul>{message.references.map((item) => <li key={item.sourceId || `${item.type}:${item.id}`}><Link to={item.path}>{item.type}: {item.title} <ArrowRight size={13} aria-hidden="true" /></Link></li>)}</ul></details>}
         {message.feedbackToken && !message.feedbackRating && <div className="assistant-feedback" aria-label="Valora esta respuesta"><span>¿Te sirvió?</span><button type="button" onClick={() => rateResponse(message, "helpful")} disabled={Boolean(feedbackBusyId)} aria-label="Me sirvió esta respuesta"><ThumbsUp size={14} aria-hidden="true" /> Sí</button><button type="button" onClick={() => rateResponse(message, "unhelpful")} disabled={Boolean(feedbackBusyId)} aria-label="No me sirvió esta respuesta"><ThumbsDown size={14} aria-hidden="true" /> No</button></div>}
         {message.feedbackRating && <small className="assistant-answer-note" role="status">Tu valoración se registró sin guardar el texto de la respuesta.</small>}

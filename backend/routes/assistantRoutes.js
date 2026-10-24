@@ -6,6 +6,7 @@ const { readiness } = require("../services/azureOpenAiService");
 const { answerAssistant } = require("../services/assistantAnswerService");
 const { handleAssistantAction, isActionCommand, isCommitmentList } = require("../services/assistantActionService");
 const { createAction, listActions } = require("../services/actionService");
+const { handleAssistantReport, parseReportRequest } = require("../services/assistantReportService");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -565,7 +566,9 @@ router.post("/conversations/:id/ask", conversationEnabled,
         attachments.getProject(req.user, thread.projectId, item.id))) : [];
       const actionResult = !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantAction(req.user, question.trim(), thread) : null;
-      const result = actionResult || (attached ? await askAttachment(attached, question.trim())
+      const reportResult = !actionResult && !attached && !useProjectFiles && !withEvidence
+        ? await handleAssistantReport(req.user, question.trim()) : null;
+      const result = actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
         : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
           { user: req.user })
           : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,
@@ -635,6 +638,8 @@ router.post("/conversations/:id/ask", conversationEnabled,
         mode: result.mode, durationMs, promptTokens: result.usage?.prompt_tokens ?? null,
         completionTokens: result.usage?.completion_tokens ?? null }));
       return res.json({ conversationId: thread.id, version: updated.version, userMessage,
+        ...(result.downloadCsv ? { downloadCsv: result.downloadCsv } : {}),
+        ...(result.downloadFromReportEndpoint ? { downloadFromReportEndpoint: true } : {}),
         message: { ...assistantMessage, feedbackToken }, usage: result.usage ? {
           promptTokens: result.usage.prompt_tokens ?? null,
           completionTokens: result.usage.completion_tokens ?? null } : null });
@@ -793,6 +798,10 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     return res.status(400).json({ message: "El historial o el expediente solicitado no es válido." });
   }
   try {
+    if (parseReportRequest(question.trim())) {
+      const result = await handleAssistantReport(req.user, question.trim());
+      return res.json({ ...result, durationMs: Date.now() - startedAt });
+    }
     if (isCommitmentList(question.trim())) {
       const result = await handleAssistantAction(req.user, question.trim(), { messages: [] });
       return res.json({ ...result, durationMs: Date.now() - startedAt });
