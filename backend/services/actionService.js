@@ -17,6 +17,7 @@ const TRANSITIONS = {
   DONE: ["OPEN"],
   CANCELLED: ["OPEN"]
 };
+const canTransition = (from, to) => STATUSES.includes(to) && TRANSITIONS[from]?.includes(to) === true;
 const text = (value) => String(value ?? "").trim();
 
 class ActionError extends Error {
@@ -202,7 +203,7 @@ const changeStatus = async (user, id, body) => {
     }
   }
   const note = text(body.note);
-  if (!STATUSES.includes(status) || !TRANSITIONS[action.status]?.includes(status)) {
+  if (!canTransition(action.status, status)) {
     throw new ActionError("La transición de estado no está permitida.", 409);
   }
   if (note.length < 10 || note.length > 1000) throw new ActionError("Explica el cambio en 10 a 1,000 caracteres.", 400);
@@ -238,4 +239,4 @@ const reassign = async (user, id, body) => {
   return updated;
 };
 
-module.exports = { ActionError, listActions, listActionsForAudit, listSources, getAction, listAssignees, createAction, changeStatus, reassign };
+module.exports = { ActionError, listActions, listActionsForAudit, listSources, getAction, listAssignees, createAction, changeStatus, reassign, canTransition };

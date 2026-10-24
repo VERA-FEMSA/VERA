@@ -6,7 +6,7 @@ const app = require("../server");
 const { startTestServer } = require("./helpers/testServer");
 const riskRepository = require("../repositories/riskRepository");
 const { createAction, getAction, changeStatus } = require("../services/actionService");
-const { parseCompletion } = require("../services/assistantActionService");
+const { parseCompletion, parseStatusChange } = require("../services/assistantActionService");
 
 const options = (id, body) => ({ method: "POST", headers: {
   Authorization: `Bearer ${jwt.sign({ id }, process.env.JWT_SECRET)}`,
@@ -27,6 +27,41 @@ test("La instrucción de completar exige motivo y título concreto", () => {
   assert.deepEqual(parseCompletion("Completa el compromiso «Revisar evidencia» porque la revisión quedó documentada."),
     { target: "Revisar evidencia", note: "la revisión quedó documentada." });
   assert.equal(parseCompletion("¿Qué compromisos tengo?"), null);
+  assert.equal(parseStatusChange("Inicia el compromiso «Revisar evidencia» porque ya comenzó la revisión.").status,
+    "IN_PROGRESS");
+  assert.equal(parseStatusChange("Cancela el compromiso «Revisar evidencia» porque ya no aplica.").status,
+    "CANCELLED");
+  assert.equal(parseStatusChange("Reabre el compromiso «Revisar evidencia» porque falta comprobarlo.").status,
+    "OPEN");
+});
+
+test("El chat aplica sólo las transiciones permitidas y permite consultar compromisos cerrados", async (t) => {
+  const previous = process.env.VERA_AI_CONVERSATIONS_ENABLED;
+  process.env.VERA_AI_CONVERSATIONS_ENABLED = "true";
+  t.after(() => { if (previous === undefined) delete process.env.VERA_AI_CONVERSATIONS_ENABLED;
+    else process.env.VERA_AI_CONVERSATIONS_ENABLED = previous; });
+  const base = await startTestServer(t, app);
+  const manager = { id: 3, role: "GERENTE", username: "gerente", name: "Gerente de prueba" };
+  const risk = riskRepository.create({ title: `Riesgo de transición ${Date.now()}`, ownerId: 3,
+    level: "Alto", score: 6, likelihood: 3, impact: 2, createdBy: { id: 3 } });
+  const action = await createAction(manager, { sourceType: "RISK", sourceId: risk.id,
+    title: `Verificar transición ${risk.id}`, rationale: "Validar las transiciones con bitácora.",
+    dueDate: "2026-11-20", assigneeId: 3 });
+  const created = await fetch(`${base}/api/assistant/conversations`, options(3, { focus: null }));
+  const { conversation } = await created.json();
+  const url = `${base}/api/assistant/conversations/${conversation.id}/ask`;
+  for (const [verb, status] of [["Inicia", "IN_PROGRESS"], ["Cancela", "CANCELLED"],
+    ["Reabre", "OPEN"], ["Completa", "DONE"]]) {
+    const preview = await fetch(url, options(3,
+      { question: `${verb} el compromiso ${action.id} porque se registró una decisión verificable.` }));
+    assert.equal((await preview.json()).message.mode, "action-preview");
+    const confirmed = await fetch(url, options(3, { question: "Confirmar cambio" }));
+    assert.equal((await confirmed.json()).message.mode, "action-executed");
+    assert.equal((await getAction(manager, action.id)).status, status);
+  }
+  const closed = await fetch(url, options(3, { question: "Muéstrame mis compromisos cerrados" }));
+  assert.ok((await closed.json()).message.browse.items.some((item) => item.id === action.id));
+  assert.equal((await getAction(manager, action.id)).history.length, 5);
 });
 
 test("La conversación previsualiza, confirma una sola vez y registra el cambio autorizado", async (t) => {
