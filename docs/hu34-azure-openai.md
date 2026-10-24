@@ -40,7 +40,7 @@ El backend llama a `POST /openai/v1/chat/completions` con la clave en el encabez
 | Respeta roles y no revela datos ajenos | Filtro de servidor antes de llamar al modelo; prueba unitaria con riesgo y hallazgo ajenos y control compartido. Se debe repetir con cuentas reales. |
 | Navega al registro relacionado | La API devuelve rutas del servidor y la interfaz las presenta como enlaces; prueba E2E. |
 | Reconoce falta de información | Instrucción explícita al modelo; verificar con caso sin datos reales. Un modelo generativo puede equivocarse: no usar la respuesta como aprobación formal. |
-| Acciones con confirmación | Este alcance es de solo lectura y no expone ninguna acción de modificación; toda edición se realiza en los módulos con controles propios. |
+| Acciones con confirmación | El primer incremento de HU-34 fue de solo lectura. La evolución posterior permite operaciones autorizadas desde conversaciones guardadas, con vista previa, confirmación humana y los servicios de negocio existentes. Consulta [Capacidades por rol](ai-chat-capabilities.md); la aceptación autenticada de cada operación en Production se registra por separado. |
 | Manejo de errores | 400 para entrada inválida, 401 para falta de sesión, 503 sin configuración o persistencia, 429 para límite y 502/504 para proveedor/timeout. Pruebas de API y proveedor simulado. |
 
 ## Pruebas reproducibles

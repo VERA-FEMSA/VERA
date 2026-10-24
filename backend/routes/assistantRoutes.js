@@ -25,6 +25,9 @@ const { createFindingForUser } = require("../services/findingCreationService");
 const findingRepository = require("../repositories/findingRepository");
 const { handleFindingClose, isFindingCloseCommand } = require("../services/assistantFindingCloseService");
 const { handleRoleRequest, isRoleRequestCommand } = require("../services/assistantRoleRequestService");
+const { handleRoleReview, intent: isRoleReviewCommand } = require("../services/assistantRoleReviewService");
+const { reviewRoleRequestForUser } = require("../services/roleRequestService");
+const roleRequestRepository = require("../repositories/roleRequestRepository");
 const { handleProposalEdit, isProposalEditCommand } = require("../services/assistantProposalEditService");
 const { handleEvidenceCreate, isEvidenceCreateCommand } = require("../services/assistantEvidenceCreateService");
 const { createEvidenceForUser, createFileEvidenceForUser, canAccessEntity } = require("../services/evidenceCreationService");
@@ -592,6 +595,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
         attachments.getProject(req.user, thread.projectId, item.id))) : [];
       const prompt = question.trim();
       let result = null;
+      if (isRoleReviewCommand(prompt)) result = await handleRoleReview(req.user, prompt, thread);
       if (isFileEvidenceCommand(prompt, thread)) {
         result = await handleFileEvidence(req.user, prompt, thread, attached);
       }
@@ -642,6 +646,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
       const assistantMessage = { id: randomUUID(), role: "assistant", text: result.answer.slice(0, 4000),
         mode: result.mode, metric: result.metric || null, citations: (result.citations || []).slice(0, 8),
         references: (result.references || []).slice(0, 15), coverage: result.coverage || null,
+        ...(result.roleReviewBrowse ? { roleReviewBrowse: result.roleReviewBrowse } : {}),
         asOf: result.asOf, durationMs,
         ...(result.browse ? { browse: result.browse } : {}),
         ...(result.actionDraft ? { actionDraft: result.actionDraft } : {}),
@@ -906,6 +911,42 @@ router.post("/conversations/:id/ask", conversationEnabled,
         return res.json({ conversationId: thread.id, version: saved.version, userMessage,
           message: finalMessage, historySaved });
       }
+      if (result.mode === "action-reservation" && result.roleReview?.type === "ROLE_REVIEW") {
+        const draft = result.roleReview;
+        assistantMessage.mode = "action-reserved";
+        assistantMessage.actionReservation = { type: "ROLE_REVIEW", requestId: draft.requestId,
+          userId: draft.userId, approve: draft.approve, createdAt: new Date().toISOString() };
+        const reserved = await conversations.update(req.user, thread.id, thread.version, { messages });
+        let reviewed = null;
+        let executionError = null;
+        try { reviewed = await reviewRoleRequestForUser(req.user, draft.requestId, draft.approve, draft.targetRole); }
+        catch (error) {
+          const mine = await roleRequestRepository.listMine(draft.userId);
+          reviewed = mine.find((item) => item.id === draft.requestId && item.reviewedBy === req.user.id &&
+            item.status === (draft.approve ? "APPROVED" : "REJECTED")) || null;
+          if (!reviewed) executionError = error;
+        }
+        const finalMessage = { ...assistantMessage,
+          mode: reviewed ? "action-executed" : "action-guidance",
+          text: reviewed ? `La solicitud de rol #${draft.requestId} quedó ${draft.approve ? "aprobada" : "rechazada"}. La cuenta afectada deberá iniciar sesión de nuevo para usar los permisos vigentes.`
+            : `No se confirmó la revisión: ${executionError?.message || "estado desconocido"}. Consulta las solicitudes pendientes antes de intentar otra decisión.`,
+          ...(reviewed ? { actionOutcome: { id: draft.requestId, status: reviewed.status } } : {}) };
+        delete finalMessage.actionReservation;
+        let saved = reserved;
+        let historySaved = false;
+        try {
+          saved = await conversations.update(req.user, thread.id, reserved.version,
+            { messages: [...messages.slice(0, -1), finalMessage],
+              scope_hash: await currentScope(req.user, thread.focus) });
+          historySaved = true;
+        } catch {
+          console.warn(JSON.stringify({ event: "VERA_AI_ROLE_REVIEW_HISTORY_STALE", requestId: draft.requestId }));
+        }
+        console.info(JSON.stringify({ event: "VERA_AI_ROLE_REVIEW", role: req.user.role,
+          success: Boolean(reviewed), durationMs: Date.now() - startedAt }));
+        return res.json({ conversationId: thread.id, version: saved.version, userMessage,
+          message: finalMessage, historySaved });
+      }
       if (result.mode === "action-reservation" && result.auditComment?.type === "AUDIT_COMMENT") {
         const draft = result.auditComment;
         assistantMessage.mode = "action-reserved";
@@ -1146,6 +1187,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     }
     if (isFileEvidenceCommand(question.trim(), { messages: [] })) {
       return res.json({ answer: "Para vincular un archivo privado como evidencia, usa una conversación guardada y selecciona un adjunto individual. Aquí no se ejecutó ningún cambio.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
+    if (isRoleReviewCommand(question.trim())) {
+      return res.json({ answer: "Para revisar solicitudes de rol, usa una conversación guardada como Super Admin. Aquí no se ejecutó ningún cambio.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }
