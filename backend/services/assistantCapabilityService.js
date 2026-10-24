@@ -18,6 +18,9 @@ const capabilityAnswer = (user, persistent) => {
     lines.push("Para registrar cambios con confirmación, inicia una conversación guardada. Esta consulta sin historial sólo lee.");
     return lines.join("\n");
   }
+  if (user.role !== "SUPER_ADMIN") {
+    lines.push("• Consultar tu rol, pedir un cambio con motivo y seguir el estado: «Qué rol tengo» o «Mis solicitudes de rol».");
+  }
   if (RECORD_CREATE_ROLES.includes(user.role)) {
     lines.push("• Crear compromisos propios y cambiar el estado de los que puedas gestionar; primero mostraré una vista previa.");
   }

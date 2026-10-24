@@ -24,6 +24,7 @@ const { handleFindingCreate, isFindingCreateCommand } = require("../services/ass
 const { createFindingForUser } = require("../services/findingCreationService");
 const findingRepository = require("../repositories/findingRepository");
 const { handleFindingClose, isFindingCloseCommand } = require("../services/assistantFindingCloseService");
+const { handleRoleRequest, isRoleRequestCommand } = require("../services/assistantRoleRequestService");
 const conversations = require("../repositories/assistantConversationRepository");
 const projects = require("../repositories/assistantProjectRepository");
 const memory = require("../repositories/assistantMemoryRepository");
@@ -583,7 +584,10 @@ router.post("/conversations/:id/ask", conversationEnabled,
         attachments.getProject(req.user, thread.projectId, item.id))) : [];
       const capabilityResult = !attached && !useProjectFiles && !withEvidence
         ? handleCapabilityQuestion(req.user, question.trim(), true) : null;
-      const proposalResult = !capabilityResult && !attached && !useProjectFiles && !withEvidence &&
+      const roleRequestResult = !capabilityResult && !attached && !useProjectFiles && !withEvidence &&
+        isRoleRequestCommand(question.trim())
+        ? await handleRoleRequest(req.user, question.trim(), thread) : null;
+      const proposalResult = !capabilityResult && !roleRequestResult && !attached && !useProjectFiles && !withEvidence &&
         isProposalCreateCommand(question.trim(), thread)
         ? await handleProposalCreate(req.user, question.trim(), thread) : null;
       const riskCreateResult = !capabilityResult && !proposalResult && !attached && !useProjectFiles && !withEvidence &&
@@ -611,7 +615,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
         ? await handleAssistantAction(req.user, question.trim(), thread) : null;
       const reportResult = !capabilityResult && !proposalResult && !riskCreateResult && !controlCreateResult && !findingCreateResult && !findingCloseResult && !planningResult && !riskResult && !controlResult && !actionResult && !attached && !useProjectFiles && !withEvidence
         ? await handleAssistantReport(req.user, question.trim()) : null;
-      const result = capabilityResult || proposalResult || riskCreateResult || controlCreateResult || findingCreateResult || findingCloseResult || planningResult || riskResult || controlResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
+      const result = capabilityResult || roleRequestResult || proposalResult || riskCreateResult || controlCreateResult || findingCreateResult || findingCloseResult || planningResult || riskResult || controlResult || actionResult || reportResult || (attached ? await askAttachment(attached, question.trim())
         : useProjectFiles ? await askProjectKnowledge(projectRows.filter(Boolean), thread.projectId, question.trim(),
           { user: req.user })
           : await answerAssistant(req.user, question.trim(), history, thread.focus, withEvidence,

@@ -3,6 +3,7 @@ const { logAccessChange } = require("../services/auditLogger");
 const { ROLES, ASSIGNABLE_ROLES } = require("../config/roles");
 const { USER_STATUS } = require("../config/accountRules");
 const roleRequests = require("../repositories/roleRequestRepository");
+const { createRoleRequestForUser } = require("../services/roleRequestService");
 
 // Reglas de quién puede modificar a quién.
 // Regresa un mensaje de error, o null si la acción está permitida.
@@ -115,18 +116,7 @@ module.exports = {
   createRoleRequest: async (req, res) => {
     const requestedRole = String(req.body.role || "");
     const reason = String(req.body.reason || "").trim();
-    const current = await userRepository.findById(req.user.id);
-    if (!current || current.status !== USER_STATUS.ACTIVE) return res.status(403).json({ message: "Cuenta no activa." });
-    if (current.role === ROLES.SUPER_ADMIN) return res.status(400).json({ message: "Tu cuenta ya tiene el rol de administración máxima." });
-    if (!ASSIGNABLE_ROLES.includes(requestedRole) || requestedRole === current.role) {
-      return res.status(400).json({ message: "Selecciona un rol diferente y disponible." });
-    }
-    if (reason.length < 10 || reason.length > 500) {
-      return res.status(400).json({ message: "Explica el motivo en 10 a 500 caracteres." });
-    }
-    const request = await roleRequests.create({ userId: current.id, requestedRole, reason });
-    await logAccessChange({ actor: current, action: "ROLE_CHANGE_REQUESTED", target: current,
-      details: { requestedRole, requestId: request.id } });
+    const request = await createRoleRequestForUser(req.user, requestedRole, reason);
     res.status(201).json({ request });
   },
   listPendingRoleRequests: async (req, res) => {
