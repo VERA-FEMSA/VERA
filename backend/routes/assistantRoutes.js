@@ -31,6 +31,8 @@ const { updateSingleFieldForUser } = require("../services/recordEditService");
 const { handleNotification, intent: isNotificationCommand } = require("../services/assistantNotificationService");
 const { changeReadStateForUser } = require("../services/notificationWorkflowService");
 const { handleAuditDetails, intent: isAuditDetailsCommand } = require("../services/assistantAuditDetailsService");
+const { handleAuditEdit, intent: isAuditEditCommand } = require("../services/assistantAuditEditService");
+const { editAuditForUser } = require("../services/auditEditService");
 const { reviewRoleRequestForUser } = require("../services/roleRequestService");
 const roleRequestRepository = require("../repositories/roleRequestRepository");
 const { handleProposalEdit, isProposalEditCommand } = require("../services/assistantProposalEditService");
@@ -613,6 +615,7 @@ router.post("/conversations/:id/ask", conversationEnabled,
           () => isRecordEditCommand(prompt) ? handleRecordEdit(req.user, prompt, thread) : null,
           () => isNotificationCommand(prompt) ? handleNotification(req.user, prompt, thread) : null,
           () => isAuditDetailsCommand(prompt) ? handleAuditDetails(req.user, prompt, thread) : null,
+          () => isAuditEditCommand(prompt) ? handleAuditEdit(req.user, prompt, thread) : null,
           () => isProposalCreateCommand(prompt, thread) ? handleProposalCreate(req.user, prompt, thread) : null,
           () => isRiskCreateCommand(prompt, thread) ? handleRiskCreate(req.user, prompt, thread) : null,
           () => isControlCreateCommand(prompt, thread) ? handleControlCreate(req.user, prompt, thread) : null,
@@ -995,6 +998,43 @@ router.post("/conversations/:id/ask", conversationEnabled,
         return res.json({ conversationId: thread.id, version: saved.version, userMessage,
           message: finalMessage, historySaved });
       }
+      if (result.mode === "action-reservation" && result.auditEdit?.type === "AUDIT_EDIT") {
+        const draft = result.auditEdit;
+        assistantMessage.mode = "action-reserved";
+        assistantMessage.actionReservation = { type: "AUDIT_EDIT", id: draft.id,
+          operationId: draft.operationId, createdAt: new Date().toISOString() };
+        const reserved = await conversations.update(req.user, thread.id, thread.version, { messages });
+        let updated = null;
+        let executionError = null;
+        try {
+          updated = await editAuditForUser(req.user, draft.id, { [draft.field]: draft.value },
+            { expected: draft.expected, reason: draft.reason, operationId: draft.operationId });
+        } catch (error) {
+          const current = await planningRepository.findById(draft.id);
+          if (current?.aiEditOperationId === draft.operationId) updated = { audit: current };
+          else executionError = error;
+        }
+        const finalMessage = { ...assistantMessage,
+          mode: updated ? "action-executed" : "action-guidance",
+          text: updated ? `La auditoría ${updated.audit.id} quedó actualizada. El motivo y el campo modificado están en la bitácora.`
+            : `No se confirmó la edición: ${executionError?.message || "estado desconocido"}. Revisa el expediente y prepara otra vista previa.`,
+          ...(updated ? { actionOutcome: { id: updated.audit.id } } : {}) };
+        delete finalMessage.actionReservation;
+        let saved = reserved;
+        let historySaved = false;
+        try {
+          saved = await conversations.update(req.user, thread.id, reserved.version,
+            { messages: [...messages.slice(0, -1), finalMessage],
+              scope_hash: await currentScope(req.user, thread.focus) });
+          historySaved = true;
+        } catch {
+          console.warn(JSON.stringify({ event: "VERA_AI_AUDIT_EDIT_HISTORY_STALE", id: draft.id }));
+        }
+        console.info(JSON.stringify({ event: "VERA_AI_AUDIT_EDIT", role: req.user.role,
+          success: Boolean(updated), durationMs: Date.now() - startedAt }));
+        return res.json({ conversationId: thread.id, version: saved.version, userMessage,
+          message: finalMessage, historySaved });
+      }
       if (result.mode === "action-reservation" && result.notificationRead?.type === "NOTIFICATION_READ") {
         const draft = result.notificationRead;
         assistantMessage.mode = "action-reserved";
@@ -1288,6 +1328,11 @@ router.post("/ask", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, keyGenerato
     }
     if (isAuditDetailsCommand(question.trim())) {
       return res.json({ answer: "Para recorrer los detalles y relaciones de una auditoría, inicia una conversación guardada.",
+        mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
+        asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
+    }
+    if (isAuditEditCommand(question.trim())) {
+      return res.json({ answer: "Para editar una auditoría, inicia una conversación guardada y revisa la vista previa antes de confirmar.",
         mode: "action-guidance", citations: [], references: [], coverage: { partial: false },
         asOf: new Date().toISOString(), usage: null, durationMs: Date.now() - startedAt });
     }
