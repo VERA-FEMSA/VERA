@@ -23,7 +23,7 @@ const factsFor = (type, item) => {
     risks: [["Nivel", item.level], ["Puntaje", item.score]],
     controls: [["Efectividad", item.effectiveness]],
     findings: [["Estado", item.status]],
-    pending: [["Prioridad", item.priority]]
+    pending: [["Prioridad", item.priority], ["Detalle", item.description], ["Vence", item.dueAt]]
   }[type] || [];
   return fields.filter(([, value]) => value !== null && value !== undefined && value !== "")
     .map(([label, value]) => ({ label, value: clean(value, 80) }));
@@ -36,7 +36,7 @@ const sourceFor = (type, item) => {
     : { risks: `/riesgos#risk-${encodeURIComponent(item.id)}`,
       controls: `/controles#control-${encodeURIComponent(item.id)}`,
       findings: `/controles#finding-${encodeURIComponent(item.id)}`,
-      pending: "/notificaciones" }[type];
+      pending: item.path || "/notificaciones" }[type];
   return { sourceId: `${type}:${item.id}`, type: label, id: item.id, title: item.title, path,
     facts: factsFor(type, item) };
 };

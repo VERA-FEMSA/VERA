@@ -51,7 +51,10 @@ test("Copiloto: incluye compromisos pendientes visibles sin ampliar el rol", asy
   assert.ok(own.visibleRecords.pending.some((item) => item.id === `ACTION_DUE_SOON:${action.id}`));
   assert.equal(own.coverage.pendingActionsUnavailable, false);
   const browsed = await browseAssistant(user, "Muéstrame mis pendientes");
-  assert.ok(browsed.browse.items.some((item) => item.id === `ACTION_DUE_SOON:${action.id}`));
+  const result = browsed.browse.items.find((item) => item.id === `ACTION_DUE_SOON:${action.id}`);
+  assert.ok(result);
+  assert.ok(result.path.includes(encodeURIComponent(action.id)));
+  assert.ok(result.facts.some((fact) => fact.label === "Detalle" && fact.value.includes(action.title)));
   const other = await buildAssistantContext({ id: 4, role: "JEFATURA" }, "mis actividades pendientes");
   assert.ok(!other.visibleRecords.pending.some((item) => item.id === `ACTION_DUE_SOON:${action.id}`));
 });
